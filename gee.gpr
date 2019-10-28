@@ -14,12 +14,11 @@ project Gee is
       for Global_Configuration_Pragmas use "gnat.adc";
    end Builder;   
 
---   package Ide is
---      for Compiler_Command ("Ada") use "sparc-elf-gnatmake";
---      for Gnatlist use "sparc-elf-gnatls";
---      for Gnat use "sparc-elf-gnat";
---      for Debugger_Command use "sparc-elf-gdb";
---   end Ide;
+   package Ide is
+      for Connection_Tool use "st-util";
+      for Program_Host use "localhost:4242";
+      for Communication_Protocol use "remote";
+   end Ide;
    
    for Runtime ("Ada") use "ravenscar-full-stm32f4";
    for Target use "arm-eabi";

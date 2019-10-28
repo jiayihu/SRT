@@ -229,7 +229,7 @@ package body Production_Workload is
 
     procedure P3(X : Whet_Float;
                  Y : Whet_Float;
-                 Z : out Whet_Float) is
+                 Z : in out Whet_Float) is
       Xtemp: constant Whet_Float := T * (Z + X);
       Ytemp: constant Whet_Float := T * (Xtemp + Y);
     begin
