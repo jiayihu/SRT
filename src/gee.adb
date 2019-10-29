@@ -11,6 +11,7 @@ procedure Gee is
    pragma Priority (System.Priority'First);
 begin
    loop
+      -- delay until Ada.Real_Time.Time_Last;
       null;
    end loop;
 end Gee;
