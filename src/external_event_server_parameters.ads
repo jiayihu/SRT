@@ -1,12 +1,11 @@
---  with Ada.Interrupts.Names;
+with Ada.Interrupts.Names;
 with System;
 package External_Event_Server_Parameters is
    --  a target-specific interrupt
-   --  The_Interrupt : constant Ada.Interrupts.Interrupt ID :=
-   --       Ada.Interrupts.Names.External_Interrupt_2;
-   --  the interrupt priority should be at the appropriate level
+   The_Interrupt : constant Ada.Interrupts.Interrupt_ID :=
+     Ada.Interrupts.Names.EXTI0_Interrupt;
 
-   -- @: Dovrebbe essere System.Interrupt_Priority'Last
+   --  the interrupt priority should be at the appropriate level
    Event_Queue_Priority : constant System.Interrupt_Priority :=
      System.Interrupt_Priority'First;
 

@@ -324,7 +324,7 @@ package body Production_Workload is
 
    exception
       when Error : others =>
-        Ada.Text_IO.Put_Line ("Something has gone wrong here: " & Exception_Information (Error));
+        Ada.Text_IO.Put_Line ("PW: Something has gone wrong here: " & Exception_Information (Error));
    end Small_Whetstone;
 
 end Production_Workload;

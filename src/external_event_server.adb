@@ -18,6 +18,6 @@ package body External_Event_Server is
       when Error : others =>
          --  last rites: for example
          Ada.Text_IO.Put_Line
-           ("Something has gone wrong here: " & Exception_Information (Error));
+           ("EES: Something has gone wrong here: " & Exception_Information (Error));
    end External_Event_Server;
 end External_Event_Server;

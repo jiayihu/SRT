@@ -5,8 +5,9 @@ package Event_Queue is
        External_Event_Server_Parameters.Event_Queue_Priority
        --  must be in the range of System.Interrupt_Priority
    is
-      procedure Signal;
-        --  with Attach_Handler => Some_Interrupt_ID;
+      procedure Signal
+        with Attach_Handler => External_Event_Server_Parameters.The_Interrupt;
+
       entry Wait;
    private
       --  entry barrier must be simple (i.e. boolean expression)

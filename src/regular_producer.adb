@@ -27,8 +27,6 @@ package body Regular_Producer is
          Ada.Text_IO.Put_Line ("Elapsed time: " & Duration'Image (Exe_Time) & " seconds");
          Last := Ada.Execution_Time.Clock;
 
-         Next_Time := Next_Time + Period;
-         
          --  time-based activation event
          delay until Next_Time; --  delay statement at end of loop
       end loop;
@@ -36,6 +34,6 @@ package body Regular_Producer is
       when Error : others =>
          --  last rites: for example
          Ada.Text_IO.Put_Line
-           ("Something has gone wrong here: " & Exception_Information (Error));
+           ("RP: Something has gone wrong here: " & Exception_Information (Error));
    end Regular_Producer;
 end Regular_Producer;

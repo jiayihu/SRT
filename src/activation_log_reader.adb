@@ -27,6 +27,6 @@ package body Activation_Log_Reader is
       when Error : others =>
          --  last rites: for example
          Ada.Text_IO.Put_Line
-           ("Something has gone wrong here: " & Exception_Information (Error));
+           ("ALR: Something has gone wrong here: " & Exception_Information (Error));
    end Activation_Log_Reader;
 end Activation_Log_Reader;
