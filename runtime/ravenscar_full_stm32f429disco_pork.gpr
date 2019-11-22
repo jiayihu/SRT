@@ -1,0 +1,67 @@
+aggregate project Ravenscar_Full_Stm32F429Disco_PORK is
+
+   Base_BSP_Source_Dir   := Project'Project_Dir & "cortex-m/armv7-m/stm32/stm32f429disco/";
+   Base_Installation_Dir := Project'Project_Dir;
+   Board                 := "stm32f429discopork";
+   Default_Prefix        :=
+     Base_Installation_Dir & "ravenscar-full-" & Board;
+   Install_Dir           := external ("PREFIX", Default_Prefix);
+
+   for external ("Add_Arith64") use "yes";
+   for external ("Add_C_Integration") use "newlib";
+   for external ("Add_Case_Util") use "yes";
+   for external ("Add_Complex_Type_Support") use "yes";
+   for external ("Add_Exponent_Int") use "yes";
+   for external ("Add_Exponent_LL_Float") use "yes";
+   for external ("Add_Exponent_LL_Int") use "yes";
+   for external ("Add_Exponent_Modular") use "yes";
+   for external ("Add_Float_Control") use "yes";
+   for external ("Add_IO_Exceptions") use "yes";
+   for external ("Add_Image_Based_Int") use "yes";
+   for external ("Add_Image_Char") use "yes";
+   for external ("Add_Image_Decimal") use "yes";
+   for external ("Add_Image_Enum") use "yes";
+   for external ("Add_Image_Float") use "yes";
+   for external ("Add_Image_Int") use "yes";
+   for external ("Add_Image_LL_Based_Int") use "yes";
+   for external ("Add_Image_LL_Decimal") use "yes";
+   for external ("Add_Image_LL_Int") use "yes";
+   for external ("Add_Image_Wide_Char") use "yes";
+   for external ("Add_Math_Lib") use "hardfloat_sp";
+   for external ("Add_Pack") use "yes";
+   for external ("Add_Streams") use "yes";
+   for external ("Add_Value_Based_Int") use "yes";
+   for external ("Add_Value_Bool") use "yes";
+   for external ("Add_Value_Char") use "yes";
+   for external ("Add_Value_Decimal") use "yes";
+   for external ("Add_Value_Enum") use "yes";
+   for external ("Add_Value_Float") use "yes";
+   for external ("Add_Value_Int") use "yes";
+   for external ("Add_Value_LL_Based_Int") use "yes";
+   for external ("Add_Value_LL_Decimal") use "yes";
+   for external ("Add_Value_LL_Int") use "yes";
+   for external ("Add_Value_Utils") use "yes";
+   for external ("Add_Value_Wide_Char") use "yes";
+   for external ("CPU_Family") use "arm";
+   for external ("Has_FPU") use "yes";
+   for external ("Has_libc") use "yes";
+   for external ("Memory_Profile") use "small";
+   for external ("RTS_Profile") use "ravenscar-full";
+   for external ("Text_IO") use "semihosting";
+   for external ("Timer") use "timer32";
+
+   for external ("INSTALL_PREFIX") use Install_Dir;
+
+   for Target use "arm-eabi";
+   for Runtime ("Ada") use Base_BSP_Source_Dir &
+       "ravenscar-full";
+
+   for Project_Path use
+     (Base_BSP_Source_Dir & "ravenscar-full",
+      "../lib/gnat");
+   for Project_Files use
+     (Base_BSP_Source_Dir & "ravenscar-full/libgnat.gpr",
+      Base_BSP_Source_Dir & "ravenscar-full/libgnarl.gpr",
+      Base_BSP_Source_Dir & "ravenscar-full/install.gpr");
+
+end Ravenscar_Full_Stm32F429Disco_PORK;

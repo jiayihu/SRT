@@ -1,0 +1,9 @@
+S a6a142672a2fa40992572bb7ed5beae4
+1edc217a2b9b258626999666979a0cbf ../../../../ravenscar-full-stm32f429discopork/runtime.xml
+1da6d1f970085da2065f6d68b4310b2a ../../../ld/memory-map.ld
+8fba527e69b716666f1bb1add800ebe8 ../../../ld/common-ROM.ld
+4459cfa73b46d66f0921de8d88489c79 ../../../ld/common-RAM.ld
+1edc217a2b9b258626999666979a0cbf ../../../../ravenscar-full-stm32f429discopork/runtime.xml
+3f10b53d680e18fdbd9abe4d416a49e2 ../../../../ravenscar-full-stm32f429discopork/ada_source_path
+ed9cf9709ec3cf8f4466ab7fbbba9581 ../../../../ravenscar-full-stm32f429discopork/ada_object_path
+2158cf49c27793b13389dd9282be183f ../../../../ravenscar-full-stm32f429discopork/target_properties

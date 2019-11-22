@@ -19,7 +19,7 @@ project Gee is
       for Communication_Protocol use "remote";
    end Ide;
 
-   for Runtime ("Ada") use "ravenscar-full-stm32f4";
+   for Runtime ("Ada") use Project'Project_Dir & "runtime/ravenscar-full-stm32f429discopork";
    for Target use "arm-eabi";
 
 end Gee;

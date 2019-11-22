@@ -1,0 +1,8 @@
+../../../../src/arch
+../../../../src/gnarl
+../../../src/gnarl
+../../src/crt0
+../src/crt0
+../src/gnarl
+arch
+user_srcs
