@@ -3,7 +3,7 @@
 ## Building like a true man
 
 ```bash
-$ gprbuild --target=arm-eabi -d -P gee.gpr src/gee.adb -largs -Wl,-Map=map.txt
+$ gprbuild --target=arm-eabi -f -d -P gee.gpr src/gee.adb -largs -Wl,-Map=map.txt
 $ arm-eabi-objcopy -O binary obj/gee obj/gee.bin
 $ st-flash --reset write obj/gee.bin 0x08000000
 ```
@@ -25,5 +25,7 @@ $ arm-none-eabi-gdb
 ## Compiling the runtime
 
 ```bash
+gprbuild -P ravenscar_full_stm32f429disco_pork.gpr
+runtime$ gprinstall --uninstall -P ravenscar_full_stm32f429disco_pork.gpr -p
 runtime$ gprinstall -P ravenscar_full_stm32f429disco_pork.gpr -p
 ```
