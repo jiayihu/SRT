@@ -5,13 +5,9 @@ with External_Event_Server;
 with On_Call_Producer;
 with Regular_Producer;
 with Request_Buffer;
-with System;
+with Ada.Real_Time;
 
 procedure Gee is
-   pragma Priority (System.Priority'First);
 begin
-   loop
-      -- delay until Ada.Real_Time.Time_Last;
-      null;
-   end loop;
+   delay until Ada.Real_Time.Time_Last;
 end Gee;

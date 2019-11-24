@@ -26,6 +26,5 @@ $ arm-none-eabi-gdb
 
 ```bash
 gprbuild -P ravenscar_full_stm32f429disco_pork.gpr
-runtime$ gprinstall --uninstall -P ravenscar_full_stm32f429disco_pork.gpr -p
-runtime$ gprinstall -P ravenscar_full_stm32f429disco_pork.gpr -p
+runtime$ gprinstall -P ravenscar_full_stm32f429disco_pork.gpr -p -f
 ```
