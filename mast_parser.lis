@@ -1,0 +1,261 @@
+Initializing error report...
+ 1   Processing_Resource (
+ 2      Type                   => Regular_Processor,
+ 3      Name                   => cpu,
+ 4      Max_Interrupt_Priority => 255,
+ 5      Min_Interrupt_Priority => 241,
+ 6      Worst_ISR_Switch       => 0.00,
+ 7      Avg_ISR_Switch         => 0.00,
+ 8      Best_ISR_Switch        => 0.00,
+ 9      System_Timer           => 
+ 10        ( Type           => Alarm_Clock,
+ 11          Worst_Overhead => 0.00,
+ 12          Avg_Overhead   => 0.00,
+ 13          Best_Overhead  => 0.00),
+ 14     Speed_Factor           => 100.00);
+ 16  Scheduler (
+ 17     Type            => Primary_Scheduler,
+ 18     Name            => fps,
+ 19     Host            => cpu,
+ 20     Policy          => 
+ 21        ( Type                 => Fixed_Priority,
+ 22          Worst_Context_Switch => 0.00,
+ 23          Avg_Context_Switch   => 0.00,
+ 24          Best_Context_Switch  => 0.00,
+ 25          Max_Priority         => 240,
+ 26          Min_Priority         => 1));
+ 28  Scheduling_Server (
+ 29     Type                       => Regular,
+ 30     Name                       => regular_producer,
+ 31     Server_Sched_Parameters    => 
+ 32        ( Type         => Fixed_Priority_Policy,
+ 33          The_Priority => 7,
+ 34          Preassigned  => NO),
+ 35     Scheduler                  => fps);
+ 37  Scheduling_Server (
+ 38     Type                       => Regular,
+ 39     Name                       => on_call_producer,
+ 40     Server_Sched_Parameters    => 
+ 41        ( Type                       => Sporadic_Server_Policy,
+ 42          Normal_Priority            => 5,
+ 43          Preassigned                => NO,
+ 44          Background_Priority        => 1,
+ 45          Initial_Capacity           => 0.000,
+ 46          Replenishment_Period       => 1.000,
+ 47          Max_Pending_Replenishments => 1),
+ 48     Scheduler                  => fps);
+ 50  Scheduling_Server (
+ 51     Type                       => Regular,
+ 52     Name                       => activation_log_reader,
+ 53     Server_Sched_Parameters    => 
+ 54        ( Type                       => Sporadic_Server_Policy,
+ 55          Normal_Priority            => 3,
+ 56          Preassigned                => NO,
+ 57          Background_Priority        => 1,
+ 58          Initial_Capacity           => 0.000,
+ 59          Replenishment_Period       => 1.000,
+ 60          Max_Pending_Replenishments => 1),
+ 61     Scheduler                  => fps);
+ 63  Scheduling_Server (
+ 64     Type                       => Regular,
+ 65     Name                       => external_event_server,
+ 66     Server_Sched_Parameters    => 
+ 67        ( Type         => Interrupt_FP_Policy,
+ 68          The_Priority => 11),
+ 69     Scheduler                  => fps);
+ 71  Shared_Resource (
+ 72     Type        => Immediate_Ceiling_Resource,
+ 73     Name        => request_buffer,
+ 74     Ceiling     => 9,
+ 75     Preassigned => NO);
+ 77  Shared_Resource (
+ 78     Type        => Immediate_Ceiling_Resource,
+ 79     Name        => activation_log,
+ 80     Ceiling     => 13,
+ 81     Preassigned => NO);
+ 83  Shared_Resource (
+ 84     Type        => Immediate_Ceiling_Resource,
+ 85     Name        => event_queue,
+ 86     Ceiling     => 32767,
+ 87     Preassigned => NO);
+ 89  Operation (
+ 90     Type                       => Simple,
+ 91     Name                       => small_whetstone,
+ 92     Worst_Case_Execution_Time  => 1.000E+100,
+ 93     Avg_Case_Execution_Time    => 1.000E+100,
+ 94     Best_Case_Execution_Time   => 0.00);
+ 96  Operation (
+ 97     Type                       => Simple,
+ 98     Name                       => due_activation,
+ 99     Worst_Case_Execution_Time  => 1.000E+100,
+ 100    Avg_Case_Execution_Time    => 1.000E+100,
+ 101    Best_Case_Execution_Time   => 0.00);
+ 103 Operation (
+ 104    Type                       => Simple,
+ 105    Name                       => rb_deposit,
+ 106    Worst_Case_Execution_Time  => 1.000E+100,
+ 107    Avg_Case_Execution_Time    => 1.000E+100,
+ 108    Best_Case_Execution_Time   => 0.00,
+ 109    Shared_Resources_To_Lock   => 
+ 110       ( request_buffer),
+ 111    Shared_Resources_To_Unlock => 
+ 112       ( request_buffer));
+ 114 Operation (
+ 115    Type                       => Simple,
+ 116    Name                       => rb_extract,
+ 117    Worst_Case_Execution_Time  => 1.000E+100,
+ 118    Avg_Case_Execution_Time    => 1.000E+100,
+ 119    Best_Case_Execution_Time   => 0.00,
+ 120    Shared_Resources_To_Lock   => 
+ 121       ( request_buffer),
+ 122    Shared_Resources_To_Unlock => 
+ 123       ( request_buffer));
+ 125 Operation (
+ 126    Type                     => Enclosing,
+ 127    Name                     => ocp_start,
+ 128    Worst_Case_Execution_Time=> 1.000E+100,
+ 129    Avg_Case_Execution_Time  => 1.000E+100,
+ 130    Best_Case_Execution_Time => 0.00,
+ 131    Composite_Operation_List => 
+ 132       ( rb_deposit));
+ 134 Operation (
+ 135    Type                       => Simple,
+ 136    Name                       => check_due,
+ 137    Worst_Case_Execution_Time  => 1.000E+100,
+ 138    Avg_Case_Execution_Time    => 1.000E+100,
+ 139    Best_Case_Execution_Time   => 0.00);
+ 141 Operation (
+ 142    Type                     => Enclosing,
+ 143    Name                     => rp_operation,
+ 144    Worst_Case_Execution_Time=> 1.000E+100,
+ 145    Avg_Case_Execution_Time  => 1.000E+100,
+ 146    Best_Case_Execution_Time => 0.00,
+ 147    Composite_Operation_List => 
+ 148       ( small_whetstone,
+ 149         due_activation,
+ 150         ocp_start,
+ 151         check_due,
+ 152         put_line,
+ 153         alr_signal));
+ 155 Operation (
+ 156    Type                     => Enclosing,
+ 157    Name                     => ocp_operation,
+ 158    Worst_Case_Execution_Time=> 1.000E+100,
+ 159    Avg_Case_Execution_Time  => 1.000E+100,
+ 160    Best_Case_Execution_Time => 0.00,
+ 161    Composite_Operation_List => 
+ 162       ( small_whetstone,
+ 163         put_line));
+ 165 Operation (
+ 166    Type                       => Simple,
+ 167    Name                       => put_line,
+ 168    Worst_Case_Execution_Time  => 1.000E+100,
+ 169    Avg_Case_Execution_Time    => 1.000E+100,
+ 170    Best_Case_Execution_Time   => 0.00);
+ 172 Operation (
+ 173    Type                     => Enclosing,
+ 174    Name                     => regular_producer,
+ 175    Worst_Case_Execution_Time=> 1.000E+100,
+ 176    Avg_Case_Execution_Time  => 1.000E+100,
+ 177    Best_Case_Execution_Time => 0.00,
+ 178    Composite_Operation_List => 
+ 179       ( rp_operation));
+ 181 Operation (
+ 182    Type                     => Enclosing,
+ 183    Name                     => on_call_producer,
+ 184    Worst_Case_Execution_Time=> 1.000E+100,
+ 185    Avg_Case_Execution_Time  => 1.000E+100,
+ 186    Best_Case_Execution_Time => 0.00,
+ 187    Composite_Operation_List => 
+ 188       ( rb_extract,
+ 189         ocp_operation));
+ 191 Operation (
+ 192    Type                       => Simple,
+ 193    Name                       => eq_signal,
+ 194    Worst_Case_Execution_Time  => 1.000E+100,
+ 195    Avg_Case_Execution_Time    => 1.000E+100,
+ 196    Best_Case_Execution_Time   => 0.00,
+ 197    Shared_Resources_To_Lock   => 
+ 198       ( event_queue),
+ 199    Shared_Resources_To_Unlock => 
+ 200       ( event_queue));
+ 202 Operation (
+ 203    Type                       => Simple,
+ 204    Name                       => eq_wait,
+ 205    Worst_Case_Execution_Time  => 1.000E+100,
+ 206    Avg_Case_Execution_Time    => 1.000E+100,
+ 207    Best_Case_Execution_Time   => 0.00,
+ 208    Shared_Resources_To_Lock   => 
+ 209       ( event_queue),
+ 210    Shared_Resources_To_Unlock => 
+ 211       ( event_queue));
+ 213 Operation (
+ 214    Type                       => Simple,
+ 215    Name                       => al_read,
+ 216    Worst_Case_Execution_Time  => 1.000E+100,
+ 217    Avg_Case_Execution_Time    => 1.000E+100,
+ 218    Best_Case_Execution_Time   => 0.00,
+ 219    Shared_Resources_To_Lock   => 
+ 220       ( activation_log),
+ 221    Shared_Resources_To_Unlock => 
+ 222       ( activation_log));
+ 224 Operation (
+ 225    Type                       => Simple,
+ 226    Name                       => al_write,
+ 227    Worst_Case_Execution_Time  => 1.000E+100,
+ 228    Avg_Case_Execution_Time    => 1.000E+100,
+ 229    Best_Case_Execution_Time   => 0.00,
+ 230    Shared_Resources_To_Lock   => 
+ 231       ( activation_log),
+ 232    Shared_Resources_To_Unlock => 
+ 233       ( activation_log));
+ 235 Operation (
+ 236    Type                     => Enclosing,
+ 237    Name                     => server_operation,
+ 238    Worst_Case_Execution_Time=> 1.000E+100,
+ 239    Avg_Case_Execution_Time  => 1.000E+100,
+ 240    Best_Case_Execution_Time => 0.00,
+ 241    Composite_Operation_List => 
+ 242       ( al_write));
+ 244 Operation (
+ 245    Type                     => Enclosing,
+ 246    Name                     => external_event_server,
+ 247    Worst_Case_Execution_Time=> 1.000E+100,
+ 248    Avg_Case_Execution_Time  => 1.000E+100,
+ 249    Best_Case_Execution_Time => 0.00,
+ 250    Composite_Operation_List => 
+ 251       ( eq_wait,
+ 252         server_operation));
+ 254 Operation (
+ 255    Type                       => Simple,
+ 256    Name                       => alr_signal,
+ 257    Worst_Case_Execution_Time  => 1.000E+100,
+ 258    Avg_Case_Execution_Time    => 1.000E+100,
+ 259    Best_Case_Execution_Time   => 0.00);
+ 261 Operation (
+ 262    Type                       => Simple,
+ 263    Name                       => alr_wait,
+ 264    Worst_Case_Execution_Time  => 1.000E+100,
+ 265    Avg_Case_Execution_Time    => 1.000E+100,
+ 266    Best_Case_Execution_Time   => 0.00);
+ 268 Operation (
+ 269    Type                     => Enclosing,
+ 270    Name                     => alr_operation,
+ 271    Worst_Case_Execution_Time=> 1.000E+100,
+ 272    Avg_Case_Execution_Time  => 1.000E+100,
+ 273    Best_Case_Execution_Time => 0.00,
+ 274    Composite_Operation_List => 
+ 275       ( small_whetstone,
+ 276         al_read,
+ 277         put_line));
+ 279 Operation (
+ 280    Type                     => Enclosing,
+ 281    Name                     => activation_log_reader,
+ 282    Worst_Case_Execution_Time=> 1.000E+100,
+ 283    Avg_Case_Execution_Time  => 1.000E+100,
+ 284    Best_Case_Execution_Time => 0.00,
+ 285    Composite_Operation_List => 
+ 286       ( alr_wait,
+ 287         alr_operation));
+ 288 
+

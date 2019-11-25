@@ -1,16 +1,17 @@
 Processing_Resource (
    Type                   => Regular_Processor,
    Name                   => cpu,
-   Max_Interrupt_Priority => 32767,
-   Min_Interrupt_Priority => 1,
-   Worst_ISR_Switch       => 0.00,
-   Avg_ISR_Switch         => 0.00,
-   Best_ISR_Switch        => 0.00,
+   Max_Interrupt_Priority => 255,
+   Min_Interrupt_Priority => 241,
+   Worst_ISR_Switch       => 2.578E-06,
+   Avg_ISR_Switch         => 2.578E-06,
+   Best_ISR_Switch        => 2.578E-06,
    System_Timer           => 
-      ( Type           => Alarm_Clock,
-        Worst_Overhead => 0.00,
-        Avg_Overhead   => 0.00,
-        Best_Overhead  => 0.00),
+      ( Type           => Ticker,
+        Worst_Overhead => 3.844E-06,
+        Avg_Overhead   => 3.844E-06,
+        Best_Overhead  => 0.00,
+        Period         => 0.001000),
    Speed_Factor           => 1.00);
 
 Scheduler (
@@ -19,10 +20,10 @@ Scheduler (
    Host            => cpu,
    Policy          => 
       ( Type                 => Fixed_Priority,
-        Worst_Context_Switch => 0.00,
-        Avg_Context_Switch   => 0.00,
-        Best_Context_Switch  => 0.00,
-        Max_Priority         => 32767,
+        Worst_Context_Switch => 3.090E-06,
+        Avg_Context_Switch   => 3.090E-06,
+        Best_Context_Switch  => 3.090E-06,
+        Max_Priority         => 240,
         Min_Priority         => 1));
 
 Scheduling_Server (
@@ -31,33 +32,25 @@ Scheduling_Server (
    Server_Sched_Parameters    => 
       ( Type         => Fixed_Priority_Policy,
         The_Priority => 7,
-        Preassigned  => NO),
+        Preassigned  => YES),
    Scheduler                  => fps);
 
 Scheduling_Server (
    Type                       => Regular,
    Name                       => on_call_producer,
    Server_Sched_Parameters    => 
-      ( Type                       => Sporadic_Server_Policy,
-        Normal_Priority            => 5,
-        Preassigned                => NO,
-        Background_Priority        => 1,
-        Initial_Capacity           => 0.000,
-        Replenishment_Period       => 1.000,
-        Max_Pending_Replenishments => 1),
+      ( Type         => Fixed_Priority_Policy,
+        The_Priority => 5,
+        Preassigned  => YES),
    Scheduler                  => fps);
 
 Scheduling_Server (
    Type                       => Regular,
    Name                       => activation_log_reader,
    Server_Sched_Parameters    => 
-      ( Type                       => Sporadic_Server_Policy,
-        Normal_Priority            => 3,
-        Preassigned                => NO,
-        Background_Priority        => 1,
-        Initial_Capacity           => 0.000,
-        Replenishment_Period       => 1.000,
-        Max_Pending_Replenishments => 1),
+      ( Type         => Fixed_Priority_Policy,
+        The_Priority => 3,
+        Preassigned  => YES),
    Scheduler                  => fps);
 
 Scheduling_Server (
@@ -72,19 +65,19 @@ Shared_Resource (
    Type        => Immediate_Ceiling_Resource,
    Name        => request_buffer,
    Ceiling     => 9,
-   Preassigned => NO);
+   Preassigned => YES);
 
 Shared_Resource (
    Type        => Immediate_Ceiling_Resource,
    Name        => activation_log,
    Ceiling     => 13,
-   Preassigned => NO);
+   Preassigned => YES);
 
 Shared_Resource (
    Type        => Immediate_Ceiling_Resource,
    Name        => event_queue,
-   Ceiling     => 32767,
-   Preassigned => NO);
+   Ceiling     => 241,
+   Preassigned => YES);
 
 Operation (
    Type                       => Simple,
@@ -102,7 +95,7 @@ Operation (
 
 Operation (
    Type                       => Simple,
-   Name                       => deposit,
+   Name                       => rb_deposit,
    Worst_Case_Execution_Time  => 1.000E+100,
    Avg_Case_Execution_Time    => 1.000E+100,
    Best_Case_Execution_Time   => 0.00,
@@ -113,7 +106,7 @@ Operation (
 
 Operation (
    Type                       => Simple,
-   Name                       => extract,
+   Name                       => rb_extract,
    Worst_Case_Execution_Time  => 1.000E+100,
    Avg_Case_Execution_Time    => 1.000E+100,
    Best_Case_Execution_Time   => 0.00,
@@ -124,12 +117,12 @@ Operation (
 
 Operation (
    Type                     => Enclosing,
-   Name                     => start,
+   Name                     => ocp_start,
    Worst_Case_Execution_Time=> 1.000E+100,
    Avg_Case_Execution_Time  => 1.000E+100,
    Best_Case_Execution_Time => 0.00,
    Composite_Operation_List => 
-      ( deposit));
+      ( rb_deposit));
 
 Operation (
    Type                       => Simple,
@@ -147,16 +140,14 @@ Operation (
    Composite_Operation_List => 
       ( small_whetstone,
         due_activation,
-        start,
+        ocp_start,
         check_due,
-        put_line));
+        put_line,
+        alr_signal));
 
 Operation (
-   Type                     => Enclosing,
+   Type                     => Composite,
    Name                     => ocp_operation,
-   Worst_Case_Execution_Time=> 1.000E+100,
-   Avg_Case_Execution_Time  => 1.000E+100,
-   Best_Case_Execution_Time => 0.00,
    Composite_Operation_List => 
       ( small_whetstone,
         put_line));
@@ -184,12 +175,12 @@ Operation (
    Avg_Case_Execution_Time  => 1.000E+100,
    Best_Case_Execution_Time => 0.00,
    Composite_Operation_List => 
-      ( extract,
+      ( rb_extract,
         ocp_operation));
 
 Operation (
    Type                       => Simple,
-   Name                       => signal,
+   Name                       => eq_signal,
    Worst_Case_Execution_Time  => 1.000E+100,
    Avg_Case_Execution_Time    => 1.000E+100,
    Best_Case_Execution_Time   => 0.00,
@@ -200,7 +191,7 @@ Operation (
 
 Operation (
    Type                       => Simple,
-   Name                       => wait,
+   Name                       => eq_wait,
    Worst_Case_Execution_Time  => 1.000E+100,
    Avg_Case_Execution_Time    => 1.000E+100,
    Best_Case_Execution_Time   => 0.00,
@@ -211,7 +202,7 @@ Operation (
 
 Operation (
    Type                       => Simple,
-   Name                       => read,
+   Name                       => al_read,
    Worst_Case_Execution_Time  => 1.000E+100,
    Avg_Case_Execution_Time    => 1.000E+100,
    Best_Case_Execution_Time   => 0.00,
@@ -222,7 +213,7 @@ Operation (
 
 Operation (
    Type                       => Simple,
-   Name                       => write,
+   Name                       => al_write,
    Worst_Case_Execution_Time  => 1.000E+100,
    Avg_Case_Execution_Time    => 1.000E+100,
    Best_Case_Execution_Time   => 0.00,
@@ -238,7 +229,7 @@ Operation (
    Avg_Case_Execution_Time  => 1.000E+100,
    Best_Case_Execution_Time => 0.00,
    Composite_Operation_List => 
-      ( write));
+      ( al_write));
 
 Operation (
    Type                     => Enclosing,
@@ -247,6 +238,106 @@ Operation (
    Avg_Case_Execution_Time  => 1.000E+100,
    Best_Case_Execution_Time => 0.00,
    Composite_Operation_List => 
-      ( wait,
+      ( eq_wait,
         server_operation));
 
+Operation (
+   Type                       => Simple,
+   Name                       => alr_signal,
+   Worst_Case_Execution_Time  => 1.000E+100,
+   Avg_Case_Execution_Time    => 1.000E+100,
+   Best_Case_Execution_Time   => 0.00);
+
+Operation (
+   Type                       => Simple,
+   Name                       => alr_wait,
+   Worst_Case_Execution_Time  => 1.000E+100,
+   Avg_Case_Execution_Time    => 1.000E+100,
+   Best_Case_Execution_Time   => 0.00);
+
+Operation (
+   Type                     => Enclosing,
+   Name                     => alr_operation,
+   Worst_Case_Execution_Time=> 1.000E+100,
+   Avg_Case_Execution_Time  => 1.000E+100,
+   Best_Case_Execution_Time => 0.00,
+   Composite_Operation_List => 
+      ( small_whetstone,
+        al_read,
+        put_line));
+
+Operation (
+   Type                     => Enclosing,
+   Name                     => activation_log_reader,
+   Worst_Case_Execution_Time=> 1.000E+100,
+   Avg_Case_Execution_Time  => 1.000E+100,
+   Best_Case_Execution_Time => 0.00,
+   Composite_Operation_List => 
+      ( alr_wait,
+        alr_operation));
+
+Transaction (
+   Type            => regular,
+   Name            => regular_producer,
+   External_Events => 
+      ( ( Type       => Periodic,
+          Name       => e1,
+          Period     => 1.000,
+          Max_Jitter => 0.000,
+          Phase      => 0.000)),
+   Internal_Events => 
+      ( ( Type => Regular,
+          Name => o1),
+        ( Type => Regular,
+          Name => o2),
+        ( Type => Regular,
+          Name => o3),
+        ( Type => Regular,
+          Name => o4),
+        ( Type => Regular,
+          Name => o5),
+        ( Type => Regular,
+          Name => o6),
+        ( Type => Regular,
+          Name => o7),
+        ( Type => Regular,
+          Name => o8),
+        ( Type => Regular,
+          Name => o9)),
+   Event_Handlers  => 
+      ( (Type               => System_Timed_Activity,
+         Input_Event        => e1,
+         Output_Event       => o1,
+         Activity_Operation => small_whetstone,
+         Activity_Server    => regular_producer),
+        (Type => Multicast,
+        Input_Event => o1,
+        Output_Events_List  => (o2, o6)),
+        (Type               => Activity,
+         Input_Event        => o2,
+         Output_Event       => o3,
+         Activity_Operation => due_activation,
+         Activity_Server    => regular_producer),
+        (Type               => Rate_Divisor,
+         Input_Event        => o3,
+         Output_Event       => o4,
+         Rate_Factor        => 5),
+        (Type               => Activity,
+         Input_Event        => o4,
+         Output_Event       => o5,
+         Activity_Operation => ocp_start,
+         Activity_Server    => regular_producer),
+        (Type               => Activity,
+         Input_Event        => o6,
+         Output_Event       => o7,
+         Activity_Operation => check_due,
+         Activity_Server    => regular_producer),
+        (Type               => Rate_Divisor,
+         Input_Event        => o7,
+         Output_Event       => o8,
+         Rate_Factor        => 3),
+        (Type               => Activity,
+         Input_Event        => o8,
+         Output_Event       => o9,
+         Activity_Operation => alr_signal,
+         Activity_Server    => regular_producer)));
