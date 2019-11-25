@@ -291,11 +291,11 @@ package body Production_Workload is
       --       within procedure P0.  Because the for-loop control variable
       --       of Ada is strictly local, this translation uses a while loop.
 
-      --  I := 1;
-      --  while I <= N9 loop
-      --    P0;
-      --    I := I + 1;
-      --  end loop;
+      I := 1;
+      while I <= N9 loop
+        P0;
+        I := I + 1;
+      end loop;
 
       -- Module 11: Standard mathematical functions
 
@@ -317,17 +317,14 @@ package body Production_Workload is
 
     -- Self-validation check
 
-    --  if abs( Sum / Whet_Float(Kilo_Whets) - Value ) >
-    --   Tolerance * Whet_Float(Kilo_Whets) then
-    --    raise Workload_Failure;
-    --  end if;
+   if abs( Sum / Whet_Float(Kilo_Whets) - Value ) >
+    Tolerance * Whet_Float(Kilo_Whets) then
+     raise Workload_Failure;
+   end if;
 
    exception
       when Error : others =>
-         --  Ada.Text_IO.Put_Line
-         --    ("Something has gone wrong here: " & 
-		 --     Exception_Information (Error));
-		 null;
+        Ada.Text_IO.Put_Line ("PW: Something has gone wrong here: " & Exception_Information (Error));
    end Small_Whetstone;
 
 end Production_Workload;

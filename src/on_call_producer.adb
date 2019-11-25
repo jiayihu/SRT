@@ -24,6 +24,6 @@ package body On_Call_Producer is
       when Error : others =>
          --  last rites: for example
          Ada.Text_IO.Put_Line
-           ("Something has gone wrong here: " & Exception_Information (Error));
+           ("OCP: Something has gone wrong here: " & Exception_Information (Error));
    end On_Call_Producer;
 end On_Call_Producer;

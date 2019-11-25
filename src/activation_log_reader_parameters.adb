@@ -16,6 +16,6 @@ package body Activation_Log_Reader_Parameters is
       Activation_Log.Activation_Log.Read (Interrupt_Arrival_Counter,
          Interrupt_Arrival_Time);
       --  and finally we report nominal completion of current activation
-      Ada.Text_IO.Put_Line ("End of parameterless sporadic activation.");
+      Ada.Text_IO.Put_Line ("End of parameterless sporadic activation." & Activation_Log.Range_Counter'Image (Interrupt_Arrival_Counter));
    end Activation_Log_Reader_Operation;
 end Activation_Log_Reader_Parameters;

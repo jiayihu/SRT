@@ -5,22 +5,21 @@ project Gee is
    for Object_Dir use "obj";
 
    package Compiler is
-      for Default_Switches ("Ada") 
-      use ();
+      for Default_Switches ("Ada") use ("-O0", "-gnatQ", "-gnatw.X", "-gnateE");
    end Compiler;
-   
+
    package Builder is
       for Default_Switches ("Ada") use ("-g");
       for Global_Configuration_Pragmas use "gnat.adc";
-   end Builder;   
+   end Builder;
 
    package Ide is
       for Connection_Tool use "st-util";
       for Program_Host use "localhost:4242";
       for Communication_Protocol use "remote";
    end Ide;
-   
-   for Runtime ("Ada") use "ravenscar-full-stm32f4";
+
+   for Runtime ("Ada") use Project'Project_Dir & "runtime/ravenscar-full-stm32f429discopork";
    for Target use "arm-eabi";
 
 end Gee;
