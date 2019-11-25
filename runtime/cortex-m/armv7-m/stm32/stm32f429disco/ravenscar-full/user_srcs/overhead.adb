@@ -2,21 +2,46 @@ with System.BB.Time; use System.BB.Time;
 with System.Semihosting;
 
 package body Overhead is
-   Initial_Value : Time;
+   Initial_Value : Time := 0;
+   Start_Sub_Value : Time := 0;
+   End_Sub_Value : Time := 0;
 
    procedure Start_Tracking is
    begin
       Initial_Value := Clock;
-      Put_Line ("Initial_Value" & Time'Image (Initial_Value));
+      Start_Sub_Value := 0;
+      End_Sub_Value := 0;
    end Start_Tracking;
 
-   procedure End_Tracking is
-      Now : constant Time := Clock;
-      --  Elapsed : Time;
+   procedure Start_Sub_Program is
    begin
-      --  Elapsed := Now - Initial_Value;
-      Put_Line (Time'Image (Initial_Value) & Time'Image (Now));
+      Start_Sub_Value := Clock;
+   end Start_Sub_Program;
+
+   procedure End_Sub_Program is
+   begin
+      End_Sub_Value := Clock;
+   end End_Sub_Program;
+
+   procedure End_Tracking (Item : String := "") is
+      Now : constant Time := Clock;
+      Sub_Program : Time;
+      Elapsed : Time;
+   begin
+      if Initial_Value = 0 then
+         return;
+      end if;
+
+      Sub_Program := End_Sub_Value - Start_Sub_Value;
+      Elapsed := Now - Initial_Value - Sub_Program;
+
+      Put_Line (Item & Time'Image (Elapsed));
    end End_Tracking;
+
+   procedure Log_Time is
+   begin
+      Put_Line (Time'Image (Clock));
+   end Log_Time;
 
    procedure Put_Line (Item : String) is
    begin

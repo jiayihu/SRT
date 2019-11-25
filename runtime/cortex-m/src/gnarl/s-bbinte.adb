@@ -44,7 +44,6 @@ with System.BB.Threads;
 with System.BB.Threads.Queues;
 with System.BB.Board_Support;
 with System.BB.Time;
-with Overhead;
 
 package body System.BB.Interrupts is
 
@@ -205,8 +204,6 @@ package body System.BB.Interrupts is
       Threads.Queues.Change_Priority (Self_Id, Int_Priority);
 
       CPU_Primitives.Enable_Interrupts (Int_Priority);
-
-      Overhead.End_Tracking;
 
       --  Call the user handler
 
