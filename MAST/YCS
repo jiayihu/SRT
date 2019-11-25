@@ -310,9 +310,11 @@ Transaction (
          Output_Event       => o1,
          Activity_Operation => small_whetstone,
          Activity_Server    => regular_producer),
-        (Type => Multicast,
-        Input_Event => o1,
-        Output_Events_List  => (o2, o6)),
+        (Type              => Multicast,
+         Input_Event       => o1,
+         Output_Events_List=> 
+            ( o2,
+              o6)),
         (Type               => Activity,
          Input_Event        => o2,
          Output_Event       => o3,
@@ -341,3 +343,4 @@ Transaction (
          Output_Event       => o9,
          Activity_Operation => alr_signal,
          Activity_Server    => regular_producer)));
+
