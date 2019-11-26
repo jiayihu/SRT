@@ -313,7 +313,7 @@ Operation (
 
 Transaction (
    Type            => regular,
-   Name            => regular_producer,
+   Name            => rp_transaction,
    External_Events => 
       ( ( Type       => Periodic,
           Name       => e1,
