@@ -33,7 +33,7 @@ ME_Operation Me_Simple_Operation alr_wait Operation_Canvas 360 40
 ME_Operation Me_Enclosing_Operation alr_operation Operation_Canvas 200 40 
 ME_Operation Me_Enclosing_Operation activation_log_reader Operation_Canvas 40 40 
 ME_Transaction Me_Regular_Transaction regular_producer Transaction_Canvas 200 40 
-ME_Transaction Me_Regular_Transaction event_queue_interrupt Transaction_Canvas 377 40 
+ME_Transaction Me_Regular_Transaction event_queue_interrupt Transaction_Canvas 40 40 
 ME_Link Me_External_Link e1,regular_producer regular_producer 15 15 
 ME_Link Me_Internal_Link rpo1,regular_producer regular_producer 465 55 
 ME_Link Me_Internal_Link rpo2,regular_producer regular_producer 845 285 
@@ -64,4 +64,3 @@ ME_Event_Handler Me_Simple_Event_Handler 10,regular_producer regular_producer 21
 ME_Event_Handler Me_Simple_Event_Handler 11,regular_producer regular_producer 990 40 
 ME_Event_Handler Me_Simple_Event_Handler 1,event_queue_interrupt event_queue_interrupt 230 40 
 ME_Event_Handler Me_Simple_Event_Handler 2,event_queue_interrupt event_queue_interrupt 610 40 
-ME_Event_Handler Me_Multi_Output_Event_Handler 12,regular_producer regular_producer 135 15 
