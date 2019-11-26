@@ -10,7 +10,7 @@ Processing_Resource (
       ( Type           => Ticker,
         Worst_Overhead => 3.844E-06,
         Avg_Overhead   => 3.844E-06,
-        Best_Overhead  => 3.844E-06, -- @NOTE: could be better when the closest alarm is far away
+        Best_Overhead  => 3.844E-06,
         Period         => 0.001000),
    Speed_Factor           => 1.00);
 
@@ -146,7 +146,6 @@ Operation (
    Avg_Case_Execution_Time    => 1.000E+100,
    Best_Case_Execution_Time   => 0.00);
 
--- @NOTE: not used in any Transaction
 Operation (
    Type                     => Enclosing,
    Name                     => rp_operation,
@@ -175,13 +174,12 @@ Operation (
    Avg_Case_Execution_Time    => 1.000E+100,
    Best_Case_Execution_Time   => 0.00);
 
--- @NOTE: not used in any Transaction
 Operation (
    Type                     => Enclosing,
    Name                     => regular_producer,
-   Worst_Case_Execution_Time=> 1.000E+100,
-   Avg_Case_Execution_Time  => 1.000E+100,
-   Best_Case_Execution_Time => 0.00,
+   Worst_Case_Execution_Time=> 0.019276,
+   Avg_Case_Execution_Time  => 0.019270,
+   Best_Case_Execution_Time => 0.019268,
    Composite_Operation_List => 
       ( rp_operation));
 
@@ -378,7 +376,7 @@ Transaction (
          Input_Event        => rpo5,
          Output_Event       => ocpo1,
          Activity_Operation => on_call_producer,
-         Activity_Server    => on_call_producer), -- @NOTE: On Call Producer
+         Activity_Server    => on_call_producer),
         (Type               => Activity,
          Input_Event        => rpo6,
          Output_Event       => rpo7,
@@ -397,7 +395,7 @@ Transaction (
          Input_Event        => rpo9,
          Output_Event       => alro1,
          Activity_Operation => activation_log_reader,
-         Activity_Server    => activation_log_reader), -- @NOTE: Activation Log Reader
+         Activity_Server    => activation_log_reader),
         (Type               => Activity,
          Input_Event        => rpo10,
          Output_Event       => rpo11,
