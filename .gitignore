@@ -2,7 +2,10 @@ obj
 adalib
 ravenscar-full-stm32f429discopork
 *.ali
-mast_parser.lis
+*.lis
+mast_command
+mast_results_command
+*.out
 
 # Created by https://www.gitignore.io/api/linux,macos,windows
 # Edit at https://www.gitignore.io/?templates=linux,macos,windows

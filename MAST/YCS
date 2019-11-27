@@ -171,8 +171,8 @@ Operation (
         due_activation,
         ocp_start,
         check_due,
-        put_line,
-        alr_signal));
+        alr_signal,
+        put_line));
 
 Operation (
    Type                     => Composite,
@@ -221,9 +221,6 @@ Operation (
 Operation (
    Type                       => Simple,
    Name                       => eq_wait,
-   New_Sched_Parameters       => 
-      ( Type         => Overridden_Fixed_Priority,
-        The_Priority => 241),
    Worst_Case_Execution_Time  => 1.000E-06,
    Avg_Case_Execution_Time    => 1.000E-06,
    Best_Case_Execution_Time   => 1.000E-06,
@@ -235,9 +232,6 @@ Operation (
 Operation (
    Type                       => Simple,
    Name                       => al_read,
-   New_Sched_Parameters       => 
-      ( Type         => Overridden_Fixed_Priority,
-        The_Priority => 13),
    Worst_Case_Execution_Time  => 1.000E-06,
    Avg_Case_Execution_Time    => 1.000E-06,
    Best_Case_Execution_Time   => 1.000E-06,
@@ -249,9 +243,6 @@ Operation (
 Operation (
    Type                       => Simple,
    Name                       => al_write,
-   New_Sched_Parameters       => 
-      ( Type         => Overridden_Fixed_Priority,
-        The_Priority => 13),
    Worst_Case_Execution_Time  => 2.000E-06,
    Avg_Case_Execution_Time    => 2.000E-06,
    Best_Case_Execution_Time   => 2.000E-06,
@@ -322,96 +313,63 @@ Transaction (
           Phase      => 0.000)),
    Internal_Events => 
       ( ( Type => Regular,
-          Name => rpo1),
-        ( Type => Regular,
-          Name => rpo2),
-        ( Type => Regular,
-          Name => rpo3),
-        ( Type => Regular,
-          Name => rpo4),
-        ( Type => Regular,
-          Name => rpo5),
-        ( Type => Regular,
-          Name => rpo6),
-        ( Type => Regular,
-          Name => rpo7),
-        ( Type => Regular,
-          Name => rpo8),
-        ( Type => Regular,
-          Name => rpo9),
-        ( Type => Regular,
-          Name => rpo10),
-        ( Type => Regular,
-          Name => rpo11,
+          Name => rpo1,
           Timing_Requirements => 
             ( Type             => Hard_Global_Deadline,
               Deadline         => 0.500000,
-              Referenced_Event => e1)),
-        ( Type => Regular,
-          Name => ocpo1,
-          Timing_Requirements => 
-            ( Type     => Hard_Local_Deadline,
-              Deadline => 0.800000)),
-        ( Type => Regular,
-          Name => alro1,
-          Timing_Requirements => 
-            ( Type     => Hard_Local_Deadline,
-              Deadline => 1.000))),
+              Referenced_Event => e1))),
    Event_Handlers  => 
       ( (Type               => System_Timed_Activity,
          Input_Event        => e1,
          Output_Event       => rpo1,
-         Activity_Operation => rp_small_whetstone,
-         Activity_Server    => regular_producer),
-        (Type              => Multicast,
-         Input_Event       => rpo1,
-         Output_Events_List=> 
-            ( rpo2,
-              rpo6,
-              rpo10)),
-        (Type               => Activity,
-         Input_Event        => rpo2,
-         Output_Event       => rpo3,
-         Activity_Operation => due_activation,
-         Activity_Server    => regular_producer),
-        (Type               => Rate_Divisor,
-         Input_Event        => rpo3,
-         Output_Event       => rpo4,
-         Rate_Factor        => 5),
-        (Type               => Activity,
-         Input_Event        => rpo4,
-         Output_Event       => rpo5,
-         Activity_Operation => ocp_start,
-         Activity_Server    => regular_producer),
-        (Type               => Activity,
-         Input_Event        => rpo5,
+         Activity_Operation => regular_producer,
+         Activity_Server    => regular_producer)));
+
+Transaction (
+   Type            => regular,
+   Name            => ocp_transaction,
+   External_Events => 
+      ( ( Type             => Sporadic,
+          Name             => ocp_activation,
+          Avg_Interarrival => 5.000,
+          Distribution     => UNIFORM,
+          Min_Interarrival => 5.000)),
+   Internal_Events => 
+      ( ( Type => Regular,
+          Name => ocpo1,
+          Timing_Requirements => 
+            ( Type             => Hard_Global_Deadline,
+              Deadline         => 0.800000,
+              Referenced_Event => ocp_activation))),
+   Event_Handlers  => 
+      ( (Type               => Activity,
+         Input_Event        => ocp_activation,
          Output_Event       => ocpo1,
          Activity_Operation => on_call_producer,
-         Activity_Server    => on_call_producer),
-        (Type               => Activity,
-         Input_Event        => rpo6,
-         Output_Event       => rpo7,
-         Activity_Operation => check_due,
-         Activity_Server    => regular_producer),
-        (Type               => Rate_Divisor,
-         Input_Event        => rpo7,
-         Output_Event       => rpo8,
-         Rate_Factor        => 3),
-        (Type               => Activity,
-         Input_Event        => rpo8,
-         Output_Event       => rpo9,
-         Activity_Operation => alr_signal,
-         Activity_Server    => regular_producer),
-        (Type               => Activity,
-         Input_Event        => rpo9,
+         Activity_Server    => on_call_producer)));
+
+Transaction (
+   Type            => regular,
+   Name            => alr_transaction,
+   External_Events => 
+      ( ( Type             => Sporadic,
+          Name             => alr_activation,
+          Avg_Interarrival => 3.000,
+          Distribution     => UNIFORM,
+          Min_Interarrival => 3.000)),
+   Internal_Events => 
+      ( ( Type => Regular,
+          Name => alro1,
+          Timing_Requirements => 
+            ( Type             => Hard_Global_Deadline,
+              Deadline         => 1.000000,
+              Referenced_Event => alr_activation))),
+   Event_Handlers  => 
+      ( (Type               => Activity,
+         Input_Event        => alr_activation,
          Output_Event       => alro1,
          Activity_Operation => activation_log_reader,
-         Activity_Server    => activation_log_reader),
-        (Type               => Activity,
-         Input_Event        => rpo10,
-         Output_Event       => rpo11,
-         Activity_Operation => put_line,
-         Activity_Server    => regular_producer)));
+         Activity_Server    => activation_log_reader)));
 
 Transaction (
    Type            => regular,
