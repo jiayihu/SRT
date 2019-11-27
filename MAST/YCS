@@ -377,7 +377,7 @@ Transaction (
    External_Events => 
       ( ( Type             => Sporadic,
           Name             => button_click,
-          Avg_Interarrival => 10.000,
+          Avg_Interarrival => 0.000,
           Distribution     => UNIFORM,
           Min_Interarrival => 5.000)),
    Internal_Events => 
