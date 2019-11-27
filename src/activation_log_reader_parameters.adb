@@ -2,6 +2,7 @@ with Production_Workload;
 with Activation_Log;
 with Ada.Real_Time;
 with Ada.Text_IO;
+
 package body Activation_Log_Reader_Parameters is
    --  approximately 1,250,250 processor cycles of Whetstone load
    --  on an ERC32 (a radiation-hardened SPARC for space use) at 10 Hz
@@ -16,6 +17,7 @@ package body Activation_Log_Reader_Parameters is
       Activation_Log.Activation_Log.Read (Interrupt_Arrival_Counter,
          Interrupt_Arrival_Time);
       --  and finally we report nominal completion of current activation
-      Ada.Text_IO.Put_Line ("End of parameterless sporadic activation." & Activation_Log.Range_Counter'Image (Interrupt_Arrival_Counter));
+      Ada.Text_IO.Put_Line ("End of parameterless sporadic activation.        " &
+         Activation_Log.Range_Counter'Image (Interrupt_Arrival_Counter));
    end Activation_Log_Reader_Operation;
 end Activation_Log_Reader_Parameters;

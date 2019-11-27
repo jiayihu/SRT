@@ -1,5 +1,5 @@
-
 with Request_Buffer_Parameters;
+
 package body Request_Buffer is
    type Request_Buffer_Index is
       mod Request_Buffer_Parameters.Request_Buffer_Range;

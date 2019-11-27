@@ -1,4 +1,4 @@
-package Overhead is
+package System_Overhead is
    pragma Preelaborate;
 
    procedure Start_Tracking;
@@ -13,4 +13,4 @@ package Overhead is
    --  Just log the current clock time
 
    procedure Put_Line (Item : String);
-end Overhead;
+end System_Overhead;
