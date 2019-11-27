@@ -2,6 +2,14 @@ MAST Version: 1.5.1.0
 Parsing input file: MAST/YCS
 Consistent_Transaction_Graphs met
 Consistent_Shared_Resource_Usage met
+Calculating Transaction Slacks...
+Calculating Transaction Slack for rp_transaction
+Calculating Transaction Slack for ocp_transaction
+Calculating Transaction Slack for alr_transaction
+Calculating Transaction Slack for event_queue_interrupt
+Calculating Processing Resource Slacks...
+Calculating Processing Resource Slack for cpu
+Calculating System Slack...
 Final invocation of the analysis tool...
  Utilization of cpu : 2.575%
 Utilization load of resources is under 100%
@@ -72,13 +80,18 @@ final Scheduling Parameter Overview
 Results:
 Real_Time_Situation (
    Generation_Tool    => "MAST Schedulability Analysis, version 1.5.1.0",
-   Generation_Profile => "mast_analysis holistic -v MAST/YCS",
-   Generation_Date    => 2019-11-27T11:35:50);
+   Generation_Profile => "mast_analysis holistic -v -s MAST/YCS",
+   Generation_Date    => 2019-11-27T13:01:30,
+   Results            => 
+       ((Type   => Slack,
+         Value  => 2475.4%)));
 
 Transaction (
    Name     => rp_transaction,
    Results  => 
-       ((Type                          => Timing_Result,
+       ((Type   => Slack,
+         Value  => 2477.0%),
+        (Type                          => Timing_Result,
          Event_Name                    => rpo1,
          Num_Of_Suspensions            => 0,
          Worst_Blocking_Time           => 2.000E-06,
@@ -95,7 +108,9 @@ Transaction (
 Transaction (
    Name     => ocp_transaction,
    Results  => 
-       ((Type                          => Timing_Result,
+       ((Type   => Slack,
+         Value  => 10852.0%),
+        (Type                          => Timing_Result,
          Event_Name                    => ocpo1,
          Num_Of_Suspensions            => 0,
          Worst_Blocking_Time           => 1.000E-06,
@@ -112,7 +127,9 @@ Transaction (
 Transaction (
    Name     => alr_transaction,
    Results  => 
-       ((Type                          => Timing_Result,
+       ((Type   => Slack,
+         Value  => 27088.7%),
+        (Type                          => Timing_Result,
          Event_Name                    => alro1,
          Num_Of_Suspensions            => 0,
          Worst_Blocking_Time           => 0.000,
@@ -129,7 +146,9 @@ Transaction (
 Transaction (
    Name     => event_queue_interrupt,
    Results  => 
-       ((Type                          => Timing_Result,
+       ((Type   => Slack,
+         Value  => >=100000.0%),
+        (Type                          => Timing_Result,
          Event_Name                    => eqo1,
          Num_Of_Suspensions            => 0,
          Worst_Blocking_Time           => 1.000E-06,
@@ -159,7 +178,9 @@ Transaction (
 Processing_Resource (
    Name     => cpu,
    Results  => 
-       ((Type   => Utilization,
+       ((Type   => Slack,
+         Value  => 2401.2%),
+        (Type   => Utilization,
          Total  => 2.58%)));
 
 The system is schedulable
