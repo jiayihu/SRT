@@ -1,7 +1,7 @@
 with System.BB.Time; use System.BB.Time;
 with System.Semihosting;
 
-package body Overhead is
+package body System_Overhead is
    Initial_Value : Time := 0;
    Start_Sub_Value : Time := 0;
    End_Sub_Value : Time := 0;
@@ -47,4 +47,4 @@ package body Overhead is
    begin
       System.Semihosting.Put (Item & ASCII.CR & ASCII.LF);
    end Put_Line;
-end Overhead;
+end System_Overhead;

@@ -2,6 +2,7 @@ with Request_Buffer;
 with Activation_Manager;
 with Ada.Text_IO;
 with Ada.Exceptions; use Ada.Exceptions;
+
 package body On_Call_Producer is
    --  to hide the implementation of the event buffer
    function Start (Activation_Parameter : Positive) return Boolean is

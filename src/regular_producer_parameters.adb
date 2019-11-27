@@ -3,6 +3,7 @@ with Production_Workload;
 with Activation_Log_Reader;
 with Auxiliary;
 with Ada.Text_IO;
+
 package body Regular_Producer_Parameters is
    --  approximately 5,001,000 processor cycles of Whetstone load
    --  on an ERC32 (a radiation-hardened SPARC for space use) at 10 Hz
@@ -31,6 +32,6 @@ package body Regular_Producer_Parameters is
          Activation_Log_Reader.Signal;
       end if;
       --  finally we report nominal completion of the current activation
-      Ada.Text_IO.Put_Line ("End of cyclic activation.");
+      Ada.Text_IO.Put_Line ("End of cyclic activation.                         ");
    end Regular_Producer_Operation;
 end Regular_Producer_Parameters;

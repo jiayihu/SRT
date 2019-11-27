@@ -2,6 +2,7 @@ with Ada.Synchronous_Task_Control;
 with Activation_Manager;
 with Ada.Text_IO;
 with Ada.Exceptions; use Ada.Exceptions;
+
 package body Activation_Log_Reader is
    Local_Suspension_Object : Ada.Synchronous_Task_Control.Suspension_Object;
    procedure Signal is
