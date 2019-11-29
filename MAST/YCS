@@ -6,7 +6,7 @@ Processing_Resource (
    Worst_ISR_Switch       => 2.578E-06,
    Avg_ISR_Switch         => 2.578E-06,
    Best_ISR_Switch        => 2.578E-06,
-   System_Timer           => 
+   System_Timer           =>
       ( Type           => Ticker,
         Worst_Overhead => 3.844E-06,
         Avg_Overhead   => 3.844E-06,
@@ -18,7 +18,7 @@ Scheduler (
    Type            => Primary_Scheduler,
    Name            => fps,
    Host            => cpu,
-   Policy          => 
+   Policy          =>
       ( Type                 => Fixed_Priority,
         Worst_Context_Switch => 3.090E-06,
         Avg_Context_Switch   => 3.090E-06,
@@ -29,7 +29,7 @@ Scheduler (
 Scheduling_Server (
    Type                       => Regular,
    Name                       => regular_producer,
-   Server_Sched_Parameters    => 
+   Server_Sched_Parameters    =>
       ( Type         => Fixed_Priority_Policy,
         The_Priority => 7,
         Preassigned  => YES),
@@ -38,7 +38,7 @@ Scheduling_Server (
 Scheduling_Server (
    Type                       => Regular,
    Name                       => on_call_producer,
-   Server_Sched_Parameters    => 
+   Server_Sched_Parameters    =>
       ( Type         => Fixed_Priority_Policy,
         The_Priority => 5,
         Preassigned  => YES),
@@ -47,7 +47,7 @@ Scheduling_Server (
 Scheduling_Server (
    Type                       => Regular,
    Name                       => activation_log_reader,
-   Server_Sched_Parameters    => 
+   Server_Sched_Parameters    =>
       ( Type         => Fixed_Priority_Policy,
         The_Priority => 3,
         Preassigned  => YES),
@@ -56,7 +56,7 @@ Scheduling_Server (
 Scheduling_Server (
    Type                       => Regular,
    Name                       => external_event_server,
-   Server_Sched_Parameters    => 
+   Server_Sched_Parameters    =>
       ( Type         => Fixed_Priority_Policy,
         The_Priority => 11,
         Preassigned  => YES),
@@ -65,7 +65,7 @@ Scheduling_Server (
 Scheduling_Server (
    Type                       => Regular,
    Name                       => interrupt_server,
-   Server_Sched_Parameters    => 
+   Server_Sched_Parameters    =>
       ( Type         => Interrupt_FP_Policy,
         The_Priority => 241),
    Scheduler                  => fps);
@@ -119,29 +119,29 @@ Operation (
 Operation (
    Type                       => Simple,
    Name                       => rb_deposit,
-   New_Sched_Parameters       => 
+   New_Sched_Parameters       =>
       ( Type         => Overridden_Fixed_Priority,
         The_Priority => 9),
    Worst_Case_Execution_Time  => 2.000E-06,
    Avg_Case_Execution_Time    => 2.000E-06,
    Best_Case_Execution_Time   => 2.000E-06,
-   Shared_Resources_To_Lock   => 
+   Shared_Resources_To_Lock   =>
       ( request_buffer),
-   Shared_Resources_To_Unlock => 
+   Shared_Resources_To_Unlock =>
       ( request_buffer));
 
 Operation (
    Type                       => Simple,
    Name                       => rb_extract,
-   New_Sched_Parameters       => 
+   New_Sched_Parameters       =>
       ( Type         => Overridden_Fixed_Priority,
         The_Priority => 9),
    Worst_Case_Execution_Time  => 2.000E-06,
    Avg_Case_Execution_Time    => 2.000E-06,
    Best_Case_Execution_Time   => 2.000E-06,
-   Shared_Resources_To_Lock   => 
+   Shared_Resources_To_Lock   =>
       ( request_buffer),
-   Shared_Resources_To_Unlock => 
+   Shared_Resources_To_Unlock =>
       ( request_buffer));
 
 Operation (
@@ -150,7 +150,7 @@ Operation (
    Worst_Case_Execution_Time=> 6.000E-06,
    Avg_Case_Execution_Time  => 6.000E-06,
    Best_Case_Execution_Time => 6.000E-06,
-   Composite_Operation_List => 
+   Composite_Operation_List =>
       ( rb_deposit));
 
 Operation (
@@ -166,7 +166,7 @@ Operation (
    Worst_Case_Execution_Time=> 0.019276,
    Avg_Case_Execution_Time  => 0.019270,
    Best_Case_Execution_Time => 0.019268,
-   Composite_Operation_List => 
+   Composite_Operation_List =>
       ( rp_small_whetstone,
         due_activation,
         ocp_start,
@@ -177,7 +177,7 @@ Operation (
 Operation (
    Type                     => Composite,
    Name                     => ocp_operation,
-   Composite_Operation_List => 
+   Composite_Operation_List =>
       ( ocp_small_whetstone,
         put_line));
 
@@ -191,19 +191,19 @@ Operation (
 Operation (
    Type                     => Enclosing,
    Name                     => regular_producer,
-   Worst_Case_Execution_Time=> 0.019286,
-   Avg_Case_Execution_Time  => 0.019280,
-   Best_Case_Execution_Time => 0.019278,
-   Composite_Operation_List => 
+   Worst_Case_Execution_Time=> 0.019382,
+   Avg_Case_Execution_Time  => 0.019376,
+   Best_Case_Execution_Time => 0.019373,
+   Composite_Operation_List =>
       ( rp_operation));
 
 Operation (
    Type                     => Enclosing,
    Name                     => on_call_producer,
-   Worst_Case_Execution_Time=> 0.007100,
-   Avg_Case_Execution_Time  => 0.007100,
-   Best_Case_Execution_Time => 0.007100,
-   Composite_Operation_List => 
+   Worst_Case_Execution_Time=> 0.007141,
+   Avg_Case_Execution_Time  => 0.007141,
+   Best_Case_Execution_Time => 0.007140,
+   Composite_Operation_List =>
       ( rb_extract,
         ocp_operation));
 
@@ -213,9 +213,9 @@ Operation (
    Worst_Case_Execution_Time  => 1.000E-06,
    Avg_Case_Execution_Time    => 1.000E-06,
    Best_Case_Execution_Time   => 1.000E-06,
-   Shared_Resources_To_Lock   => 
+   Shared_Resources_To_Lock   =>
       ( event_queue),
-   Shared_Resources_To_Unlock => 
+   Shared_Resources_To_Unlock =>
       ( event_queue));
 
 Operation (
@@ -224,9 +224,9 @@ Operation (
    Worst_Case_Execution_Time  => 1.000E-06,
    Avg_Case_Execution_Time    => 1.000E-06,
    Best_Case_Execution_Time   => 1.000E-06,
-   Shared_Resources_To_Lock   => 
+   Shared_Resources_To_Lock   =>
       ( event_queue),
-   Shared_Resources_To_Unlock => 
+   Shared_Resources_To_Unlock =>
       ( event_queue));
 
 Operation (
@@ -235,9 +235,9 @@ Operation (
    Worst_Case_Execution_Time  => 1.000E-06,
    Avg_Case_Execution_Time    => 1.000E-06,
    Best_Case_Execution_Time   => 1.000E-06,
-   Shared_Resources_To_Lock   => 
+   Shared_Resources_To_Lock   =>
       ( activation_log),
-   Shared_Resources_To_Unlock => 
+   Shared_Resources_To_Unlock =>
       ( activation_log));
 
 Operation (
@@ -246,9 +246,9 @@ Operation (
    Worst_Case_Execution_Time  => 2.000E-06,
    Avg_Case_Execution_Time    => 2.000E-06,
    Best_Case_Execution_Time   => 2.000E-06,
-   Shared_Resources_To_Lock   => 
+   Shared_Resources_To_Lock   =>
       ( activation_log),
-   Shared_Resources_To_Unlock => 
+   Shared_Resources_To_Unlock =>
       ( activation_log));
 
 Operation (
@@ -257,7 +257,7 @@ Operation (
    Worst_Case_Execution_Time=> 4.000E-06,
    Avg_Case_Execution_Time  => 4.000E-06,
    Best_Case_Execution_Time => 4.000E-06,
-   Composite_Operation_List => 
+   Composite_Operation_List =>
       ( al_write));
 
 Operation (
@@ -266,7 +266,7 @@ Operation (
    Worst_Case_Execution_Time=> 1.000E-05,
    Avg_Case_Execution_Time  => 1.000E-05,
    Best_Case_Execution_Time => 1.000E-05,
-   Composite_Operation_List => 
+   Composite_Operation_List =>
       ( eq_wait,
         server_operation));
 
@@ -290,35 +290,38 @@ Operation (
    Worst_Case_Execution_Time=> 0.003557,
    Avg_Case_Execution_Time  => 0.003557,
    Best_Case_Execution_Time => 0.003557,
-   Composite_Operation_List => 
+   Composite_Operation_List =>
       ( alr_small_whetstone,
         al_read,
         put_line));
 
 Operation (
-   Type                     => Composite,
+   Type                     => Enclosing,
    Name                     => activation_log_reader,
-   Composite_Operation_List => 
+   Worst_Case_Execution_Time=> 0.003589,
+   Avg_Case_Execution_Time  => 0.003589,
+   Best_Case_Execution_Time => 0.003588,
+   Composite_Operation_List =>
       ( alr_wait,
         alr_operation));
 
 Transaction (
    Type            => regular,
    Name            => rp_transaction,
-   External_Events => 
+   External_Events =>
       ( ( Type       => Periodic,
           Name       => e1,
           Period     => 1.000,
           Max_Jitter => 0.000,
           Phase      => 0.000)),
-   Internal_Events => 
+   Internal_Events =>
       ( ( Type => Regular,
           Name => rpo1,
-          Timing_Requirements => 
+          Timing_Requirements =>
             ( Type             => Hard_Global_Deadline,
               Deadline         => 0.500000,
               Referenced_Event => e1))),
-   Event_Handlers  => 
+   Event_Handlers  =>
       ( (Type               => System_Timed_Activity,
          Input_Event        => e1,
          Output_Event       => rpo1,
@@ -328,20 +331,20 @@ Transaction (
 Transaction (
    Type            => regular,
    Name            => ocp_transaction,
-   External_Events => 
+   External_Events =>
       ( ( Type             => Sporadic,
           Name             => ocp_activation,
           Avg_Interarrival => 5.000,
           Distribution     => UNIFORM,
           Min_Interarrival => 5.000)),
-   Internal_Events => 
+   Internal_Events =>
       ( ( Type => Regular,
           Name => ocpo1,
-          Timing_Requirements => 
+          Timing_Requirements =>
             ( Type             => Hard_Global_Deadline,
               Deadline         => 0.800000,
               Referenced_Event => ocp_activation))),
-   Event_Handlers  => 
+   Event_Handlers  =>
       ( (Type               => Activity,
          Input_Event        => ocp_activation,
          Output_Event       => ocpo1,
@@ -351,20 +354,20 @@ Transaction (
 Transaction (
    Type            => regular,
    Name            => alr_transaction,
-   External_Events => 
+   External_Events =>
       ( ( Type             => Sporadic,
           Name             => alr_activation,
           Avg_Interarrival => 3.000,
           Distribution     => UNIFORM,
           Min_Interarrival => 3.000)),
-   Internal_Events => 
+   Internal_Events =>
       ( ( Type => Regular,
           Name => alro1,
-          Timing_Requirements => 
+          Timing_Requirements =>
             ( Type             => Hard_Global_Deadline,
               Deadline         => 1.000000,
               Referenced_Event => alr_activation))),
-   Event_Handlers  => 
+   Event_Handlers  =>
       ( (Type               => Activity,
          Input_Event        => alr_activation,
          Output_Event       => alro1,
@@ -374,22 +377,22 @@ Transaction (
 Transaction (
    Type            => regular,
    Name            => event_queue_interrupt,
-   External_Events => 
+   External_Events =>
       ( ( Type             => Sporadic,
           Name             => button_click,
           Avg_Interarrival => 0.000,
           Distribution     => UNIFORM,
           Min_Interarrival => 5.000)),
-   Internal_Events => 
+   Internal_Events =>
       ( ( Type => Regular,
           Name => eqo1),
         ( Type => Regular,
           Name => eqo2,
-          Timing_Requirements => 
+          Timing_Requirements =>
             ( Type             => Hard_Global_Deadline,
               Deadline         => 0.100000,
               Referenced_Event => button_click))),
-   Event_Handlers  => 
+   Event_Handlers  =>
       ( (Type               => Activity,
          Input_Event        => button_click,
          Output_Event       => eqo1,

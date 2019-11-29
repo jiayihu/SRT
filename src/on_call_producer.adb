@@ -2,6 +2,8 @@ with Request_Buffer;
 with Activation_Manager;
 with Ada.Text_IO;
 with Ada.Exceptions; use Ada.Exceptions;
+with Ada.Real_Time;
+with Overrun;
 
 package body On_Call_Producer is
    --  to hide the implementation of the event buffer
@@ -15,11 +17,13 @@ package body On_Call_Producer is
       --  for tasks to achieve simultaneous activation
       Activation_Manager.Activation_Sporadic;
       loop
+         Overrun.Start (1, Ada.Real_Time.Milliseconds (800));
          --  suspending request for activation event with data exchange
          Current_Workload := Request_Buffer.Extract;
          --  non-suspending operation code
          On_Call_Producer_Parameters.On_Call_Producer_Operation
            (Current_Workload);
+         Overrun.Check (1);
       end loop;
    exception
       when Error : others =>

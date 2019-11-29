@@ -2,6 +2,7 @@ with Ada.Real_Time; use Ada.Real_Time;
 with Activation_Manager;
 with Ada.Text_IO;
 with Ada.Exceptions; use Ada.Exceptions;
+with Overrun;
 
 package body Regular_Producer is
    Period : constant Ada.Real_Time.Time_Span :=
@@ -14,9 +15,11 @@ package body Regular_Producer is
       --  for tasks to achieve simultaneous activation
       Activation_Manager.Activation_Cyclic (Next_Time);
       loop
+         Overrun.Start (0, Period);
          Next_Time := Next_Time + Period;
          --  non-suspending operation code
          Regular_Producer_Parameters.Regular_Producer_Operation;
+         Overrun.Check (0);
          --  time-based activation event
          delay until Next_Time; --  delay statement at end of loop
       end loop;
