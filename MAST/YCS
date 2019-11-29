@@ -210,9 +210,9 @@ Operation (
 Operation (
    Type                       => Simple,
    Name                       => eq_signal,
-   Worst_Case_Execution_Time  => 1.000E-07,
-   Avg_Case_Execution_Time    => 1.000E-07,
-   Best_Case_Execution_Time   => 1.000E-07,
+   Worst_Case_Execution_Time  => 1.000E-06,
+   Avg_Case_Execution_Time    => 1.000E-06,
+   Best_Case_Execution_Time   => 1.000E-06,
    Shared_Resources_To_Lock   => 
       ( event_queue),
    Shared_Resources_To_Unlock => 
