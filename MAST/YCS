@@ -91,40 +91,32 @@ Shared_Resource (
 Operation (
    Type                       => Simple,
    Name                       => rp_small_whetstone,
-   Worst_Case_Execution_Time  => 0.019259,
-   Avg_Case_Execution_Time    => 0.019259,
-   Best_Case_Execution_Time   => 0.019259);
+   Worst_Case_Execution_Time  => 0.019363);
 
 Operation (
    Type                       => Simple,
    Name                       => ocp_small_whetstone,
-   Worst_Case_Execution_Time  => 0.007082,
-   Avg_Case_Execution_Time    => 0.007082,
-   Best_Case_Execution_Time   => 0.007082);
+   Worst_Case_Execution_Time  => 0.007122);
 
 Operation (
    Type                       => Simple,
    Name                       => alr_small_whetstone,
-   Worst_Case_Execution_Time  => 0.003542,
-   Avg_Case_Execution_Time    => 0.003542,
-   Best_Case_Execution_Time   => 0.003542);
+   Worst_Case_Execution_Time  => 0.003562);
 
 Operation (
    Type                       => Simple,
    Name                       => due_activation,
-   Worst_Case_Execution_Time  => 1.000E-06,
-   Avg_Case_Execution_Time    => 1.000E-06,
-   Best_Case_Execution_Time   => 1.000E-06);
+   Worst_Case_Execution_Time  => 1.000E-06);
+
+Operation (
+   Type                       => Simple,
+   Name                       => check_due,
+   Worst_Case_Execution_Time  => 1.000E-06);
 
 Operation (
    Type                       => Simple,
    Name                       => rb_deposit,
-   New_Sched_Parameters       =>
-      ( Type         => Overridden_Fixed_Priority,
-        The_Priority => 9),
    Worst_Case_Execution_Time  => 2.000E-06,
-   Avg_Case_Execution_Time    => 2.000E-06,
-   Best_Case_Execution_Time   => 2.000E-06,
    Shared_Resources_To_Lock   =>
       ( request_buffer),
    Shared_Resources_To_Unlock =>
@@ -133,12 +125,7 @@ Operation (
 Operation (
    Type                       => Simple,
    Name                       => rb_extract,
-   New_Sched_Parameters       =>
-      ( Type         => Overridden_Fixed_Priority,
-        The_Priority => 9),
    Worst_Case_Execution_Time  => 2.000E-06,
-   Avg_Case_Execution_Time    => 2.000E-06,
-   Best_Case_Execution_Time   => 2.000E-06,
    Shared_Resources_To_Lock   =>
       ( request_buffer),
    Shared_Resources_To_Unlock =>
@@ -146,26 +133,31 @@ Operation (
 
 Operation (
    Type                     => Enclosing,
+   Name                     => rb_extract_enclosing,
+   Worst_Case_Execution_Time=> 7.000E-06,
+   Composite_Operation_List =>
+      ( rb_extract));
+
+Operation (
+   Type                       => Simple,
+   Name                       => overrun_detection,
+   Worst_Case_Execution_Time  => 5.000E-06);
+
+Operation (
+   Type                       => Simple,
+   Name                       => delay_until,
+   Worst_Case_Execution_Time  => 7.000E-06);
+
+Operation (
+   Type                     => Enclosing,
    Name                     => ocp_start,
    Worst_Case_Execution_Time=> 6.000E-06,
-   Avg_Case_Execution_Time  => 6.000E-06,
-   Best_Case_Execution_Time => 6.000E-06,
    Composite_Operation_List =>
       ( rb_deposit));
 
 Operation (
-   Type                       => Simple,
-   Name                       => check_due,
-   Worst_Case_Execution_Time  => 1.000E-06,
-   Avg_Case_Execution_Time    => 1.000E-06,
-   Best_Case_Execution_Time   => 1.000E-06);
-
-Operation (
-   Type                     => Enclosing,
+   Type                     => Composite,
    Name                     => rp_operation,
-   Worst_Case_Execution_Time=> 0.019276,
-   Avg_Case_Execution_Time  => 0.019270,
-   Best_Case_Execution_Time => 0.019268,
    Composite_Operation_List =>
       ( rp_small_whetstone,
         due_activation,
@@ -184,35 +176,28 @@ Operation (
 Operation (
    Type                       => Simple,
    Name                       => put_line,
-   Worst_Case_Execution_Time  => 1.400E-05,
-   Avg_Case_Execution_Time    => 1.400E-05,
-   Best_Case_Execution_Time   => 1.400E-05);
+   Worst_Case_Execution_Time  => 1.400E-05);
 
 Operation (
-   Type                     => Enclosing,
+   Type                     => Composite,
    Name                     => regular_producer,
-   Worst_Case_Execution_Time=> 0.019382,
-   Avg_Case_Execution_Time  => 0.019376,
-   Best_Case_Execution_Time => 0.019373,
    Composite_Operation_List =>
-      ( rp_operation));
+      ( overrun_detection,
+        rp_operation,
+        delay_until));
 
 Operation (
-   Type                     => Enclosing,
+   Type                     => Composite,
    Name                     => on_call_producer,
-   Worst_Case_Execution_Time=> 0.007141,
-   Avg_Case_Execution_Time  => 0.007141,
-   Best_Case_Execution_Time => 0.007140,
    Composite_Operation_List =>
-      ( rb_extract,
+      ( overrun_detection,
+        rb_extract,
         ocp_operation));
 
 Operation (
    Type                       => Simple,
    Name                       => eq_signal,
    Worst_Case_Execution_Time  => 1.000E-06,
-   Avg_Case_Execution_Time    => 1.000E-06,
-   Best_Case_Execution_Time   => 1.000E-06,
    Shared_Resources_To_Lock   =>
       ( event_queue),
    Shared_Resources_To_Unlock =>
@@ -222,8 +207,6 @@ Operation (
    Type                       => Simple,
    Name                       => eq_wait,
    Worst_Case_Execution_Time  => 1.000E-06,
-   Avg_Case_Execution_Time    => 1.000E-06,
-   Best_Case_Execution_Time   => 1.000E-06,
    Shared_Resources_To_Lock   =>
       ( event_queue),
    Shared_Resources_To_Unlock =>
@@ -233,19 +216,22 @@ Operation (
    Type                       => Simple,
    Name                       => al_read,
    Worst_Case_Execution_Time  => 1.000E-06,
-   Avg_Case_Execution_Time    => 1.000E-06,
-   Best_Case_Execution_Time   => 1.000E-06,
    Shared_Resources_To_Lock   =>
       ( activation_log),
    Shared_Resources_To_Unlock =>
       ( activation_log));
 
 Operation (
+   Type                       => Enclosing,
+   Name                       => al_read_enclosing,
+   Worst_Case_Execution_Time  => 4.000E-06,
+   Composite_Operation_List =>
+      ( al_read));
+
+Operation (
    Type                       => Simple,
    Name                       => al_write,
    Worst_Case_Execution_Time  => 2.000E-06,
-   Avg_Case_Execution_Time    => 2.000E-06,
-   Best_Case_Execution_Time   => 2.000E-06,
    Shared_Resources_To_Lock   =>
       ( activation_log),
    Shared_Resources_To_Unlock =>
@@ -255,8 +241,6 @@ Operation (
    Type                     => Enclosing,
    Name                     => server_operation,
    Worst_Case_Execution_Time=> 4.000E-06,
-   Avg_Case_Execution_Time  => 4.000E-06,
-   Best_Case_Execution_Time => 4.000E-06,
    Composite_Operation_List =>
       ( al_write));
 
@@ -264,8 +248,6 @@ Operation (
    Type                     => Enclosing,
    Name                     => external_event_server,
    Worst_Case_Execution_Time=> 1.000E-05,
-   Avg_Case_Execution_Time  => 1.000E-05,
-   Best_Case_Execution_Time => 1.000E-05,
    Composite_Operation_List =>
       ( eq_wait,
         server_operation));
@@ -273,36 +255,27 @@ Operation (
 Operation (
    Type                       => Simple,
    Name                       => alr_signal,
-   Worst_Case_Execution_Time  => 5.000E-06,
-   Avg_Case_Execution_Time    => 5.000E-06,
-   Best_Case_Execution_Time   => 5.000E-06);
+   Worst_Case_Execution_Time  => 5.000E-06);
 
 Operation (
    Type                       => Simple,
    Name                       => alr_wait,
-   Worst_Case_Execution_Time  => 6.000E-06,
-   Avg_Case_Execution_Time    => 6.000E-06,
-   Best_Case_Execution_Time   => 6.000E-06);
+   Worst_Case_Execution_Time  => 6.000E-06);
 
 Operation (
-   Type                     => Enclosing,
+   Type                     => Composite,
    Name                     => alr_operation,
-   Worst_Case_Execution_Time=> 0.003557,
-   Avg_Case_Execution_Time  => 0.003557,
-   Best_Case_Execution_Time => 0.003557,
    Composite_Operation_List =>
       ( alr_small_whetstone,
-        al_read,
+        al_read_enclosing,
         put_line));
 
 Operation (
-   Type                     => Enclosing,
+   Type                     => Composite,
    Name                     => activation_log_reader,
-   Worst_Case_Execution_Time=> 0.003589,
-   Avg_Case_Execution_Time  => 0.003589,
-   Best_Case_Execution_Time => 0.003588,
    Composite_Operation_List =>
-      ( alr_wait,
+      ( overrun_detection,
+        alr_wait,
         alr_operation));
 
 Transaction (
