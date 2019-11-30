@@ -16,11 +16,18 @@ $ st-flash --reset write obj/gee.bin 0x08000000
 $ st-util --semihosting
 ```
 
-In a different tab:
+In a different tab run the following command. This will automatically use the commands defined in `.gdbinit`.
 
 ```bash
 $ arm-none-eabi-gdb
 
+(gdb) continue
+```
+
+If you have just recompiled the application and want to load on the board without exiting from gdb:
+
+```bash
+(gdb) source .gdbinit
 (gdb) continue
 ```
 
