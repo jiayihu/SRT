@@ -13,7 +13,8 @@
 \usepackage{nicefrac}       % compact symbols for 1/2, etc.
 \usepackage{microtype}      % microtypography
 \usepackage{lipsum}		% Can be removed after putting your text content
-
+\usepackage{listings}
+\usepackage{url}
 
 
 \title{A MAST analysis of a Ravenscar application example}
@@ -85,6 +86,314 @@ The example system includes a periodic process that handles orders for a variabl
 
 MAST, a Modeling and Analysis Suite for Real-Time Applications, is a model for representing the temporal and logical elements of real-time applications \cite{mast}. This model allows a very rich description of the system, including the effects of event or message-based synchronization, multiprocessor and distributed architectures as well as shared resource synchronization.
 
+MAST offers a graphical user interface but it's still immature to be completely usable. Too many frequent bugs.
+
+\section{MAST Model}
+
+For a reference to the MAST syntax, visit \url{https://mast.unican.es/mast_description.pdf}. Since we are dealing with hard real-time analysis, we define only the WCET to the operations.
+
+\begin{lstlisting}
+Processing_Resource (
+   Type                   => Regular_Processor,
+   Name                   => cpu,
+   Max_Interrupt_Priority => 255,
+   Min_Interrupt_Priority => 241,
+   Worst_ISR_Switch       => 2.578E-06,
+   System_Timer           =>
+      ( Type           => Ticker,
+        Worst_Overhead => 3.844E-06,
+        Period         => 0.001000),
+   Speed_Factor           => 1.00);
+\end{lstlisting}
+
+We have a board with only one CPU and interrupt ranges are taken from \texttt{System} package. Task priorities range from 1 to 240, whereas interrupt priorities go from 241 to 255. So we have at maximum 240 task priorities, if we ever would need more priorities we could use the technique described in \cite{limited-priorities}. The Interrupt Service Routine overhead is measured as the time taken to execute \texttt{Interrupt\_Handler} in \texttt{System.BB.Board\_Support} package, apart from the execution time of the user-defined interrupt handler. It takes into account the overhead of managing the Task and Interrupt Execution Clocks \cite{etc}.
+
+The system timer used by the board is Tick Scheduling \cite{tick-scheduling}, which is accounted in the analysis using the technique described in \cite{effects-runtime}. The period of the tick is 1ms, as defined in \texttt{System.BB.Board\_Support} package, and the worst overhead is measured as the time taken to execute \texttt{Timer\_Interrupt\_Handler}, the trap handler defined in the same package for \texttt{Sys\_Tick} trap.
+
+\begin{lstlisting}
+Scheduler (
+   Type            => Primary_Scheduler,
+   Name            => fps,
+   Host            => cpu,
+   Policy          =>
+      ( Type                 => Fixed_Priority,
+        Worst_Context_Switch => 3.090E-06,
+        Max_Priority         => 240,
+        Min_Priority         => 1));
+\end{lstlisting}
+
+We only have one primary scheduler in the system, no hierarchical scheduling. The context switch overhead is measured as time to trigger the context switch interrupt \texttt{Pend\_SV} and the execution time of \texttt{Pend\_SV\_Handler} in \texttt{System.BB.CPU\_Primitives.Context\_Switch\_Trigger} package, to save the active context and load the new one.
+
+\begin{lstlisting}
+Scheduling_Server (
+   Type                       => Regular,
+   Name                       => regular_producer,
+   Server_Sched_Parameters    =>
+      ( Type         => Fixed_Priority_Policy,
+        The_Priority => 7,
+        Preassigned  => YES),
+   Scheduler                  => fps);
+
+Scheduling_Server (
+   Type                       => Regular,
+   Name                       => on_call_producer,
+   Server_Sched_Parameters    =>
+      ( Type         => Fixed_Priority_Policy,
+        The_Priority => 5,
+        Preassigned  => YES),
+   Scheduler                  => fps);
+
+Scheduling_Server (
+   Type                       => Regular,
+   Name                       => activation_log_reader,
+   Server_Sched_Parameters    =>
+      ( Type         => Fixed_Priority_Policy,
+        The_Priority => 3,
+        Preassigned  => YES),
+   Scheduler                  => fps);
+
+Scheduling_Server (
+   Type                       => Regular,
+   Name                       => external_event_server,
+   Server_Sched_Parameters    =>
+      ( Type         => Fixed_Priority_Policy,
+        The_Priority => 11,
+        Preassigned  => YES),
+   Scheduler                  => fps);
+
+Scheduling_Server (
+   Type                       => Regular,
+   Name                       => interrupt_server,
+   Server_Sched_Parameters    =>
+      ( Type         => Interrupt_FP_Policy,
+        The_Priority => 241),
+   Scheduler                  => fps);
+\end{lstlisting}
+
+Each task is a Scheduling Server, whereas \texttt{interrupt\_server} models the runtime which runs the Interrupt Service Routine using the technique described in \cite{interrupt-handler}.
+
+\begin{lstlisting}
+Shared_Resource (
+   Type        => Immediate_Ceiling_Resource,
+   Name        => request_buffer,
+   Ceiling     => 9,
+   Preassigned => YES);
+
+Shared_Resource (
+   Type        => Immediate_Ceiling_Resource,
+   Name        => activation_log,
+   Ceiling     => 13,
+   Preassigned => YES);
+
+Shared_Resource (
+   Type        => Immediate_Ceiling_Resource,
+   Name        => event_queue,
+   Ceiling     => 241,
+   Preassigned => YES);
+\end{lstlisting}
+
+Protected objects are modeled as Shared Resourses which use the Immediate Priority Ceiling Protocol, the same defined as \texttt{Priority Ceiling Locking} in Ada Reference Manual D.3.
+
+\begin{lstlisting}
+Operation (
+   Type                       => Simple,
+   Name                       => rb_deposit,
+   Worst_Case_Execution_Time  => 2.000E-06,
+   Shared_Resources_To_Lock   =>
+      ( request_buffer),
+   Shared_Resources_To_Unlock =>
+      ( request_buffer));
+
+Operation (
+   Type                       => Simple,
+   Name                       => rb_extract,
+   Worst_Case_Execution_Time  => 2.000E-06,
+   Shared_Resources_To_Lock   =>
+      ( request_buffer),
+   Shared_Resources_To_Unlock =>
+      ( request_buffer));
+\end{lstlisting}
+
+Protected methods are modeled as simple operations which lock and unlock the protected object resourse. The execution time is measured from the first line of the method to the last one, so it doesn't include the runtime overhead associated with invoking protected methods.
+
+\begin{lstlisting}
+Operation (
+   Type                     => Enclosing,
+   Name                     => ocp_start,
+   Worst_Case_Execution_Time=> 6.000E-06,
+   Composite_Operation_List =>
+      ( rb_deposit));
+
+Operation (
+   Type                     => Enclosing,
+   Name                     => rb_extract_enclosing,
+   Worst_Case_Execution_Time=> 7.000E-06,
+   Composite_Operation_List =>
+      ( rb_extract));
+\end{lstlisting}
+
+For each protected method there is an Enclosing operation which takes into account the overhead associated with invoking protected methods. Sometimes it's already a method defined by GEE, other times it's defined in the model on purpose. By doing so we can define the more complex methods as Composite operations, which have the execution time as the sum of the execution times of the comprised operations.
+
+\begin{lstlisting}
+Operation (
+   Type                       => Simple,
+   Name                       => rp_small_whetstone,
+   Worst_Case_Execution_Time  => 0.019363);
+
+Operation (
+   Type                     => Composite,
+   Name                     => rp_operation,
+   Composite_Operation_List =>
+      ( rp_small_whetstone,
+        due_activation,
+        ocp_start,
+        check_due,
+        alr_signal,
+        put_line));
+
+Operation (
+   Type                     => Composite,
+   Name                     => regular_producer,
+   Composite_Operation_List =>
+      ( overrun_detection,
+        rp_operation,
+        delay_until));
+\end{lstlisting}
+
+Therefore, by changing the worload parameter of \texttt{Small\_Whetstone} in the application implementation, we will be able to test different utilisation of the system with likewise ease in updating the MAST model. The Whetstone execution time is proportional to the workload parameter. If we wanted to try what happens by increasing the load of factor 10, we would just increase the WCET to \texttt{0.19363}, without the need to measure again all the Enclosing operations, since all the methods which use the Whetstone are defined as Composite. However we have been careful to avoid forgetting any overhead in a Composite method and make sure they are not impacted by any change of the Whetstone workload. For instance, if we had defined \texttt{regular\_producer} as Enclosing we could have defined as composed of only \texttt{rp\_operation} and then measure its WCET, which will implicitly count also overrun detection and delay queue overhead. By instead defining it as Composite, we have been careful to define the simple operations \texttt{overrun\_detection} and \texttt{delay\_until} to include their execution time, using the technique described in \cite{effects-runtime}.
+
+\begin{lstlisting}
+Transaction (
+   Type            => regular,
+   Name            => rp_transaction,
+   External_Events =>
+      ( ( Type       => Periodic,
+          Name       => e1,
+          Period     => 1.000,
+          Max_Jitter => 0.000,
+          Phase      => 0.000)),
+   Internal_Events =>
+      ( ( Type => Regular,
+          Name => rpo1,
+          Timing_Requirements =>
+            ( Type             => Hard_Global_Deadline,
+              Deadline         => 0.500000,
+              Referenced_Event => e1))),
+   Event_Handlers  =>
+      ( (Type               => System_Timed_Activity,
+         Input_Event        => e1,
+         Output_Event       => rpo1,
+         Activity_Operation => regular_producer,
+         Activity_Server    => regular_producer)));
+\end{lstlisting}
+
+The main event stream is modeled as a transaction activated by a periodic external event, with period of 1s. The event is handled by the \texttt{regular\_producer} operation by the task of the same name. The Event Handler is of type \texttt{System\_Timed\_Activity} to take into account the jitter and the overhead caused by the tick scheduling
+
+\begin{lstlisting}
+Transaction (
+   Type            => regular,
+   Name            => ocp_transaction,
+   External_Events =>
+      ( ( Type             => Sporadic,
+          Name             => ocp_activation,
+          Avg_Interarrival => 5.000,
+          Distribution     => UNIFORM,
+          Min_Interarrival => 5.000)),
+   Internal_Events =>
+      ( ( Type => Regular,
+          Name => ocpo1,
+          Timing_Requirements =>
+            ( Type             => Hard_Global_Deadline,
+              Deadline         => 0.800000,
+              Referenced_Event => ocp_activation))),
+   Event_Handlers  =>
+      ( (Type               => Activity,
+         Input_Event        => ocp_activation,
+         Output_Event       => ocpo1,
+         Activity_Operation => on_call_producer,
+         Activity_Server    => on_call_producer)));
+\end{lstlisting}
+
+The sporadic \texttt{On Call Producer} event stream is modeled as activated by a bounded aperiodic event, with minimum interarrival time of 5s and uniform distribution. Actually we know that the interarrival time is precisely 5s, thus the same value as average interarrival. Similar modeling has been done for the \texttt{Activation Log Reader} sporadic task.
+
+\begin{lstlisting}
+Transaction (
+   Type            => regular,
+   Name            => event_queue_interrupt,
+   External_Events =>
+      ( ( Type             => Sporadic,
+          Name             => button_click,
+          Avg_Interarrival => 0.000,
+          Distribution     => UNIFORM,
+          Min_Interarrival => 5.000)),
+   Internal_Events =>
+      ( ( Type => Regular,
+          Name => eqo1),
+        ( Type => Regular,
+          Name => eqo2,
+          Timing_Requirements =>
+            ( Type             => Hard_Global_Deadline,
+              Deadline         => 0.100000,
+              Referenced_Event => button_click))),
+   Event_Handlers  =>
+      ( (Type               => Activity,
+         Input_Event        => button_click,
+         Output_Event       => eqo1,
+         Activity_Operation => eq_signal,
+         Activity_Server    => interrupt_server),
+        (Type               => Activity,
+         Input_Event        => eqo1,
+         Output_Event       => eqo2,
+         Activity_Operation => external_event_server,
+         Activity_Server    => external_event_server)));
+\end{lstlisting}
+
+The blue button interrupt event stream is modeled as a triggered by a sporadic event of 5s as minimum interarrival time and it's first handled by the \texttt{interrupt\_server} which runs the ISR at interrupt priority level and then by the user-defined \texttt{external\_event\_server} at task priority-level.
+
+\section{Overrun detection}
+
+\begin{lstlisting}[language=Ada]
+-- Overrun.ads
+
+with Ada.Real_Time;
+with Ada.Execution_Time;
+
+package Overrun is
+   type Limits_Array is array (0 .. 2) of Ada.Execution_Time.CPU_Time;
+
+   procedure Start (Index : Natural; Budget : Ada.Real_Time.Time_Span);
+   procedure Check (Index : Natural);
+end Overrun;
+\end{lstlisting}
+
+\begin{lstlisting}[language=Ada]
+-- Overrun.adb
+
+with Ada.Real_Time; use Ada.Real_Time;
+with Ada.Execution_Time; use Ada.Execution_Time;
+
+package body Overrun is
+   use Ada.Real_Time;
+   use Ada.Execution_Time;
+
+   Limits : Limits_Array := (CPU_Time_First, CPU_Time_First, CPU_Time_First);
+
+   procedure Start (Index : Natural; Budget : Time_Span) is
+   begin
+      Limits (Index) := Ada.Execution_Time.Clock + Budget;
+   end Start;
+
+   procedure Check (Index : Natural) is
+   begin
+      if Ada.Execution_Time.Clock > Limits (Index) then
+         raise Program_Error with "Detected overrun";
+      end if;
+   end Check;
+end Overrun;
+\end{lstlisting}
+
+Ispiration from \cite{overrundetection}. The measured execution times include overrun detection overhead for Regular Producer, On Call Producer and Activation Log Reader.
+
 \section{FPS analysis}
 
 \begin{table}[!htbp]
@@ -104,93 +413,7 @@ MAST, a Modeling and Analysis Suite for Real-Time Applications, is a model for r
   \label{tab:holistic-fps}
 \end{table}
 
-The system slack is 2401.2\%.
-
-\section{Introduction}
-\lipsum[2]
-\lipsum[3]
-
-
-\section{Headings: first level}
-\label{sec:headings}
-
-\lipsum[4] See Section \ref{sec:headings}.
-
-\subsection{Headings: second level}
-\lipsum[5]
-\begin{equation}
-\xi _{ij}(t)=P(x_{t}=i,x_{t+1}=j|y,v,w;\theta)= {\frac {\alpha _{i}(t)a^{w_t}_{ij}\beta _{j}(t+1)b^{v_{t+1}}_{j}(y_{t+1})}{\sum _{i=1}^{N} \sum _{j=1}^{N} \alpha _{i}(t)a^{w_t}_{ij}\beta _{j}(t+1)b^{v_{t+1}}_{j}(y_{t+1})}}
-\end{equation}
-
-\subsubsection{Headings: third level}
-\lipsum[6]
-
-\paragraph{Paragraph}
-\lipsum[7]
-
-\section{Examples of citations, figures, tables, references}
-\label{sec:others}
-\lipsum[8] \cite{kour2014real,kour2014fast} and see \cite{hadash2018estimate}.
-
-The documentation for \verb+natbib+ may be found at
-\begin{center}
-  \url{http://mirrors.ctan.org/macros/latex/contrib/natbib/natnotes.pdf}
-\end{center}
-Of note is the command \verb+\citet+, which produces citations
-appropriate for use in inline text.  For example,
-\begin{verbatim}
-   \citet{hasselmo} investigated\dots
-\end{verbatim}
-produces
-\begin{quote}
-  Hasselmo, et al.\ (1995) investigated\dots
-\end{quote}
-
-\begin{center}
-  \url{https://www.ctan.org/pkg/booktabs}
-\end{center}
-
-
-\subsection{Figures}
-\lipsum[10]
-See Figure \ref{fig:fig1}. Here is how you add footnotes. \footnote{Sample of the first footnote.}
-\lipsum[11]
-
-\begin{figure}
-  \centering
-  \fbox{\rule[-.5cm]{4cm}{4cm} \rule[-.5cm]{4cm}{0cm}}
-  \caption{Sample figure caption.}
-  \label{fig:fig1}
-\end{figure}
-
-\subsection{Tables}
-\lipsum[12]
-See awesome Table~\ref{tab:table}.
-
-\begin{table}
- \caption{Sample table title}
-  \centering
-  \begin{tabular}{lll}
-    \toprule
-    \multicolumn{2}{c}{Part}                   \\
-    \cmidrule(r){1-2}
-    Name     & Description     & Size ($\mu$m) \\
-    \midrule
-    Dendrite & Input terminal  & $\sim$100     \\
-    Axon     & Output terminal & $\sim$10      \\
-    Soma     & Cell body       & up to $10^6$  \\
-    \bottomrule
-  \end{tabular}
-  \label{tab:table}
-\end{table}
-
-\subsection{Lists}
-\begin{itemize}
-\item Lorem ipsum dolor sit amet
-\item consectetur adipiscing elit.
-\item Aliquam dignissim blandit est, in dictum tortor gravida eget. In ac rutrum magna.
-\end{itemize}
-
+The system slack is 2401.2\% and total utilisation 2.59\%.
 
 \bibliographystyle{unsrt}
 %\bibliography{references}  %%% Remove comment to use the external .bib file (using bibtex).
@@ -210,12 +433,37 @@ M. GonzAlez Harbour, J.J. GutiCrrez Garcia, J.C. Palencia GutiCrrez, and J.M. Dr
 \newblock MAST Modeling and Analysis Suite for Real Time Applications.
 \newblock In {\em Proceedings 13th Euromicro Conference on Real-Time Systems}. 2001.
 
-\bibitem{hadash2018estimate}
-Guy Hadash, Einat Kermany, Boaz Carmeli, Ofer Lavi, George Kour, and Alon
-  Jacovi.
-\newblock Estimate and replace: A novel approach to integrating deep neural
-  networks with existing applications.
-\newblock {\em arXiv preprint arXiv:1804.09028}, 2018.
+\bibitem{overrundetection}
+Juan Zamorano, Alejandro Alonso, José Antonio Pulido, Juan Antonio de la Puente.
+\newblock Implementing Execution-Time Clocks for the Ada Ravenscar Profile.
+\newblock In {\em Reliable Software Technologies - Ada-Europe 2004}. pp 132-143. Ada-Europe 2004.
+
+\bibitem{limited-priorities}
+Jane W. S. W. Liu.
+\newblock Limited-Priority Levels.
+\newblock In {\em Real-Time Systems}. pp 166-168. 2001.
+
+\bibitem{tick-scheduling}
+Jane W. S. W. Liu.
+\newblock Tick Scheduling.
+\newblock In {\em Real-Time Systems}. pp 168-171. 2001.
+
+\bibitem{effects-runtime}
+Klein, M., Ralya, Th., Pollak, B., Obenza, R., Harbour, M.G. .
+\newblock Effects of Operating System and Runtime Services on Timing Analysis.
+\newblock In {\em A Practitioner’s Handbook for Real-Time Analysis
+}. chapter 7. 1993.
+
+\bibitem{interrupt-handler}
+Klein, M., Ralya, Th., Pollak, B., Obenza, R., Harbour, M.G. .
+\newblock Use an Interrupt Handler.
+\newblock In {\em A Practitioner’s Handbook for Real-Time Analysis
+}. chapter 5.3.5.1. 1993.
+
+\bibitem{etc}
+Kristoffer Nyborg Gregertsen, Amund Skavhaug.
+\newblock Implementation and Usage of the new Ada 2012 Execution Time Control Features.
+\newblock In {\em Ada User Journal}. 2011.
 
 \end{thebibliography}
 

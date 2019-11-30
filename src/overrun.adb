@@ -1,6 +1,5 @@
 with Ada.Real_Time; use Ada.Real_Time;
 with Ada.Execution_Time; use Ada.Execution_Time;
-with Ada.Text_IO;
 
 package body Overrun is
    use Ada.Real_Time;
