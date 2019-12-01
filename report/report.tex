@@ -405,7 +405,6 @@ Ispiration from \cite{overrundetection}. The measured execution times include ov
     rp\_transaction & 0.020393  & 2477.0\% &  2.000E-06  \\
     ocp\_transaction & 0.026525 & 10852.0\% & 1.000E-06 \\
     alr\_transaction & 0.030109 & 27088.7\% & 0.00 \\
-    event\_queue\_interrupt & 1.100E-05 & N/A & 1.000E-06 \\
     event\_queue\_interrupt & 3.818E-05 & N/A & 1.000E-06 \\
     \bottomrule
   \end{tabular}
@@ -414,6 +413,46 @@ Ispiration from \cite{overrundetection}. The measured execution times include ov
 \end{table}
 
 The system slack is 2401.2\% and total utilisation 2.59\%.
+
+We then increase the Whetstone workload of factor 24 in the first three transactions since 2477.0\% is the smallest slack of three transactions. We leave the Event Queue interrupt unchanged. The new results are as follows:
+
+\begin{table}[!htbp]
+   \centering
+   \begin{tabular}{llll}
+     \toprule
+     Transaction & Worst case response time (s) & Slack & Worst blocking time (s)  \\
+     \midrule
+     rp\_transaction & 0.487017  & 2.34\% &  2.000E-06  \\
+     ocp\_transaction & 0.664777 & 75.39\% & 1.000E-06 \\
+     alr\_transaction & 0.754207 & 273.44\% & 0.00 \\
+     event\_queue\_interrupt & 3.818E-05 & >=100000.0\% & 1.000E-06 \\
+     \bottomrule
+   \end{tabular}
+   \caption{Holistic analysis results for FPS}
+   \label{tab:holistic-fps}
+\end{table}
+
+Blocking times have not changed because protected operations are same as before.
+
+The system slack is 2.80\% and total utilisation 55.33\%. The theoretical CPU utilisation upper bound \cite{liu-utilisation-bound} is 0.779 for tasks with same deadline as the period, but we have to use the technique shown in \cite{practitioner-utilisation-bound}. We now increase the workloads of factor 25 instead of 24\%.
+
+\begin{table}[!htbp]
+   \centering
+   \begin{tabular}{llll}
+     \toprule
+     Transaction & Worst case response time (s) & Slack & Worst blocking time (s)  \\
+     \midrule
+     rp\_transaction & 0.506453  & -1.56\% &  2.000E-06  \\
+     ocp\_transaction & 0.691366 & -100.00\% & 1.000E-06 \\
+     alr\_transaction & 0.784369 & -100.00\% & 0.00 \\
+     event\_queue\_interrupt & 3.818E-05 & -100.00\% & 1.000E-06 \\
+     \bottomrule
+   \end{tabular}
+   \caption{Holistic analysis results for FPS}
+   \label{tab:holistic-fps}
+\end{table}
+
+The system slack is -1.16\% and total utilisation 57.53\%, which exceed the theoretical limit (?). This means that the actual execution should also overrun the deadline and it is indeed what happened on our board. The first job of Regular Producer raised the overrun detection Program Error.
 
 \bibliographystyle{unsrt}
 %\bibliography{references}  %%% Remove comment to use the external .bib file (using bibtex).
@@ -447,6 +486,17 @@ Jane W. S. W. Liu.
 Jane W. S. W. Liu.
 \newblock Tick Scheduling.
 \newblock In {\em Real-Time Systems}. pp 168-171. 2001.
+
+\bibitem{liu-utilisation-bound}
+C. L. Liu, James W. Layland.
+\newblock Scheduling Algorithms for Multiprogramming in a Hard-Real-Time Environment.
+\newblock In {\em Journal of the ACM}. Volume 20 Issue 1, pp 46-61. Jan. 1973.
+
+\bibitem{practitioner-utilisation-bound}
+Klein, M., Ralya, Th., Pollak, B., Obenza, R., Harbour, M.G. .
+\newblock Using Utilization Bounds for Each Event when Deadlines Are Within the Period.
+\newblock In {\em A Practitioner’s Handbook for Real-Time Analysis
+}. chapter 4.1.2. 1993.
 
 \bibitem{effects-runtime}
 Klein, M., Ralya, Th., Pollak, B., Obenza, R., Harbour, M.G. .

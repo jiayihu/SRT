@@ -17,7 +17,7 @@ package body On_Call_Producer is
       --  for tasks to achieve simultaneous activation
       Activation_Manager.Activation_Sporadic;
       loop
-         Overrun.Start (1, Ada.Real_Time.Milliseconds (800));
+         Overrun.Start (1, Ada.Real_Time.Milliseconds (On_Call_Producer_Parameters.On_Call_Producer_Deadline));
          --  suspending request for activation event with data exchange
          Current_Workload := Request_Buffer.Extract;
          --  non-suspending operation code

@@ -7,9 +7,9 @@ with Ada.Text_IO;
 package body Regular_Producer_Parameters is
    --  approximately 5,001,000 processor cycles of Whetstone load
    --  on an ERC32 (a radiation-hardened SPARC for space use) at 10 Hz
-   Regular_Producer_Workload : constant Positive := 756;
+   Regular_Producer_Workload : constant Positive := Positive (756 * 25.0234);
    --  approximately 2,500,500 processor cycles
-   On_Call_Producer_Workload : constant Positive := 278;
+   On_Call_Producer_Workload : constant Positive := Positive (278 * 25.0234);
    --  the parameter used to query the condition
    --  for the activation of On_Call_Producer
    Activation_Condition : constant Auxiliary.Range_Counter := 2;
