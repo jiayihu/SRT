@@ -87,17 +87,17 @@ Shared_Resource (
 Operation (
    Type                       => Simple,
    Name                       => rp_small_whetstone,
-   Worst_Case_Execution_Time  => 0.019363);
+   Worst_Case_Execution_Time  => 0.484075);
 
 Operation (
    Type                       => Simple,
    Name                       => ocp_small_whetstone,
-   Worst_Case_Execution_Time  => 0.007122);
+   Worst_Case_Execution_Time  => 0.17805);
 
 Operation (
    Type                       => Simple,
    Name                       => alr_small_whetstone,
-   Worst_Case_Execution_Time  => 0.003562);
+   Worst_Case_Execution_Time  => 0.08905);
 
 Operation (
    Type                       => Simple,
