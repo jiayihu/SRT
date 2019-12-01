@@ -89,9 +89,19 @@ MAST, a Modeling and Analysis Suite for Real-Time Applications, is a model for r
 
 MAST offers a graphical user interface but it's still immature to be completely usable. Too many frequent bugs.
 
+\section{Board STM32F429I-Discovery}
+
+We have preferred the usage of a bare-board instead of the GNAT emulator because the measure time values had too much standard deviation.
+
+It has ST-LINK debugger built-in.
+
+\section{Execution times}
+
+Execution times are measured using two packages \texttt{System\_Overhead} and \texttt{Task\_Overhead}.
+
 \section{MAST Model}
 
-For a reference to the MAST syntax, visit "Description of the MAST Model" \cite{mast-description}. Since we are dealing with hard real-time analysis, we define only the WCET to the operations.
+For a reference to the MAST syntax, visit "Description of the MAST Model" \cite{mast-description}. Since we are dealing with hard real-time analysis, we define only the WCET to the operations. Anyway most of the time, except for the Whetstone operations, we had deterministic execution times with always the same number of CPU ticks or with a difference less than 1micros.
 
 \begin{lstlisting}
 Processing_Resource (
@@ -410,6 +420,10 @@ The transaction which defines the button interrupt event stream is considered as
 
 This means we cannot use the classic Rate Monotonic algorithm \cite{rm-dm}, only offset-based (cite ?) and holistic analysis \cite{holistic-analysis}. We decided to stick to only holistic analysis because it supports both FPS and EDF, whereas offset-based fallbacks to holistic analysis with EDF processing resources \cite{mast-readme}. Nevertheless it doesn't make much difference which one is used between holistic and offset-based since we run the system on a single processor, not on a distributed system (?).
 
+\subsection{Holistic analysis}
+
+In our application we have chains of operations, not independent tasks competing for the shared resourses. The technique described in \cite{practitioner-common-data} assumes the worst case, but it's too pessimist because in our case a task A always precedes task B, they are not independent and competing for the same resourses. Therefore we use the holistic analysis, designed originally for distributed systems.
+
 \section{FPS analysis}
 
 \begin{table}[!htbp]
@@ -533,6 +547,12 @@ Klein, M., Ralya, Th., Pollak, B., Obenza, R., Harbour, M.G. .
 \newblock Using Utilization Bounds for Each Event when Deadlines Are Within the Period.
 \newblock In {\em A Practitioner’s Handbook for Real-Time Analysis
 }. chapter 4.1.2. 1993.
+
+\bibitem{practitioner-common-data}
+Klein, M., Ralya, Th., Pollak, B., Obenza, R., Harbour, M.G. .
+\newblock Designing Tasks that Must Synchronize to Share Common Data.
+\newblock In {\em A Practitioner’s Handbook for Real-Time Analysis
+}. chapter 5.2. 1993.
 
 \bibitem{effects-runtime}
 Klein, M., Ralya, Th., Pollak, B., Obenza, R., Harbour, M.G. .

@@ -1,7 +1,7 @@
 # Fdb version 3
-["pdflatex"] 1575220439 "/Users/jiayihu/Desktop/Repo/SRT/report/report.tex" "/Users/jiayihu/Desktop/Repo/SRT/report/report.pdf" "report" 1575220439
-  "/Users/jiayihu/Desktop/Repo/SRT/report/report.aux" 1575220439 2744 dd383a7fa1f42f691543a2eb59c7702d ""
-  "/Users/jiayihu/Desktop/Repo/SRT/report/report.tex" 1575220438 25628 8eb3b235f665ca5b4f81677c74f4d4ba ""
+["pdflatex"] 1575227097 "/Users/jiayihu/Desktop/Repo/SRT/report/report.tex" "/Users/jiayihu/Desktop/Repo/SRT/report/report.pdf" "report" 1575227098
+  "/Users/jiayihu/Desktop/Repo/SRT/report/report.aux" 1575227098 3106 feb394137005d148e7dcf57a4b4042d2 ""
+  "/Users/jiayihu/Desktop/Repo/SRT/report/report.tex" 1575227096 26858 04fa1ee8cb3f9f9b6d0e3fd291a86054 ""
   "/usr/local/texlive/2018/texmf-dist/fonts/enc/dvips/base/8r.enc" 1480098666 4850 80dc9bab7f31fb78a000ccfed0e27cab ""
   "/usr/local/texlive/2018/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc" 1480098666 2971 def0b6c1f0b107b3b936def894055589 ""
   "/usr/local/texlive/2018/texmf-dist/fonts/map/fontname/texfonts.map" 1511824771 3332 103109f5612ad95229751940c61aada0 ""
@@ -90,13 +90,13 @@
   "/usr/local/texlive/2018/texmf.cnf" 1523934483 577 0b39adfd7c93507ff20c9c14c2f1a33f ""
   "arxiv.sty" 1568438198 7602 540b8d31efa75216211145c8b64c810c ""
   "images/mast-analysis.png" 1575219158 196493 ef612359eaca141def8194e2c3d103b5 ""
-  "report.aux" 1575220439 2744 dd383a7fa1f42f691543a2eb59c7702d ""
-  "report.out" 1575220439 239 25f0dbd9190c706314ac48a998439508 ""
-  "report.tex" 1575220438 25628 8eb3b235f665ca5b4f81677c74f4d4ba ""
+  "report.aux" 1575227098 3106 feb394137005d148e7dcf57a4b4042d2 ""
+  "report.out" 1575227098 416 de8297553f1c6091e4508707311898f1 ""
+  "report.tex" 1575227096 26858 04fa1ee8cb3f9f9b6d0e3fd291a86054 ""
   (generated)
-  "report.out"
   "report.aux"
-  "report.pdf"
-  "/Users/jiayihu/Desktop/Repo/SRT/report/report.log"
   "/Users/jiayihu/Desktop/Repo/SRT/report/report.pdf"
+  "/Users/jiayihu/Desktop/Repo/SRT/report/report.log"
   "report.log"
+  "report.out"
+  "report.pdf"
