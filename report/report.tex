@@ -15,6 +15,7 @@
 \usepackage{lipsum}		% Can be removed after putting your text content
 \usepackage{listings}
 \usepackage{url}
+\usepackage{graphicx}
 
 
 \title{A MAST analysis of a Ravenscar application example}
@@ -90,7 +91,7 @@ MAST offers a graphical user interface but it's still immature to be completely 
 
 \section{MAST Model}
 
-For a reference to the MAST syntax, visit \url{https://mast.unican.es/mast_description.pdf}. Since we are dealing with hard real-time analysis, we define only the WCET to the operations.
+For a reference to the MAST syntax, visit "Description of the MAST Model" \cite{mast-description}. Since we are dealing with hard real-time analysis, we define only the WCET to the operations.
 
 \begin{lstlisting}
 Processing_Resource (
@@ -394,6 +395,21 @@ end Overrun;
 
 Ispiration from \cite{overrundetection}. The measured execution times include overrun detection overhead for Regular Producer, On Call Producer and Activation Log Reader.
 
+\section{MAST analysis}
+
+As of the time of writing, MAST is at version 1.5.1 and supports the following analysis tools.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=5in]{images/mast-analysis}
+\caption{MAST analysis tools \cite{mast-description}.}
+\label{mast-analysis-tools}
+\end{figure}
+
+The transaction which defines the button interrupt event stream is considered as a linear transaction, which only has one external event and that its Event handlers are all Activities, but unfortunately it is not a simple transaction, a continuous sequence of activities executed by the same server. We have one server which handles the ISR and another one the associated task of External Event Server.
+
+This means we cannot use the classic Rate Monotonic algorithm \cite{rm-dm}, only offset-based (cite ?) and holistic analysis \cite{holistic-analysis}. We decided to stick to only holistic analysis because it supports both FPS and EDF, whereas offset-based fallbacks to holistic analysis with EDF processing resources \cite{mast-readme}. Nevertheless it doesn't make much difference which one is used between holistic and offset-based since we run the system on a single processor, not on a distributed system (?).
+
 \section{FPS analysis}
 
 \begin{table}[!htbp]
@@ -472,10 +488,25 @@ M. GonzAlez Harbour, J.J. GutiCrrez Garcia, J.C. Palencia GutiCrrez, and J.M. Dr
 \newblock MAST Modeling and Analysis Suite for Real Time Applications.
 \newblock In {\em Proceedings 13th Euromicro Conference on Real-Time Systems}. 2001.
 
+\bibitem{mast-description}
+J. M. Drake, M. G. Harbour, J. J. Gutiérrez, P. L. Martínez, J. L. Medina, J. C. Palencia
+\newblock Description of the MAST Model.
+\newblock \url{https://mast.unican.es/mast_description.pdf}
+
+\bibitem{mast-readme}
+J. M. Drake, M. G. Harbour, J. J. Gutiérrez, P. L. Martínez, J. L. Medina, J. C. Palencia
+\newblock MAST README.
+\newblock \url{https://mast.unican.es/README.txt}
+
 \bibitem{overrundetection}
 Juan Zamorano, Alejandro Alonso, José Antonio Pulido, Juan Antonio de la Puente.
 \newblock Implementing Execution-Time Clocks for the Ada Ravenscar Profile.
 \newblock In {\em Reliable Software Technologies - Ada-Europe 2004}. pp 132-143. Ada-Europe 2004.
+
+\bibitem{rm-dm}
+Jane W. S. W. Liu.
+\newblock Rate-Monotonic and Deadline-Monotonic Algorithms.
+\newblock In {\em Real-Time Systems}. pp 118-119. 2001.
 
 \bibitem{limited-priorities}
 Jane W. S. W. Liu.
@@ -486,6 +517,11 @@ Jane W. S. W. Liu.
 Jane W. S. W. Liu.
 \newblock Tick Scheduling.
 \newblock In {\em Real-Time Systems}. pp 168-171. 2001.
+
+\bibitem{holistic-analysis}
+KenTindell, JohnClark.
+\newblock Holistic schedulability analysis for distributed hard real-time systems.
+\newblock In {\em Microprocessing and Microprogramming}. Volume 40, Issues 2–3, pp 117-134. April 1994.
 
 \bibitem{liu-utilisation-bound}
 C. L. Liu, James W. Layland.
