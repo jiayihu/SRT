@@ -12,5 +12,6 @@ package External_Event_Server_Parameters is
    --  the interrupt sporadic priority is determined by deadline
    --  monotonic analysis
    External_Event_Server_Priority : constant System.Priority := 11;
+   External_Event_Server_Deadline : constant Natural := 100; -- in milliseconds
    procedure Server_Operation;
 end External_Event_Server_Parameters;

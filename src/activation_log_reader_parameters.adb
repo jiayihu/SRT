@@ -6,7 +6,7 @@ with Ada.Text_IO;
 package body Activation_Log_Reader_Parameters is
    --  approximately 1,250,250 processor cycles of Whetstone load
    --  on an ERC32 (a radiation-hardened SPARC for space use) at 10 Hz
-   Load : constant Positive := 139;
+   Load : constant Positive := Positive (139 * 25);
    procedure Activation_Log_Reader_Operation is
       Interrupt_Arrival_Counter : Activation_Log.Range_Counter := 0;
       Interrupt_Arrival_Time : Ada.Real_Time.Time;

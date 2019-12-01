@@ -15,7 +15,7 @@ package body Regular_Producer is
       --  for tasks to achieve simultaneous activation
       Activation_Manager.Activation_Cyclic (Next_Time);
       loop
-         Overrun.Start (0, Period);
+         Overrun.Start (0, Ada.Real_Time.Milliseconds (Regular_Producer_Parameters.Regular_Producer_Deadline));
          Next_Time := Next_Time + Period;
          --  non-suspending operation code
          Regular_Producer_Parameters.Regular_Producer_Operation;

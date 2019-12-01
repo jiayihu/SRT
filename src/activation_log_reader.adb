@@ -21,7 +21,7 @@ package body Activation_Log_Reader is
       --  for tasks to achieve simultaneous activation
       Activation_Manager.Activation_Sporadic;
       loop
-         Overrun.Start (2, Ada.Real_Time.Milliseconds (1000));
+         Overrun.Start (2, Ada.Real_Time.Milliseconds (Activation_Log_Reader_Parameters.Activation_Log_Reader_Deadline));
          --  suspending parameterless request of activation event
          Wait;
          --  non-suspending operation code
