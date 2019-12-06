@@ -18,7 +18,7 @@
 \usepackage{graphicx}
 
 
-\title{A MAST analysis of a Ravenscar application example}
+\title{MAST analysis of a Ravenscar application with FPS and EDF scheduling}
 
 %\date{September 9, 1985}	% Here you can change the date presented in the paper title
 %\date{} 					% Or removing it
@@ -62,7 +62,7 @@
 \maketitle
 
 \begin{abstract}
-Buchi del culo. \lipsum[1]
+\lipsum[1]
 \end{abstract}
 
 
@@ -71,37 +71,130 @@ Buchi del culo. \lipsum[1]
 
 \section{Introduction}
 
-There is increasing recognition that the software components of critical real-time applications must be provably predictable. This is particularly so for a hard real-time system, in which the failure of a component of the system to meet its timing deadline can result in an unacceptable failure of the whole system. The choice of a suitable design and development method, in conjunction with supporting tools that enable the real-time performance of a system to be analysed and simulated, can lead to a high level of confidence that the final system meets its real-time constraints.
+Embedded systems have to satisfy strict timing requirements and especially in the case of such hard real-time applications, predictability of the timing behavior is an extremely important aspect.
 
-The use of Ada has proven to be of great value within high integrity and real-time applications, albeit via language subsets of deterministic constructs, to ensure full analysability of the code. The research work in schedulability analysis has been mapped onto a number of new Ada constructs and rules that have been incorporated into the Real-Time Annex of the Ada language standard [RM D]. This has opened the way for these tasking constructs to be used in high integrity subsets whilst retaining the core elements of predictability and reliability.
+The choice of a suitable design and development method, in conjunction with supporting tools that enable the real-time performance of a system to be analysed and simulated, can lead to a high level of confidence that the final system meets its real-time constraints.
 
-The Ravenscar Profile is a subset of the tasking model, restricted to meet the real-time community requirements for determinism, schedulability analysis and memory-boundedness, as well as being suitable for mapping to a small and efficient run-time system that supports task synchronization and communication, and which could be certifiable to the highest integrity levels.
+As a matter of fact, the use of Ada has proven to be of great value within high integrity and real-time applications, thanks to language subsets of deterministic constructs, to ensure full analysability of the code. In the next sections we will use the term [RM] to refer to a section of the Ada Reference Manual\footnote{\url{http://www.ada-auth.org/standards/rm12_w_tc1/html/RM-TOC.html}}.
 
-The example presented in this paper is extracted from "Guide for the use of the
+Notably, the Ravenscar profile \cite{ycs} is a subset of the tasking model, restricted to meet the real-time community requirements for determinism, schedulability analysis and memory-boundedness, as well as being suitable for mapping to a small and efficient run-time system that supports task synchronization and communication.
+
+Along with the Ravenscar profile, we have used a model for representing the temporal and logical elements of real-time applications, called MAST \cite{mast}. This model allows a very rich description of the system, including the effects of event or message-based synchronization, multiprocessor and distributed architectures as well as shared resource synchronization.
+
+\subsection{The application}
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=5in]{images/ycs}
+\caption{Architecture of the example application \cite{ycs}.}
+\label{ycs}
+\end{figure}
+
+The example application presented in this paper is extracted from "Guide for the use of the
 Ada Ravenscar Profile in
-high integrity systems" \cite{ycs} and it is designed to illustrate the expressive power of the Ravenscar Profile and the associated coding paradigms, which aim to facilitate off-line scheduling analysis.
+high integrity systems" \cite{ycs}. It includes a periodic process that handles orders for a variable amount of workload. Whenever the request level exceeds a certain threshold, the periodic process farms the excess load out to a supporting sporadic process. While such orders are executed, the system may receive interrupt requests from an external source. Each interrupt treatment records an entry in an activation log.
 
-The extended application example uses all of the concurrency components permitted by the Ravenscar Profile. The structure of the example models, on a reduced and simplified scale, the operation of real-world embedded real-time systems.
+When specific conditions hold, the periodic process releases a further sporadic process to perform a check on the interrupt activation entries recorded in the intervening period. The policy of work delegation adopted by the system allows the periodic process to ensure the constant discharge of a guaranteed level of workload.
 
-The example system includes a periodic process that handles orders for a variable amount of workload. Whenever the request level exceeds a certain threshold, the periodic process farms the excess load out to a supporting sporadic process. While such orders are executed, the system may receive interrupt requests from an external source. Each interrupt treatment records an entry in an activation log. When specific conditions hold, the periodic process releases a further sporadic process to perform a check on the interrupt activation entries recorded in the intervening period. The policy of work delegation adopted by the system allows the periodic process to ensure the constant discharge of a guaranteed level of workload. The correct implementation of this policy also requires assigning the periodic process a higher priority than those assigned to the sporadic processes, so that guaranteed work can be performed in preference to subsidiary activities.
+The correct implementation of this policy also requires assigning the periodic process a higher priority than those assigned to the sporadic processes, so that guaranteed work can be performed in preference to subsidiary activities.
 
-MAST, a Modeling and Analysis Suite for Real-Time Applications, is a model for representing the temporal and logical elements of real-time applications \cite{mast}. This model allows a very rich description of the system, including the effects of event or message-based synchronization, multiprocessor and distributed architectures as well as shared resource synchronization.
+The application is comprised by the following tasks and attributes. Static priorities are given based on the deadline monotonic scheduling \cite{rm-dm}, which the most optimal between the fixed priority algorithms \cite{optimality-rm-dm}.
 
-MAST offers a graphical user interface but it's still immature to be completely usable. Too many frequent bugs.
+\begin{table}[!htbp]
+   \centering
+   \begin{tabular}{lllll}
+     \toprule
+     Task name & Task type & Period / Minimum inter-arrival time (ms) & Deadline (ms) & Priority  \\
+     \midrule
+     Regular\_Producer & Cyclic & 1000 & 500 & 7 \\
+     On\_Call\_Producer & Sporadic & 5000 & 800 & 5 \\
+     Activation\_Log\_Reader & Sporadic & 3000 & 1000 & 3 \\
+     External\_Event\_Server & Interrupt sporadic & 5000 & 100 & 11 \\
+     \bottomrule
+   \end{tabular}
+   \caption{Attributes of the tasks in the application \cite{ycs}}
+   \label{tab:holistic-fps}
+\end{table}
 
-\section{Board STM32F429I-Discovery}
+Ada protected objects [RM 9.4] are used to ensure mutually exclusive access to shared resources, whereas protected entries are used only for task synchronization purposes where data exchange is involved.
 
-We have preferred the usage of a bare-board instead of the GNAT emulator because the measure time values had too much standard deviation.
+In a real-time application, each protected object has a priority ceiling which represents the maximum priority of any task that calls the object. The Ada Real-Time Systems Annex supports the definition of  \texttt{Locking\_Policy} [RM D.3] and implements the Immediate Ceiling Priority Protocol (ICPP), usually called Priority Ceiling Protocol (PCP) in literature. It's one of the best Priority inheritance protocols, which allow a task to execute with an enhanced priority if it is blocking (or could block) a higher-priority task. To be specific, PCP reduces blocking to its minimum value: every job is blocked at most once for the duration of a critical section, no matter how many jobs conflict with it \cite{pcp-blocking}.
+
+\begin{table}[!htbp]
+   \centering
+   \begin{tabular}{lll}
+     \toprule
+     Protected object names & User tasks & Ceiling priority  \\
+     \midrule
+     Request\_Buffer & Regular\_Producer (\texttt{Deposit}), On\_Call\_Producer (\texttt{Extract}) & 9 \\
+     Event\_Queue & External interrupt (\texttt{Signal}), External\_Event\_Server (\texttt{Wait}) & System.Interrupt\_Priority'First \\
+     Activation\_Log & External\_Event\_Server (\texttt{Write}), Activation\_Log\_Reader (\texttt{Read}) & 13 \\
+     \bottomrule
+   \end{tabular}
+   \caption{Attributes of the protected objects in the application \cite{ycs}}
+   \label{tab:holistic-fps}
+\end{table}
+
+\subsection{The Board}
+
+We have preferred the usage of a bare-board STM32F429I-Discovery instead of the GNAT emulator because the measure time values had too much standard deviation.
 
 It has ST-LINK debugger built-in.
 
-\section{Execution times}
+\section{System model and notation}
 
-Execution times are measured using two packages \texttt{System\_Overhead} and \texttt{Task\_Overhead}.
+The described application is a set of tasks executing in the same processor, grouped into entities called transactions \cite{tindell-offsets}. Each transaction $\Gamma_i$ is activated by a periodic sequence of external events with period $T_i$ , and contains a set of tasks. Each task is released when a relative time offset elapses after the arrival of the external event. Each activation of a task releases the execution of one instance of that task, called a \textit{job}.
 
-\section{MAST Model}
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=5in]{images/transactions}
+\caption{Timeline of a system composed of transactions with offsets \cite{pessimistic-rma}}
+\label{transactions}
+\end{figure}
 
-For a reference to the MAST syntax, visit "Description of the MAST Model" \cite{mast-description}. Since we are dealing with hard real-time analysis, we define only the WCET to the operations. Anyway most of the time, except for the Whetstone operations, we had deterministic execution times with always the same number of CPU ticks or with a difference less than 1micros.
+Figure \ref{transactions} shows an example of such system: the horizontal axis represents time; down-pointing arrows represent the arrival of the external events associated to each transaction, while up-pointing arrows represent the activation times of each task; and shaded boxes represent task execution \cite{pessimistic-rma}. Each task has its own unique priority and in this example the task set is scheduled using a preemptive fixed priority scheduling.
+
+Each task will be identified with two subscripts: the first one identifies the transaction to which it belongs, and the second one the position that the task occupies within the tasks of its transaction, when they are ordered by increasing offsets. In this way, $\tau_{ij}$ will be the j-th task of transaction $\Gamma_i$, with an offset of $\Phi_{ij}$ and a worst-case execution time of $C_{ij}$. In addition, we will allow each task to have jitter, that is to have its activation time delayed by an arbitrary amount of time between 0 and the maximum jitter for that task, which we will call $J_{ij}$. This means that the activation time of task $\tau_{ij}$ may occur at any time between $t_0 + \Phi_{ij}$ and $t_0 + \Phi_{ij} + J_{ij}$, where $t_0$ is the instant at which the external event arrived.
+
+The reason for this is that tasks must execute in order, e.g. On\_Call\_Producer can start executing only after the preceding task Regular\_Producer in the transaction has completed. The precedence constraints are modeled by assigning each task an initial offset and a maximum jitter \cite{tindell-offsets}. The initial offset $\Phi_{ij}$ of a periodic task is the instant of the first activation of the task. However, a task belonging to a transaction may start only after it has been activated and the preceding task in the transaction has completed execution. Hence maximum jitter is the maximum time interval it can occur from the task activation until the completion time of the preceding task in the transaction.
+
+In addition to maximum jitter, tasks offsets are allowed to vary dynamically, from one activation to the next, within a minimum and a maximum value: $\Phi_{ij} \in [\Phi_{ij\ min}, \Phi_{ij\ max}]$. Dynamic offsets are useful in systems in which tasks suspend themselves, like in the case of protected object entries. The task On\_Call\_Producer $\tau_{i2}$ calls the protected entry \texttt{Extract} and suspends itself until the task Regular\_Producer $\tau_{i1}$ replenishes the \texttt{Request\_Buffer}. The activation time of On\_Call\_Producer depends on the completion time of the Regular\_Producer and thus the offset for task $\tau_{i2}$ is variable in the interval $\Phi_{i2} \in [R_{i1\ min}, R_{i1\ max}]$, where $R_{i1\ min}$ and $R_{i1\ max}$ are respectively the best-case and worst-case response times of task Regular\_Producer.
+
+For each task $\tau_{ij}$ we define its response time as the difference between its completion time and the instant at which the associated external event arrived. The worst-case response time will be called $R_{ij}$. Each task has also an associated global deadline, $D_{ij}$, which is again relative to the arrival of the external event.
+
+If tasks synchronize using shared resources in a mutually exclusive way, they will be using the aforementioned Priority Ceiling Protocol. The effects of lower priority tasks on a task under analysis $\tau_{ab}$ are bounded by an amount called the blocking term $B_{ab}$, calculated as the maximum of all the critical sections of lower priority tasks that have a priority ceiling higher than or equal to the priority of $\tau_{ab}$.
+
+\subsection{Holistic analysis}
+
+Rate monotonic analysis (RMA) \cite{rm-dm} allows an exact calculation of the worst-case response time of tasks in single-processor real time systems, including the effects of task synchronization, the presence of aperiodic tasks, the effects of deadlines before, at or after the periods of the tasks, precedence constraints and tasks with varying priorities, overhead analysis, etc. However, classic RMA \cite{practitioner-common-data} cannot provide exact solutions in systems in which tasks suspend themselves. Classic techniques for these systems are based on the assumption that all tasks are independent, and thus they lead to pessimistic results \cite{pessimistic-rma}.
+
+For building the worst-case scenario for a task $\tau_{ab}$ under analysis, the analysis must consider the critical instant that leads to the worst-case busy period. A task $\tau_{ab}$ busy period is an interval of time during which the CPU is busy processing task $\tau_{ab}$ or higher priority tasks. For tasks with offsets, it must take into account that the critical instant may not include the simultaneous activation of all higher priority tasks, as it was the case when all tasks were independent. The existence of offsets makes it impossible for some sets of tasks to simultaneously become active.
+
+Works on such problem has been the base of holistic analysis, first proposed by Tindell and Clark \cite{tindell-offsets} for distributed systems and later improved by Palencia and Gonzàlez \cite{pessimistic-rma} who called it Worst-Case analysis of Dynamic Offsets (WCDO). In such analysis, the worst-case response time of each task is used to set the offset and the jitter of the successive task in the same transaction. Then, the computation of worst-case response times is iterated until a stable solution is found. If response times are bounded, the holistic method is guaranteed to converge to a solution.
+
+The MAST analysis tool implements both the latest offset-based WCDO techniques and the more pessimistic holistic approach \cite{mast}, which is included in the toolset for completeness and comparison.
+
+\section{MAST}
+
+MAST \cite{mast} is a Modeling and Analysis Suite for Real-Time Applications and its main goal is to provide an open source set of tools that enables engineers developing real-time applications to check the timing behavior of their application, including schedulability analysis for checking hard timing requirements.
+
+It is designed to handle both fixed priority and dynamic priority scheduled systems, although offset-based analysis for Earliest Deadline First scheduling is still missing as of the time of writing. However, within fixed priorities, different scheduling strategies are allowed, including preemptive and non preemptive scheduling, interrupt service routines, sporadic server scheduling, and periodic polling servers.
+
+The MAST model is designed to handle both single-processor as well as multiprocessor or distributed systems. In both cases, emphasis is placed on describing event-driven systems in which each task may conditionally generate multiple events at its completion. A task may be activated by a conditional combination of one or more events. The external events arriving at the system can be of different kinds: periodic, unbounded aperiodic, sporadic, bursty, or singular (arriving only once).
+
+The system model facilitates the independent description of overhead parameters such as processor overheads (including the overheads of the timing services). This frees us from the need to include all these overheads in the actual application model, thus simplifying it and eliminating a lot of redundancy.
+
+MAST provides also a graphical editor to generate the system using the MAST ASCII description, but it's still immature to be reliable and the presence of several graphical bugs causes an annoying experience. A graphical display of results is also available.
+
+\subsection{The MAST Model}
+
+We now proceed to describe the MAST model of the example application. For a reference to the MAST syntax, visit "Description of the MAST Model" \cite{mast-description}.
+
+\subsubsection{Processing Resources}
+
+Processing Resources represent resources that are capable of executing abstract activities, including conventional CPU processors. Among its attributes we have the range of priorities valid for normal operations on that processing resource, and the speed factor. We have left the default value as speed factor, meaning that execution times will be expressed as seconds.
+
+Normally when dealing with hard real-time analysis, we would also define only the Worst-Case Execution Time (WCET) of the operations but, since we have dynamic offsets depending on them, we include both best and worst execution times because we don't know for sure that always having the WCET corresponds to worst system performance. We may for instance have anomalies as in the case of multiple processors \cite{anomalies-multiprocessor}. Nevertheless, most of the time we had deterministic execution times with always the same number of CPU ticks or with a difference less than 1$\mu$s, except for the Whetstone operations which showed more significant differences.
 
 \begin{lstlisting}
 Processing_Resource (
@@ -405,6 +498,10 @@ end Overrun;
 
 Ispiration from \cite{overrundetection}. The measured execution times include overrun detection overhead for Regular Producer, On Call Producer and Activation Log Reader.
 
+\section{Execution times}
+
+Execution times are measured using two packages \texttt{System\_Overhead} and \texttt{Task\_Overhead} using Semihosting.
+
 \section{MAST analysis}
 
 As of the time of writing, MAST is at version 1.5.1 and supports the following analysis tools.
@@ -418,11 +515,7 @@ As of the time of writing, MAST is at version 1.5.1 and supports the following a
 
 The transaction which defines the button interrupt event stream is considered as a linear transaction, which only has one external event and that its Event handlers are all Activities, but unfortunately it is not a simple transaction, a continuous sequence of activities executed by the same server. We have one server which handles the ISR and another one the associated task of External Event Server.
 
-This means we cannot use the classic Rate Monotonic algorithm \cite{rm-dm}, only offset-based (cite ?) and holistic analysis \cite{holistic-analysis}. We decided to stick to only holistic analysis because it supports both FPS and EDF, whereas offset-based fallbacks to holistic analysis with EDF processing resources \cite{mast-readme}. Nevertheless it doesn't make much difference which one is used between holistic and offset-based since we run the system on a single processor, not on a distributed system (?).
-
-\subsection{Holistic analysis}
-
-In our application we have chains of operations, not independent tasks competing for the shared resourses. The technique described in \cite{practitioner-common-data} assumes the worst case, but it's too pessimist because in our case a task A always precedes task B, they are not independent and competing for the same resourses. Therefore we use the holistic analysis, designed originally for distributed systems.
+This means we cannot use the classic Rate Monotonic algorithm \cite{rm-dm}, only offset-based (cite ?) and holistic analysis \cite{holistic-analysis}. That's probably because Rate Monotonic assumes indipendent tasks, but out interrupt transaction is composed by an ISR in a Interrupt\_FP\_Server, followed by the interrupt handler in External Event Server which is activated by the former and thus it depends on it for its activation. We decided to stick to only holistic analysis because it supports both FPS and EDF, whereas offset-based fallbacks to holistic analysis with EDF processing resources \cite{mast-readme}. Nevertheless it doesn't make much difference which one is used between holistic and offset-based since we run the system on a single processor, not on a distributed system (?).
 
 \section{FPS analysis}
 
@@ -464,7 +557,7 @@ We then increase the Whetstone workload of factor 24 in the first three transact
 
 Blocking times have not changed because protected operations are same as before.
 
-The system slack is 2.80\% and total utilisation 55.33\%. The theoretical CPU utilisation upper bound \cite{liu-utilisation-bound} is 0.779 for tasks with same deadline as the period, but we have to use the technique shown in \cite{practitioner-utilisation-bound}. We now increase the workloads of factor 25 instead of 24\%.
+The system slack is 2.80\% and total utilisation 55.33\%. The theoretical CPU utilisation upper bound \cite{liu-utilisation-bound} is 0.779 for tasks with same deadline as the period, but we have to use the technique shown in \cite{practitioner-utilisation-bound}. We now increase the workloads of factor 25 instead of 24\%, assuming we had a slack of 2500\%.
 
 \begin{table}[!htbp]
    \centering
@@ -482,7 +575,15 @@ The system slack is 2.80\% and total utilisation 55.33\%. The theoretical CPU ut
    \label{tab:holistic-fps}
 \end{table}
 
-The system slack is -1.16\% and total utilisation 57.53\%, which exceed the theoretical limit (?). This means that the actual execution should also overrun the deadline and it is indeed what happened on our board. The first job of Regular Producer raised the overrun detection Program Error.
+The system slack is -1.16\% and total utilisation 57.53\%, which exceeds the theoretical limit (?). This means that the actual execution should also overrun the deadline and it is indeed what happened on our board. The first job of Regular Producer raised the overrun detection Program Error.
+
+The protected methods execution times are so small compared to Whetstone that even if we model it badly, it doesn't matter. But actually we are being to pessimistic because our application has dependency chains, tasks don't compete for the same resource. They synchronize. Let's try putting Whetstone inside the protected methods, now too pessimistic analysis matters. In particular there are 500ms after Regular Producer completion and its next release. If On Call Producer and Activation Log Reader spend less than 500ms together in protected methods, we know for sure that Regular Producer is never blocked by them. Pessimist analysis may consider the blocking time however. Maybe we can model protected methods as message communication overhead and use holistic analysis for distributed systems.
+We may also increase execution times of On Call Producer and Activation Log Reader because maybe the analysis is too pessimistic with the critical instants.
+
+Two pessimistic points:
+
+1. Blocking time
+2. Critical instant/busy period
 
 \bibliographystyle{unsrt}
 %\bibliography{references}  %%% Remove comment to use the external .bib file (using bibtex).
@@ -496,6 +597,11 @@ The system slack is -1.16\% and total utilisation 57.53\%, which exceed the theo
 A Burns, B Dobbing, T Vardanega.
 \newblock Guide for the use of the Ada Ravenscar Profile in high integrity systems.
 \newblock In {\em University of York Technical Report YCS-2003-348}. January 2003.
+
+\bibitem{semihosting}
+ARM KEIL.
+\newblock What is semihosting?
+\newblock In {\em Compiler User Guide}. \url{http://www.keil.com/support/man/docs/armcc/armcc_pge1358787046598.htm}.
 
 \bibitem{mast}
 M. GonzAlez Harbour, J.J. GutiCrrez Garcia, J.C. Palencia GutiCrrez, and J.M. Drake Moyano.
@@ -522,6 +628,16 @@ Jane W. S. W. Liu.
 \newblock Rate-Monotonic and Deadline-Monotonic Algorithms.
 \newblock In {\em Real-Time Systems}. pp 118-119. 2001.
 
+\bibitem{optimality-rm-dm}
+Jane W. S. W. Liu.
+\newblock Optimality of the RM and DM algorithms.
+\newblock In {\em Real-Time Systems}. pp 118-119. 2001.
+
+\bibitem{pcp-blocking}
+Jane W. S. W. Liu.
+\newblock Basic Priority Ceiling Protocol - Duration of Blocking.
+\newblock In {\em Real-Time Systems}. pp 295-296. 2001.
+
 \bibitem{limited-priorities}
 Jane W. S. W. Liu.
 \newblock Limited-Priority Levels.
@@ -531,6 +647,11 @@ Jane W. S. W. Liu.
 Jane W. S. W. Liu.
 \newblock Tick Scheduling.
 \newblock In {\em Real-Time Systems}. pp 168-171. 2001.
+
+\bibitem{anomalies-multiprocessor}
+Jane W. S. W. Liu.
+\newblock Anomalous Behavior of Priority-Driven Systems.
+\newblock In {\em Real-Time Systems}. pp 72-73. 2001.
 
 \bibitem{holistic-analysis}
 KenTindell, JohnClark.
@@ -570,6 +691,16 @@ Klein, M., Ralya, Th., Pollak, B., Obenza, R., Harbour, M.G. .
 Kristoffer Nyborg Gregertsen, Amund Skavhaug.
 \newblock Implementation and Usage of the new Ada 2012 Execution Time Control Features.
 \newblock In {\em Ada User Journal}. 2011.
+
+\bibitem{pessimistic-rma}
+J.C. Palencia ; M. Gonzalez Harbour.
+\newblock Schedulability analysis for tasks with static and dynamic offsets.
+\newblock In {\em Proceedings 19th IEEE Real-Time Systems Symposium}. 1998.
+
+\bibitem{tindell-offsets}
+K. Tindell.
+\newblock Adding Time - Offsets to Schedulability Analysis.
+\newblock Technical Report YCS 221, Dept. of Computer Science, University of York, England, January 1994.
 
 \end{thebibliography}
 
