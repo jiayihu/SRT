@@ -81,6 +81,10 @@ Notably, the Ravenscar profile \cite{ycs} is a subset of the tasking model, rest
 
 Along with the Ravenscar profile, we have used a model for representing the temporal and logical elements of real-time applications, called MAST \cite{mast}. This model allows a very rich description of the system, including the effects of event or message-based synchronization, multiprocessor and distributed architectures as well as shared resource synchronization.
 
+The board-specific values shown in the paper are relative to the bare-board STM32F429I-Discovery and we have used the GNAT \texttt{ravenscar-full-stm32f429disco} runtime environment for supporting the Ravenscar restricted tasking model.
+
+We have preferred the usage of a bare-board instead of the GNAT emulator as we have noticed significant standard deviation with the execution times measured on the latter. The board also includes an ST-LINK/V2 embedded debug tool, which can stop the processor (halting), insert/remove breakpoints and execute instructions line by line (single stepping) \cite{debug-trace}.
+
 \subsection{The application}
 
 \begin{figure}[!htbp]
@@ -92,7 +96,7 @@ Along with the Ravenscar profile, we have used a model for representing the temp
 
 The example application presented in this paper is extracted from "Guide for the use of the
 Ada Ravenscar Profile in
-high integrity systems" \cite{ycs}. It includes a periodic process that handles orders for a variable amount of workload. Whenever the request level exceeds a certain threshold, the periodic process farms the excess load out to a supporting sporadic process. While such orders are executed, the system may receive interrupt requests from an external source. Each interrupt treatment records an entry in an activation log.
+high integrity systems" \cite{ycs}. It includes a periodic process that handles orders for a variable amount of workload. Whenever the request level exceeds a certain threshold, the periodic process farms the excess load out to a supporting sporadic process. While such orders are executed, the system may receive interrupt requests from an external manual push-button. Each interrupt treatment records an entry in an activation log.
 
 When specific conditions hold, the periodic process releases a further sporadic process to perform a check on the interrupt activation entries recorded in the intervening period. The policy of work delegation adopted by the system allows the periodic process to ensure the constant discharge of a guaranteed level of workload.
 
@@ -135,12 +139,6 @@ In a real-time application, each protected object has a priority ceiling which r
    \label{tab:holistic-fps}
 \end{table}
 
-\subsection{The Board}
-
-We have preferred the usage of a bare-board STM32F429I-Discovery instead of the GNAT emulator because the measure time values had too much standard deviation.
-
-It has ST-LINK debugger built-in.
-
 \section{System model and notation}
 
 The described application is a set of tasks executing in the same processor, grouped into entities called transactions \cite{tindell-offsets}. Each transaction $\Gamma_i$ is activated by a periodic sequence of external events with period $T_i$ , and contains a set of tasks. Each task is released when a relative time offset elapses after the arrival of the external event. Each activation of a task releases the execution of one instance of that task, called a \textit{job}.
@@ -174,6 +172,59 @@ Works on such problem has been the base of holistic analysis, first proposed by 
 
 The MAST analysis tool implements both the latest offset-based WCDO techniques and the more pessimistic holistic approach \cite{mast}, which is included in the toolset for completeness and comparison.
 
+\section{Execution times}
+
+To use the described model, upper bounds on the execution times are needed. Unfortunately precise Worst-Case Execution Time (WCET) is hard to find due to pipelines, caches and other performance enhancing techniques used on contemporary computer architectures \cite{wcet-problem}. Therefore pessimistic scheduling is needed in order to provide an offline guarantee that all hard deadlines will be met, which leads to poor processor utilization.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=5in]{images/wcet}
+\caption{The lower curve represents a subset of measured executions. The darker curve, an envelope of the former, represents the times of all executions. \cite{wcet-problem}.}
+\label{wcet-curve}
+\end{figure}
+
+Figure \ref{wcet-curve} shows the set of all execution times as the upper curve. Its minimum and maximum are the best- and worst-case execution times, respectively, abbreviated BCET and WCET. In most cases, the space is too large to exhaustively explore all possible executions and thereby determine the exact worst- and best-case execution times.
+
+The common method to estimate execution time bounds is to measure the end-to-end execution time of the task for a subset of the possible executions. This determines the minimal observed and maximal observed execution times. These will, in general, overestimate the BCET and underestimate the WCET.
+
+Nevertheless, we have adopted the same approach, aware of the mentioned perils. In most cases, we had deterministic execution times with always the same exact number of CPU ticks or with a difference less than 1$\mu$s, except for the Whetstone operations which showed more significant variation. However, we always had very low standard errors minor than 1\%. The example application is quite simple, comprised of few tasks with predictable executions and the only interrupts are the periodic ticker and the external board push button.
+
+Execution times are measured using two custom packages: \texttt{System\_Overhead} and \texttt{Task\_Overhead}. The former is able to provide the exact number of elapsed CPU ticks, which is then converted as seconds by dividing it with the clock frequency. It's used to measure runtime overhead and task operations which do not self-suspend. The latter measures task execution time if self-suspension can happen, which would make usage of the clock ticks unsuitable.
+
+\begin{lstlisting}[language=Ada]
+with System.BB.Time; use System.BB.Time;
+with System.Semihosting;
+
+package System_Overhead is
+   pragma Preelaborate;
+
+   procedure Start_Tracking;
+
+   --  Avoid counting sub-program execution time
+   procedure Start_Sub_Program;
+   procedure End_Sub_Program;
+
+   procedure End_Tracking (Item : String := "");
+
+   procedure Log_Time;
+   --  Just log the current clock time
+end System_Overhead;
+\end{lstlisting}
+
+The \texttt{System\_Overhead} package uses the board-specific \texttt{System.BB.Time} package, which provides the \texttt{Clock} function to read the real-time monotonic clock. It's the same primitive used under-the-hood by \texttt{Ada.Real\_Time} [RM D.8] to provide physical time as observed in the external environment.
+
+The package \texttt{Task\_Overhead} has the same interface as \texttt{System\_Overhead}, but it replaces \texttt{System.BB.Time} with \texttt{Ada.Execution\_Time} [RM D.14] to measure the elapsed execution time of a task. The \texttt{ravenscar-full-stm32f429disco} runtime supports the Ada 2012 implementation to separately account for the execution time of interrupt handlers \cite{etc}.
+
+The functionality of the real-time clock (RTC) and execution time clocks (ETCs) are quite similar: both clocks support high accuracy measurement of the monotonic passing of time since an epoch, and both support calling a protected handler when a given timeout time is reached. The main difference is that the RTC is always active, while an ETC is active only when its corresponding task or interrupt is executed.
+
+\subsection{Semi-hosting}
+
+It is worth mentioning the usage of semi-hosting \cite{semihosting}, which allow print messages to be transferred from the board to the host computer using the debug connection. Using semi-hosting for printing is usually much slower than UART because the semi-hosting mechanism needs to halt the processor, but on the other hand the system tick timer \texttt{Sys\_Tick} counter is stopped during the transmission thus avoiding affecting the schedule of the tasks. The example application has no timing requirements relative to external interrupts, with the exception of the manual push-button.
+
+Both \texttt{System\_Overhead} and \texttt{Task\_Overhead} use semi-hosting to send execution time data to the host computer. Besides, it is leveraged also in the \texttt{ravenscar-full-stm32f429disco} runtime implementation of the \texttt{Ada.Text\_IO} package, whose method \texttt{Put\_Line} is called by the tasks.
+
+The runtime defines a semi-hosting buffer size of 128 characters before flushing a string, therefore we have padded all the print messages with white space to reach the fixed size of 50 characters. By doing so we have fixed execution time due to buffer insertion, simplifying MAST modeling of the \texttt{Put\_Line} operation.
+
 \section{MAST}
 
 MAST \cite{mast} is a Modeling and Analysis Suite for Real-Time Applications and its main goal is to provide an open source set of tools that enables engineers developing real-time applications to check the timing behavior of their application, including schedulability analysis for checking hard timing requirements.
@@ -194,7 +245,7 @@ We now proceed to describe the MAST model of the example application. For a refe
 
 Processing Resources represent resources that are capable of executing abstract activities, including conventional CPU processors. Among its attributes we have the range of priorities valid for normal operations on that processing resource, and the speed factor. We have left the default value as speed factor, meaning that execution times will be expressed as seconds.
 
-Normally when dealing with hard real-time analysis, we would also define only the Worst-Case Execution Time (WCET) of the operations but, since we have dynamic offsets depending on them, we include both best and worst execution times because we don't know for sure that always having the WCET corresponds to worst system performance. We may for instance have anomalies as in the case of multiple processors \cite{anomalies-multiprocessor}. Nevertheless, most of the time we had deterministic execution times with always the same number of CPU ticks or with a difference less than 1$\mu$s, except for the Whetstone operations which showed more significant differences.
+Normally when dealing with hard real-time analysis, we would also define only the Worst-Case Execution Time (WCET) of the operations but, since we have dynamic offsets depending on them, we include both best and worst execution times because we don't know for sure that always having the WCET corresponds to worst system performance. We may for instance have anomalies as in the case of multiple processors \cite{anomalies-multiprocessor}.
 
 \begin{lstlisting}
 Processing_Resource (
@@ -210,7 +261,13 @@ Processing_Resource (
    Speed_Factor           => 1.00);
 \end{lstlisting}
 
-We have a board with only one CPU and interrupt ranges are taken from \texttt{System} package. Task priorities range from 1 to 240, whereas interrupt priorities go from 241 to 255. So we have at maximum 240 task priorities, if we ever would need more priorities we could use the technique described in \cite{limited-priorities}. The Interrupt Service Routine overhead is measured as the time taken to execute \texttt{Interrupt\_Handler} in \texttt{System.BB.Board\_Support} package, apart from the execution time of the user-defined interrupt handler. It takes into account the overhead of managing the Task and Interrupt Execution Clocks \cite{etc}.
+The board is built with only one CPU, whereas the interrupt ranges are taken from the \texttt{System} package in the \texttt{ravenscar-full-stm32f429disco} runtime. Task priorities span from 1 to 240, while interrupt priorities go from 241 to 255. Thus it's possible to have at max 240 distinct task priorities, if more priorities are needed it's possible to use the technique described in \cite{limited-priorities}.
+
+The code in the handler itself executes at the hardware interrupt level, whereas the major part of the processing of the response to the interrupt is moved into an event response task, which executes at a software priority level with interrupts fully enabled.
+
+The Interrupt Service Routine (ISR) overhead is measured as the time taken to run the \texttt{Interrupt\_Handler} in \texttt{System.BB.Board\_Support} package, without counting the execution time of the hardware interrupt level handler. This is because the code in the handler executes at the hardware interrupt level, whereas the major part of the processing of the response to the interrupt is moved into an event response task, which executes at a software priority level with interrupts fully enabled. Both parts are not accounted in the ISR overhead.
+
+However, the overhead takes into account the management of the Execution Time clocks \cite{etc}.
 
 The system timer used by the board is Tick Scheduling \cite{tick-scheduling}, which is accounted in the analysis using the technique described in \cite{effects-runtime}. The period of the tick is 1ms, as defined in \texttt{System.BB.Board\_Support} package, and the worst overhead is measured as the time taken to execute \texttt{Timer\_Interrupt\_Handler}, the trap handler defined in the same package for \texttt{Sys\_Tick} trap.
 
@@ -452,7 +509,7 @@ Transaction (
          Activity_Server    => external_event_server)));
 \end{lstlisting}
 
-The blue button interrupt event stream is modeled as a triggered by a sporadic event of 5s as minimum interarrival time and it's first handled by the \texttt{interrupt\_server} which runs the ISR at interrupt priority level and then by the user-defined \texttt{external\_event\_server} at task priority-level.
+The push-button interrupt event stream is modeled as a triggered by a sporadic event of 5s as minimum interarrival time and it's first handled by the \texttt{interrupt\_server} which runs the ISR at interrupt priority level and then by the user-defined \texttt{external\_event\_server} at task priority-level.
 
 \section{Overrun detection}
 
@@ -497,10 +554,6 @@ end Overrun;
 \end{lstlisting}
 
 Ispiration from \cite{overrundetection}. The measured execution times include overrun detection overhead for Regular Producer, On Call Producer and Activation Log Reader.
-
-\section{Execution times}
-
-Execution times are measured using two packages \texttt{System\_Overhead} and \texttt{Task\_Overhead} using Semihosting.
 
 \section{MAST analysis}
 
@@ -598,11 +651,6 @@ A Burns, B Dobbing, T Vardanega.
 \newblock Guide for the use of the Ada Ravenscar Profile in high integrity systems.
 \newblock In {\em University of York Technical Report YCS-2003-348}. January 2003.
 
-\bibitem{semihosting}
-ARM KEIL.
-\newblock What is semihosting?
-\newblock In {\em Compiler User Guide}. \url{http://www.keil.com/support/man/docs/armcc/armcc_pge1358787046598.htm}.
-
 \bibitem{mast}
 M. GonzAlez Harbour, J.J. GutiCrrez Garcia, J.C. Palencia GutiCrrez, and J.M. Drake Moyano.
 \newblock MAST Modeling and Analysis Suite for Real Time Applications.
@@ -653,6 +701,16 @@ Jane W. S. W. Liu.
 \newblock Anomalous Behavior of Priority-Driven Systems.
 \newblock In {\em Real-Time Systems}. pp 72-73. 2001.
 
+\bibitem{debug-trace}
+Joseph Yiu.
+\newblock Introduction to the Debug and Trace Features.
+\newblock In {\em The Definitive Guide to ARM CORTEX-M3 and CORTEX-M4 Processors}. Chapter 4 pp 443-485. 2014.
+
+\bibitem{semihosting}
+Joseph Yiu.
+\newblock Semi-hosting.
+\newblock In {\em The Definitive Guide to ARM CORTEX-M3 and CORTEX-M4 Processors}. Chapter 18.3 pp 591-595. 2014.
+
 \bibitem{holistic-analysis}
 KenTindell, JohnClark.
 \newblock Holistic schedulability analysis for distributed hard real-time systems.
@@ -701,6 +759,11 @@ J.C. Palencia ; M. Gonzalez Harbour.
 K. Tindell.
 \newblock Adding Time - Offsets to Schedulability Analysis.
 \newblock Technical Report YCS 221, Dept. of Computer Science, University of York, England, January 1994.
+
+\bibitem{wcet-problem}
+R. Wilhelm et al..
+\newblock The worst-case execution-time problem—overview of methods and survey of tools.
+\newblock In {\em Trans. on Embedded Computing Sys}. vol. 7, no. 3, pp. 153, 2008.
 
 \end{thebibliography}
 
