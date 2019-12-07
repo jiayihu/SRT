@@ -1,0 +1,13 @@
+abstract project Scheduling is
+
+   EDF := ();   
+   type Scheduling_Type is ("fps","edf");
+   Scheduling : Scheduling_Type := external("sched","fps");
+
+   case Scheduling is
+      when "edf"  =>
+         EDF := EDF & (Project'Project_dir & "edf-migrated");
+      when others =>
+   end case;
+
+end Scheduling;

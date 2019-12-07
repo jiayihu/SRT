@@ -2,6 +2,7 @@ with "libgnat_sources";
 with "libgnarl_sources";
 with "target_options";
 with "install";
+with "scheduling.gpr";
 
 library project Libgnat is
 
@@ -18,6 +19,7 @@ library project Libgnat is
    for Object_Dir use "obj";
 
    for Source_Dirs use
+     Scheduling.EDF &
      Libgnat_Sources.Gnat_Dirs &
      Libgnarl_Sources.Gnarl_Dirs &
      ("../../../../src/arch",

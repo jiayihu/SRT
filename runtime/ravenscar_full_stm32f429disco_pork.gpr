@@ -6,6 +6,7 @@ aggregate project Ravenscar_Full_Stm32F429Disco_PORK is
    Default_Prefix        :=
      Base_Installation_Dir & "ravenscar-full-" & Board;
    Install_Dir           := external ("PREFIX", Default_Prefix);
+   --Scheduling            := external ("sched", "fps");
 
    for external ("Add_Arith64") use "yes";
    for external ("Add_C_Integration") use "newlib";

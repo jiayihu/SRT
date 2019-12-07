@@ -32,8 +32,14 @@ If you have just recompiled the application and want to load on the board withou
 ```
 
 ## Compiling the runtime
-
+fps scheduling:
 ```bash
-runtime$ gprbuild -P ravenscar_full_stm32f429disco_pork.gpr
+runtime$ gprbuild -P ravenscar_full_stm32f429disco_pork.gpr -p
 runtime$ gprinstall -P ravenscar_full_stm32f429disco_pork.gpr -p -f
 ```
+edf scheduling:
+```bash
+runtime$ gprbuild -P ravenscar_full_stm32f429disco_pork.gpr -p -Xsched=edf
+runtime$ gprinstall -P ravenscar_full_stm32f429disco_pork.gpr -p -f
+```
+
