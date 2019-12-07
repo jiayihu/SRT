@@ -18,6 +18,6 @@ fs.readFile('tools/time.txt', 'utf-8', (err, data) => {
       average: average.toFixed(6),
       best: best.toFixed(6),
       sd,
-      relativeSd: sd / average,
+      standardError: sd / Math.sqrt(times.length),
    });
 });
