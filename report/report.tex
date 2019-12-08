@@ -81,9 +81,9 @@ Notably, the Ravenscar profile \cite{ycs} is a subset of the tasking model, rest
 
 Along with the Ravenscar profile, we have used a model for representing the temporal and logical elements of real-time applications, called MAST \cite{mast}. This model allows a very rich description of the system, including the effects of event or message-based synchronization, multiprocessor and distributed architectures as well as shared resource synchronization.
 
-The board-specific values shown in the paper are relative to the bare-board STM32F429I-Discovery and we have used the GNAT \texttt{ravenscar-full-stm32f429disco} runtime environment for supporting the Ravenscar restricted tasking model.
+The board-specific values shown in the paper are relative to the bare-board STM32F429I-Discovery and we have used the GNAT \texttt{ravenscar-full-stm32f429disco} runtime environment for supporting the Ravenscar restricted tasking model. The runtime implementation is based upon the Open Ravenscar Real-Time Kernel \cite{ork}, whose design document can help the reader to understand the GNAT source code.
 
-We have preferred the usage of a bare-board instead of the GNAT emulator as we have noticed significant standard deviation with the execution times measured on the latter. The board also includes an ST-LINK/V2 embedded debug tool, which can stop the processor (halting), insert/remove breakpoints and execute instructions line by line (single stepping) \cite{debug-trace}.
+We have instead preferred the usage of a bare-board instead of the GNAT emulator as we have noticed significant standard deviation with the execution times measured on the latter. The board also includes an ST-LINK/V2 embedded debug tool, which can stop the processor (halting), insert/remove breakpoints and execute instructions line by line (single stepping) \cite{debug-trace}.
 
 \subsection{The application}
 
@@ -117,12 +117,12 @@ The application is comprised by the following tasks and attributes. Static prior
      \bottomrule
    \end{tabular}
    \caption{Attributes of the tasks in the application \cite{ycs}}
-   \label{tab:holistic-fps}
+   \label{tab:tasks-attributes}
 \end{table}
 
 Ada protected objects [RM 9.4] are used to ensure mutually exclusive access to shared resources, whereas protected entries are used only for task synchronization purposes where data exchange is involved.
 
-In a real-time application, each protected object has a priority ceiling which represents the maximum priority of any task that calls the object. The Ada Real-Time Systems Annex supports the definition of  \texttt{Locking\_Policy} [RM D.3] and implements the Immediate Ceiling Priority Protocol (ICPP), usually called Priority Ceiling Protocol (PCP) in literature. It's one of the best Priority inheritance protocols, which allow a task to execute with an enhanced priority if it is blocking (or could block) a higher-priority task. To be specific, PCP reduces blocking to its minimum value: every job is blocked at most once for the duration of a critical section, no matter how many jobs conflict with it \cite{pcp-blocking}.
+In a real-time application, each protected object has a priority ceiling which represents the maximum priority of any task that calls the object. The Ada Real-Time Systems Annex supports the definition of  \texttt{Locking\_Policy} [RM D.3] and implements the Immediate Priority Ceiling Protocol (IPCP), usually called Priority Ceiling Protocol (PCP) in literature. It's one of the best Priority inheritance protocols, which allow a task to execute with an enhanced priority if it is blocking (or could block) a higher-priority task. To be specific, PCP reduces blocking to its minimum value: every job is blocked at most once for the duration of a critical section, no matter how many jobs conflict with it \cite{pcp-blocking}.
 
 \begin{table}[!htbp]
    \centering
@@ -136,10 +136,14 @@ In a real-time application, each protected object has a priority ceiling which r
      \bottomrule
    \end{tabular}
    \caption{Attributes of the protected objects in the application \cite{ycs}}
-   \label{tab:holistic-fps}
+   \label{tab:po-attributes}
 \end{table}
 
-\section{System model and notation}
+\section{Ada tasking model}
+
+$\beta \mu \varsigma h \iota\ \delta \epsilon l\ \zeta \mu l o$.
+
+\section{System model and notation}\label{model-notation}
 
 The described application is a set of tasks executing in the same processor, grouped into entities called transactions \cite{tindell-offsets}. Each transaction $\Gamma_i$ is activated by a periodic sequence of external events with period $T_i$ , and contains a set of tasks. Each task is released when a relative time offset elapses after the arrival of the external event. Each activation of a task releases the execution of one instance of that task, called a \textit{job}.
 
@@ -239,7 +243,7 @@ MAST provides also a graphical editor to generate the system using the MAST ASCI
 
 \subsection{The MAST Model}
 
-We now proceed to describe the MAST model of the example application. For a reference to the MAST syntax, visit "Description of the MAST Model" \cite{mast-description}.
+We now proceed to describe the MAST model of the example application. For a full reference to the MAST syntax, visit "Description of the MAST Model" \cite{mast-description}.
 
 \subsubsection{Processing Resources}
 
@@ -261,15 +265,27 @@ Processing_Resource (
    Speed_Factor           => 1.00);
 \end{lstlisting}
 
-The board is built with only one CPU, whereas the interrupt ranges are taken from the \texttt{System} package in the \texttt{ravenscar-full-stm32f429disco} runtime. Task priorities span from 1 to 240, while interrupt priorities go from 241 to 255. Thus it's possible to have at max 240 distinct task priorities, if more priorities are needed it's possible to use the technique described in \cite{limited-priorities}.
+The board is built with only one CPU, whereas the interrupt ranges are taken from the \texttt{System} package in the \texttt{ravenscar-full-stm32f429disco} runtime. Task priorities span from 1 to 240, while interrupt priorities go from 241 to 255. Thus it's possible to have at max 240 distinct task priorities, if more priorities are needed one can use the technique described in \cite{limited-priorities}.
 
-The code in the handler itself executes at the hardware interrupt level, whereas the major part of the processing of the response to the interrupt is moved into an event response task, which executes at a software priority level with interrupts fully enabled.
+The Interrupt Service Routine (ISR) overhead is measured as the time taken to run the \texttt{Interrupt\_Handler} in \texttt{System.BB.Board\_Support} package, without counting the execution time of the application interrupt handler. In Ada, the code in the handler itself executes at the hardware interrupt level, whereas the major part of the processing of the response to the interrupt is moved into an event response task, which executes at a software priority level with interrupts fully enabled.
 
-The Interrupt Service Routine (ISR) overhead is measured as the time taken to run the \texttt{Interrupt\_Handler} in \texttt{System.BB.Board\_Support} package, without counting the execution time of the hardware interrupt level handler. This is because the code in the handler executes at the hardware interrupt level, whereas the major part of the processing of the response to the interrupt is moved into an event response task, which executes at a software priority level with interrupts fully enabled. Both parts are not accounted in the ISR overhead.
+The first procedure executes for a very short time-typically executing only the instructions that are strictly necessary to service the interrupt and reset the associated piece of hardware. The second one is implemented as a task that is activated from the interrupt handler and its priority is assigned as defined in \ref{tab:tasks-attributes}.
 
-However, the overhead takes into account the management of the Execution Time clocks \cite{etc}.
+Both parts are not accounted into the ISR overhead. However, the overhead takes into account the management of the aforementioned Execution Time Clocks (ETC) \cite{etc}.
 
-The system timer used by the board is Tick Scheduling \cite{tick-scheduling}, which is accounted in the analysis using the technique described in \cite{effects-runtime}. The period of the tick is 1ms, as defined in \texttt{System.BB.Board\_Support} package, and the worst overhead is measured as the time taken to execute \texttt{Timer\_Interrupt\_Handler}, the trap handler defined in the same package for \texttt{Sys\_Tick} trap.
+The system timer used by the board is Tick Scheduling \cite{tick-scheduling}, which represents a system that has a periodic clock interrupt that arrives at the system. When this interrupt arrives, all timed events whose expiration time has already passed, are activated.
+
+Tick scheduling introduces two additional factors that must be accounted for in schedulability analysis. First, the fact that a job is ready may not be noticed and acted upon by the scheduler until the next clock interrupt. This introduces additional jitter that may delay the completion of the job.
+
+Second, a self-suspended task is held in a queue which we will call the delay queue. When the scheduler executes, it scans the delay queue and moves the jobs that have been released since the last clock interrupt to the ready job queue and places them there in order of their priorities. Once in the ready queue, the jobs execute in priority order without intervention by the scheduler. The time the scheduler takes to scan and move the jobs introduces additional scheduling overhead.
+
+The scheduling overhead is accounted in the analysis using the technique described in \cite{effects-runtime}. We can model the scheduler as a periodic task $\tau_0$ whose period is $p_0$. This task has the highest priority among all tasks in the system. Its execution time $C_0$ is the amount of time the scheduler takes to service the clock interrupt. This time is spent even when there is no job in the pending job queue.
+
+In the \texttt{ravenscar-full-stm32f429disco} runtime, the period $p_0$ of the tick is 1ms, defined in the \texttt{System.BB.Board\_Support} package, and the worst overhead is measured as the time taken to execute \texttt{Timer\_Interrupt\_Handler}, the trap handler defined in the same package for the \texttt{Sys\_Tick} trap.
+
+\subsubsection{Schedulers}
+
+Schedulers represent the runtime procedures that implement the appropriate scheduling strategies to manage the amount of CPU processing capacity. They can have a hierarchical structure to model hierarchical scheduling \cite{hierarchical-scheduling}, but the example application has only one primary scheduler with fixed priority policy.
 
 \begin{lstlisting}
 Scheduler (
@@ -283,7 +299,11 @@ Scheduler (
         Min_Priority         => 1));
 \end{lstlisting}
 
-We only have one primary scheduler in the system, no hierarchical scheduling. The context switch overhead is measured as time to trigger the context switch interrupt \texttt{Pend\_SV} and the execution time of \texttt{Pend\_SV\_Handler} in \texttt{System.BB.CPU\_Primitives.Context\_Switch\_Trigger} package, to save the active context and load the new one.
+The context switch overhead is measured as time to set the context switch interrupt \texttt{Pend\_SV} as pending and the execution time of \texttt{Pend\_SV\_Handler} in the \texttt{System.BB.CPU\_Primitives.Context\_Switch\_Trigger} package, which saves the registers of active context and restores the ones of the new context. One some platforms, like in the case of the STM32F429I-Discovery board equipped with an Arm Cortex-M4 core, the context switch requires the triggering of a trap \cite{pendsv}. Then context switching is usually carried out in the \texttt{Pend\_SV} trap handler.
+
+\subsubsection{Scheduling Servers}
+
+Scheduling Servers represent schedulable entities in a processing resource, in particular if the resource is a processor, the scheduling server is a task or thread of control. As a matter of fact, each of them has a priority and a type, which for our application may be \texttt{Fixed\_Regular\_Policy} or \texttt{Interrupt\_FP\_Policy}. The former represents a regular preemptive fixed priority, whereas the latter models an interrupt service routine.
 
 \begin{lstlisting}
 Scheduling_Server (
@@ -331,7 +351,11 @@ Scheduling_Server (
    Scheduler                  => fps);
 \end{lstlisting}
 
-Each task is a Scheduling Server, whereas \texttt{interrupt\_server} models the runtime which runs the Interrupt Service Routine using the technique described in \cite{interrupt-handler}.
+The Scheduling Server \texttt{interrupt\_server} allows to model the runtime which runs the Interrupt Service Routine using the technique described in \cite{interrupt-handler}. Each aperiodic response will be rappresented as two MAST operations. The first operation is the interrupt handler and executes as \texttt{interrupt\_server} at interrupt priority 241. The second part is implemented as an operation of the task External\_Event\_Server at software priority 11.
+
+\subsubsection{Shared Resources}
+
+Shared Resources represent resources that are shared among different tasks, and that must be used in a mutually exclusive way. Therefore, protected objects are modeled as Shared Resourses that use the Immediate Priority Ceiling Protocol described above.
 
 \begin{lstlisting}
 Shared_Resource (
@@ -353,7 +377,17 @@ Shared_Resource (
    Preassigned => YES);
 \end{lstlisting}
 
-Protected objects are modeled as Shared Resourses which use the Immediate Priority Ceiling Protocol, the same defined as \texttt{Priority Ceiling Locking} in Ada Reference Manual D.3.
+\subsubsection{Operations}
+
+MAST Operations represent a piece of code to be executed by the processor. We have used the following classes of operations:
+
+\begin{itemize}
+   \item \textbf{Simple}: it represents a simple piece of code or a message. It may have the list of shared resources to lock before executing the operation, and the list of shared resources that must be unlocked after executing the operation. Simple Operations have been used to model methods of protected objects. The execution time is measured from the first line of the method to the last one, thus it doesn't include the runtime overhead associated with invoking protected methods.
+   \item \textbf{Composite}: it represents an operation composed of an ordered sequence of other operations, simple or composite. The execution time attribute of this class cannot be set, because it is the sum of the execution times of the comprised operations.
+   \item \textbf{Enclosing}: it represents an operation that contains other operations as part of its execution, but in this case the total execution time must be set explicitly; it is not the sum of execution times of the comprised operations, because other pieces of code may be executed in addition. For each protected method there is an Enclosing Operation which takes into account the overhead associated with calling protected methods. Sometimes corresponds to a method defined by the application, other times it's defined in the model specifically. By doing so, we can define the caller procedures as simpler Composite operations, which have the execution time with the runtime overhead included.
+\end{itemize}
+
+Examples of protected methods as Simple Operations:
 
 \begin{lstlisting}
 Operation (
@@ -375,7 +409,7 @@ Operation (
       ( request_buffer));
 \end{lstlisting}
 
-Protected methods are modeled as simple operations which lock and unlock the protected object resourse. The execution time is measured from the first line of the method to the last one, so it doesn't include the runtime overhead associated with invoking protected methods.
+Examples of Enclosing Operations including protected methods overhead:
 
 \begin{lstlisting}
 Operation (
@@ -393,13 +427,40 @@ Operation (
       ( rb_extract));
 \end{lstlisting}
 
-For each protected method there is an Enclosing operation which takes into account the overhead associated with invoking protected methods. Sometimes it's already a method defined by GEE, other times it's defined in the model on purpose. By doing so we can define the more complex methods as Composite operations, which have the execution time as the sum of the execution times of the comprised operations.
+Complete example of the MAST representation of a job of the task Regular\_Producer:
 
 \begin{lstlisting}
 Operation (
    Type                       => Simple,
    Name                       => rp_small_whetstone,
    Worst_Case_Execution_Time  => 0.019363);
+
+Operation (
+   Type                       => Simple,
+   Name                       => due_activation,
+   Worst_Case_Execution_Time  => 1.000E-06);
+
+Operation (
+   Type                     => Enclosing,
+   Name                     => ocp_start,
+   Worst_Case_Execution_Time=> 6.000E-06,
+   Composite_Operation_List =>
+      ( rb_deposit));
+
+Operation (
+   Type                       => Simple,
+   Name                       => check_due,
+   Worst_Case_Execution_Time  => 1.000E-06);
+
+Operation (
+   Type                       => Simple,
+   Name                       => alr_signal,
+   Worst_Case_Execution_Time  => 5.000E-06);
+
+Operation (
+   Type                       => Simple,
+   Name                       => put_line,
+   Worst_Case_Execution_Time  => 1.400E-05);
 
 Operation (
    Type                     => Composite,
@@ -421,7 +482,13 @@ Operation (
         delay_until));
 \end{lstlisting}
 
-Therefore, by changing the worload parameter of \texttt{Small\_Whetstone} in the application implementation, we will be able to test different utilisation of the system with likewise ease in updating the MAST model. The Whetstone execution time is proportional to the workload parameter. If we wanted to try what happens by increasing the load of factor 10, we would just increase the WCET to \texttt{0.19363}, without the need to measure again all the Enclosing operations, since all the methods which use the Whetstone are defined as Composite. However we have been careful to avoid forgetting any overhead in a Composite method and make sure they are not impacted by any change of the Whetstone workload. For instance, if we had defined \texttt{regular\_producer} as Enclosing we could have defined as composed of only \texttt{rp\_operation} and then measure its WCET, which will implicitly count also overrun detection and delay queue overhead. By instead defining it as Composite, we have been careful to define the simple operations \texttt{overrun\_detection} and \texttt{delay\_until} to include their execution time, using the technique described in \cite{effects-runtime}.
+The Small\_Whetstone algorithm allows to control the computational workload of Regular\_Producer, On\_Call\_Producer and Activation\_Log\_Reader. By changing the workload parameters of \texttt{Small\_Whetstone} in the application, we will be able to test different utilisation of the system with likewise ease in updating the MAST model.
+
+The Whetstone execution time is proportional to the workload parameter and exhibits deterministic behaviour. If we wanted to try what happens by increasing the load of factor 10, we would just multiply the WCET in the model by 11, without the need to measure again all the Enclosing operations, since all the methods which use Whetstone are defined as Composite. However we have been careful to avoid forgetting any overhead in a Enclosing method and make sure they are not impacted by any change of the Whetstone workload.
+
+\subsubsection{Transactions}
+
+A Transaction represents a transaction of our model (see Section \ref{model-notation}) as a graph of event handlers and events, that represents interrelated activities executed in the system. A Transaction is defined with three different components: a list of external events, a list of internal events (with their timing requirements if any), and a list of Event handlers.
 
 \begin{lstlisting}
 Transaction (
@@ -651,6 +718,11 @@ A Burns, B Dobbing, T Vardanega.
 \newblock Guide for the use of the Ada Ravenscar Profile in high integrity systems.
 \newblock In {\em University of York Technical Report YCS-2003-348}. January 2003.
 
+\bibitem{ork}
+Juan A. de la Puente, José F. Ruiz, Juan Zamorano.
+\newblock Open Ravenscar Real-Time Kernel. Design Definition File, Software Design Document.
+\newblock 2001.
+
 \bibitem{mast}
 M. GonzAlez Harbour, J.J. GutiCrrez Garcia, J.C. Palencia GutiCrrez, and J.M. Drake Moyano.
 \newblock MAST Modeling and Analysis Suite for Real Time Applications.
@@ -701,6 +773,11 @@ Jane W. S. W. Liu.
 \newblock Anomalous Behavior of Priority-Driven Systems.
 \newblock In {\em Real-Time Systems}. pp 72-73. 2001.
 
+\bibitem{hierarchical-scheduling}
+Jane W. S. W. Liu.
+\newblock Schedulability Test of Hierarchically Scheduled Periodic Tasks.
+\newblock In {\em Real-Time Systems}. pp 177-179. 2001.
+
 \bibitem{debug-trace}
 Joseph Yiu.
 \newblock Introduction to the Debug and Trace Features.
@@ -709,6 +786,11 @@ Joseph Yiu.
 \bibitem{semihosting}
 Joseph Yiu.
 \newblock Semi-hosting.
+\newblock In {\em The Definitive Guide to ARM CORTEX-M3 and CORTEX-M4 Processors}. Chapter 18.3 pp 591-595. 2014.
+
+\bibitem{pendsv}
+Joseph Yiu.
+\newblock PendSV exception.
 \newblock In {\em The Definitive Guide to ARM CORTEX-M3 and CORTEX-M4 Processors}. Chapter 18.3 pp 591-595. 2014.
 
 \bibitem{holistic-analysis}
@@ -741,9 +823,9 @@ Klein, M., Ralya, Th., Pollak, B., Obenza, R., Harbour, M.G. .
 
 \bibitem{interrupt-handler}
 Klein, M., Ralya, Th., Pollak, B., Obenza, R., Harbour, M.G. .
-\newblock Use an Interrupt Handler.
+\newblock Service the Event at a Specified Software Priority.
 \newblock In {\em A Practitioner’s Handbook for Real-Time Analysis
-}. chapter 5.3.5.1. 1993.
+}. chapter 5.3.5.2. 1993.
 
 \bibitem{etc}
 Kristoffer Nyborg Gregertsen, Amund Skavhaug.
