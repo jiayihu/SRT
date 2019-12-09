@@ -17,6 +17,9 @@
 \usepackage{url}
 \usepackage{graphicx}
 
+\lstset{
+   basicstyle=\ttfamily\footnotesize
+}
 
 \title{MAST analysis of a Ravenscar application with FPS and EDF scheduling}
 
@@ -55,7 +58,7 @@
 %\date{}
 
 % Uncomment to override  the `A preprint' in the header
-\renewcommand{\headeright}{Technical Report}
+\renewcommand{\headeright}{}
 \renewcommand{\undertitle}{Technical Report}
 
 \begin{document}
@@ -143,6 +146,9 @@ In a real-time application, each protected object has a priority ceiling which r
 
 $\beta \mu \varsigma h \iota\ \delta \epsilon l\ \zeta \mu l o$.
 
+1. Ada task model
+2. Delay until pro \& cons and implementation \cite{absolute-delay}
+
 \section{System model and notation}\label{model-notation}
 
 The described application is a set of tasks executing in the same processor, grouped into entities called transactions \cite{tindell-offsets}. Each transaction $\Gamma_i$ is activated by a periodic sequence of external events with period $T_i$ , and contains a set of tasks. Each task is released when a relative time offset elapses after the arrival of the external event. Each activation of a task releases the execution of one instance of that task, called a \textit{job}.
@@ -191,11 +197,12 @@ Figure \ref{wcet-curve} shows the set of all execution times as the upper curve.
 
 The common method to estimate execution time bounds is to measure the end-to-end execution time of the task for a subset of the possible executions. This determines the minimal observed and maximal observed execution times. These will, in general, overestimate the BCET and underestimate the WCET.
 
-Nevertheless, we have adopted the same approach, aware of the mentioned perils. In most cases, we had deterministic execution times with always the same exact number of CPU ticks or with a difference less than 1$\mu$s, except for the Whetstone operations which showed more significant variation. However, we always had very low standard errors minor than 1\%. The example application is quite simple, comprised of few tasks with predictable executions and the only interrupts are the periodic ticker and the external board push button.
+Nevertheless, we have adopted the same approach, aware of the mentioned perils. In most cases, we had deterministic execution times with always the same exact number of CPU cycles or with a difference less than 1$\mu$s, except for the Whetstone operations which showed more significant variation. However, we always had very low standard errors minor than 1\%. The example application is quite simple, comprised of few tasks with predictable executions and the only interrupts are the periodic ticker and the external board push button.
 
 Execution times are measured using two custom packages: \texttt{System\_Overhead} and \texttt{Task\_Overhead}. The former is able to provide the exact number of elapsed CPU ticks, which is then converted as seconds by dividing it with the clock frequency. It's used to measure runtime overhead and task operations which do not self-suspend. The latter measures task execution time if self-suspension can happen, which would make usage of the clock ticks unsuitable.
 
 \begin{lstlisting}[language=Ada]
+-- system-overhead.ads
 with System.BB.Time; use System.BB.Time;
 with System.Semihosting;
 
@@ -213,6 +220,61 @@ package System_Overhead is
    procedure Log_Time;
    --  Just log the current clock time
 end System_Overhead;
+
+with System.BB.Time; use System.BB.Time;
+with System.Semihosting;
+\end{lstlisting}
+
+\begin{lstlisting}[language=Ada]
+-- system-overhead.adb
+package body System_Overhead is
+   Initial_Value : Time := 0;
+   Start_Sub_Value : Time := 0;
+   End_Sub_Value : Time := 0;
+
+   procedure Start_Tracking is
+   begin
+      Initial_Value := Clock;
+      Start_Sub_Value := 0;
+      End_Sub_Value := 0;
+   end Start_Tracking;
+
+   procedure Start_Sub_Program is
+   begin
+      Start_Sub_Value := Clock;
+   end Start_Sub_Program;
+
+   procedure End_Sub_Program is
+   begin
+      End_Sub_Value := Clock;
+   end End_Sub_Program;
+
+   procedure End_Tracking (Item : String := "") is
+      Now : constant Time := Clock;
+      Sub_Program : Time;
+      Elapsed : Time;
+   begin
+      -- Sometime End_Tracking may be called before Start_Tracking
+      if Initial_Value = 0 then
+         return;
+      end if;
+
+      Sub_Program := End_Sub_Value - Start_Sub_Value;
+      Elapsed := Now - Initial_Value - Sub_Program;
+
+      Put_Line (Item & Time'Image (Elapsed));
+   end End_Tracking;
+
+   procedure Log_Time is
+   begin
+      Put_Line (Time'Image (Clock));
+   end Log_Time;
+
+   procedure Put_Line (Item : String) is
+   begin
+      System.Semihosting.Put (Item & ASCII.CR & ASCII.LF);
+   end Put_Line;
+end System_Overhead;
 \end{lstlisting}
 
 The \texttt{System\_Overhead} package uses the board-specific \texttt{System.BB.Time} package, which provides the \texttt{Clock} function to read the real-time monotonic clock. It's the same primitive used under-the-hood by \texttt{Ada.Real\_Time} [RM D.8] to provide physical time as observed in the external environment.
@@ -228,6 +290,67 @@ It is worth mentioning the usage of semi-hosting \cite{semihosting}, which allow
 Both \texttt{System\_Overhead} and \texttt{Task\_Overhead} use semi-hosting to send execution time data to the host computer. Besides, it is leveraged also in the \texttt{ravenscar-full-stm32f429disco} runtime implementation of the \texttt{Ada.Text\_IO} package, whose method \texttt{Put\_Line} is called by the tasks.
 
 The runtime defines a semi-hosting buffer size of 128 characters before flushing a string, therefore we have padded all the print messages with white space to reach the fixed size of 50 characters. By doing so we have fixed execution time due to buffer insertion, simplifying MAST modeling of the \texttt{Put\_Line} operation.
+
+\section{Deadline miss detection}
+
+In later analysis, we will want to achieve the maximum schedulable utilization by analyzing a MAST model with low utilization and then increasing tasks utilization until the system no longer meets its deadlines. However, for design attributes to turn into system properties, we must enforce them at runtime. In particular, we have to check that the jobs of the tasks always complete before their respective deadline, to ensure consistency between the MAST analysis and the execution \cite{timing-properties}.
+
+Fortunately, Ada 2005 introduced a lower level facility that maps a handler to a specific time without the need to use a separate task. The handler is associated with a timing event. When the event's time is due, and detected by the runtime (see Chapter \ref{processing-resources}), the handler code is executed.
+
+The most effective way for an implementation to support timing events is to execute the handlers directly from the interrupt handler of the clock \cite{timing-events}, and this is indeed what happens in \texttt{ravenscar-full-stm32f429disco}.
+
+\begin{lstlisting}[language=Ada]
+-- deadline_miss.ads
+with System;
+with Ada.Real_Time; use Ada.Real_Time;
+with Ada.Real_Time.Timing_Events; use Ada.Real_Time.Timing_Events;
+
+package Deadline_Miss is
+   type Task_Name is (RP, OCP, ALR);
+   type Deadline_Events_Array is array (Task_Name) of Timing_Event;
+
+   protected Handler
+     with Priority =>
+       System.Interrupt_Priority'Last
+   is
+      procedure Notify_Deadline_Miss (Event : in out Timing_Event);
+   end Handler;
+
+   procedure Set_Deadline_Handler (Name : Task_Name; In_Time : in Time);
+   procedure Cancel_Deadline_Handler (Name : Task_Name);
+end Deadline_Miss;
+\end{lstlisting}
+
+\begin{lstlisting}[language=Ada]
+-- deadline_miss.adb
+with Ada.Real_Time; use Ada.Real_Time;
+
+package body Deadline_Miss is
+   Deadline_Events : Deadline_Events_Array;
+
+   protected body Handler is
+      procedure Notify_Deadline_Miss (Event : in out Timing_Event) is
+      begin
+         raise Program_Error with "Detected deadline miss";
+      end Notify_Deadline_Miss;
+   end Handler;
+
+   procedure Set_Deadline_Handler (Name : Task_Name; In_Time : in Time) is
+   begin
+      Set_Handler (Deadline_Events (Name),
+         In_Time, Handler.Notify_Deadline_Miss'Access);
+   end Set_Deadline_Handler;
+
+   procedure Cancel_Deadline_Handler (Name : Task_Name) is
+      Cancelled : Boolean;
+      pragma Unreferenced (Cancelled);
+   begin
+      Cancel_Handler (Deadline_Events (Name), Cancelled);
+   end Cancel_Deadline_Handler;
+end Deadline_Miss;
+\end{lstlisting}
+
+Ispiration from \cite{overrundetection}. The measured execution times include overrun detection overhead for Regular Producer, On Call Producer and Activation Log Reader.
 
 \section{MAST}
 
@@ -245,7 +368,7 @@ MAST provides also a graphical editor to generate the system using the MAST ASCI
 
 We now proceed to describe the MAST model of the example application. In this phase, it will represent a FPS set of independent tasks, further sections will provide the needed changes to match a chain of dependant tasks or to support EDF scheduling. For a full reference to the MAST syntax, visit "Description of the MAST Model" \cite{mast-description}.
 
-\subsubsection{Processing Resources}
+\subsubsection{Processing Resources}\label{processing-resources}
 
 Processing Resources represent resources that are capable of executing abstract activities, including conventional CPU processors. Among its attributes we have the range of priorities valid for normal operations on that processing resource, and the speed factor. We have left the default value as speed factor, meaning that execution times will be expressed as seconds.
 
@@ -277,7 +400,7 @@ The system timer used by the board is Tick Scheduling \cite{tick-scheduling}, wh
 
 Tick scheduling introduces two additional factors that must be accounted for in schedulability analysis. First, the fact that a job is ready may not be noticed and acted upon by the scheduler until the next clock interrupt. This introduces additional jitter that may delay the completion of the job.
 
-Second, a self-suspended task is held in a queue which we will call the delay queue. When the scheduler executes, it scans the delay queue and moves the jobs that have been released since the last clock interrupt to the ready job queue and places them there in order of their priorities. Once in the ready queue, the jobs execute in priority order without intervention by the scheduler. The time the scheduler takes to scan and move the jobs introduces additional scheduling overhead.
+Second, a self-suspended task is held in a queue which we will call the delay queue. When the scheduler executes, it scans the delay queue and moves the jobs that have been released since the last clock interrupt to the ready job queue and places them there in order of their priorities. Once in the ready queue, the jobs execute in priority order without intervention by the scheduler. The time the scheduler takes to scan and move the jobs introduces additional scheduling overhead. Similar overhead must be accounted for any timing events that need to be triggered.
 
 The scheduling overhead is accounted in the analysis using the technique described in \cite{effects-runtime}. We can model the scheduler as a periodic task $\tau_0$ whose period is $p_0$. This task has the highest priority among all tasks in the system. Its execution time $C_0$ is the amount of time the scheduler takes to service the clock interrupt. This time is spent even when there is no job in the pending job queue.
 
@@ -286,6 +409,13 @@ In the \texttt{ravenscar-full-stm32f429disco} runtime, the period $p_0$ of the t
 \subsubsection{Schedulers}
 
 Schedulers represent the runtime procedures that implement the appropriate scheduling strategies to manage the amount of CPU processing capacity. They can have a hierarchical structure to model hierarchical scheduling \cite{hierarchical-scheduling}, but the example application has only one primary scheduler with fixed priority policy.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=3in]{images/primary-scheduler}
+\caption{Fixed Priority Scheduler which manages the CPU}
+\label{primary-scheduler}
+\end{figure}
 
 \begin{lstlisting}
 Scheduler (
@@ -304,6 +434,13 @@ The context switch overhead is measured as time to set the context switch interr
 \subsubsection{Scheduling Servers}
 
 Scheduling Servers represent schedulable entities in a processing resource, in particular if the resource is a processor, the scheduling server is a task or thread of control. As a matter of fact, each of them has a priority and a type, which for our application may be \texttt{Fixed\_Regular\_Policy} or \texttt{Interrupt\_FP\_Policy}. The former represents a regular preemptive fixed priority, whereas the latter models an interrupt service routine.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=6.5in]{images/scheduling-servers}
+\caption{Scheduling Servers representing the application tasks}
+\label{scheduling-servers}
+\end{figure}
 
 \begin{lstlisting}
 Scheduling_Server (
@@ -356,6 +493,13 @@ The Scheduling Server \texttt{interrupt\_server} allows to model the runtime whi
 \subsubsection{Shared Resources}
 
 Shared Resources represent resources that are shared among different tasks, and that must be used in a mutually exclusive way. Therefore, protected objects are modeled as Shared Resourses that use the Immediate Priority Ceiling Protocol described above.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=4in]{images/shared-resources}
+\caption{Shared Resources of the application}
+\label{shared-resources}
+\end{figure}
 
 \begin{lstlisting}
 Shared_Resource (
@@ -506,6 +650,13 @@ Event Handlers represent actions that are activated by the arrival of one event,
 
 We now proceed to model the three transactions which model the respective independent tasks. We will start with an initial analysis of the system as stand-alone tasks, then compare its maximum utilisation with the model using dynamic offsets to represent dependant tasks.
 
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=5in]{images/transaction-rp}
+\caption{Regular\_Producer transaction}
+\label{transaction-rp}
+\end{figure}
+
 \begin{lstlisting}
 Transaction (
    Type            => regular,
@@ -533,6 +684,13 @@ Transaction (
 
 The main event stream is modeled as a transaction activated by the periodic system timer, with period of 1s. The event is handled by the \texttt{regular\_producer} operation, representing a job of the same name. The Event Handler is of type \texttt{System\_Timed\_Activity} to take into account the jitter caused by the tick scheduling.
 
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=5in]{images/transaction-ocp}
+\caption{On\_Call\_Producer transaction}
+\label{transaction-ocp}
+\end{figure}
+
 \begin{lstlisting}
 Transaction (
    Type            => regular,
@@ -559,6 +717,13 @@ Transaction (
 \end{lstlisting}
 
 The sporadic On\_Call\_Producer event stream is modeled as activated by a bounded aperiodic event, with minimum interarrival time of 5s and uniform distribution. Actually we know that the interarrival time is precisely 5s, thus the same value as average interarrival time. Similar modelling has been done for the Activation\_Log\_Reader sporadic task.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=6in]{images/transaction-eq}
+\caption{External push-button transaction}
+\label{transaction-eq}
+\end{figure}
 
 \begin{lstlisting}
 Transaction (
@@ -593,50 +758,6 @@ Transaction (
 \end{lstlisting}
 
 The push-button interrupt event stream is modeled as triggered by a sporadic event of 5s as minimum interarrival time and it's first handled by the \texttt{interrupt\_server} which runs the interrupt handler at hardware interrupt priority and then by the \texttt{external\_event\_server} job at software priority.
-
-\section{Overrun detection}
-
-\begin{lstlisting}[language=Ada]
--- Overrun.ads
-
-with Ada.Real_Time;
-with Ada.Execution_Time;
-
-package Overrun is
-   type Limits_Array is array (0 .. 2) of Ada.Execution_Time.CPU_Time;
-
-   procedure Start (Index : Natural; Budget : Ada.Real_Time.Time_Span);
-   procedure Check (Index : Natural);
-end Overrun;
-\end{lstlisting}
-
-\begin{lstlisting}[language=Ada]
--- Overrun.adb
-
-with Ada.Real_Time; use Ada.Real_Time;
-with Ada.Execution_Time; use Ada.Execution_Time;
-
-package body Overrun is
-   use Ada.Real_Time;
-   use Ada.Execution_Time;
-
-   Limits : Limits_Array := (CPU_Time_First, CPU_Time_First, CPU_Time_First);
-
-   procedure Start (Index : Natural; Budget : Time_Span) is
-   begin
-      Limits (Index) := Ada.Execution_Time.Clock + Budget;
-   end Start;
-
-   procedure Check (Index : Natural) is
-   begin
-      if Ada.Execution_Time.Clock > Limits (Index) then
-         raise Program_Error with "Detected overrun";
-      end if;
-   end Check;
-end Overrun;
-\end{lstlisting}
-
-Ispiration from \cite{overrundetection}. The measured execution times include overrun detection overhead for Regular Producer, On Call Producer and Activation Log Reader.
 
 \section{MAST analysis}
 
@@ -731,136 +852,151 @@ Two pessimistic points:
 
 \bibitem{ycs}
 A Burns, B Dobbing, T Vardanega.
-\newblock Guide for the use of the Ada Ravenscar Profile in high integrity systems.
+\newblock "Guide for the use of the Ada Ravenscar Profile in high integrity systems".
 \newblock In {\em University of York Technical Report YCS-2003-348}. January 2003.
 
 \bibitem{ork}
 Juan A. de la Puente, José F. Ruiz, Juan Zamorano.
-\newblock Open Ravenscar Real-Time Kernel. Design Definition File, Software Design Document.
+\newblock "Open Ravenscar Real-Time Kernel. Design Definition File, Software Design Document".
 \newblock 2001.
 
 \bibitem{mast}
-M. GonzAlez Harbour, J.J. GutiCrrez Garcia, J.C. Palencia GutiCrrez, and J.M. Drake Moyano.
-\newblock MAST Modeling and Analysis Suite for Real Time Applications.
+M. Gonzalez Harbour, J.J. GutiCrrez Garcia, J.C. Palencia GutiCrrez, and J.M. Drake Moyano.
+\newblock "MAST Modeling and Analysis Suite for Real Time Applications".
 \newblock In {\em Proceedings 13th Euromicro Conference on Real-Time Systems}. 2001.
 
 \bibitem{mast-description}
 J. M. Drake, M. G. Harbour, J. J. Gutiérrez, P. L. Martínez, J. L. Medina, J. C. Palencia
-\newblock Description of the MAST Model.
+\newblock "Description of the MAST Model".
 \newblock \url{https://mast.unican.es/mast_description.pdf}
 
 \bibitem{mast-readme}
 J. M. Drake, M. G. Harbour, J. J. Gutiérrez, P. L. Martínez, J. L. Medina, J. C. Palencia
-\newblock MAST README.
+\newblock "MAST README".
 \newblock \url{https://mast.unican.es/README.txt}
 
 \bibitem{overrundetection}
 Juan Zamorano, Alejandro Alonso, José Antonio Pulido, Juan Antonio de la Puente.
-\newblock Implementing Execution-Time Clocks for the Ada Ravenscar Profile.
+\newblock "Implementing Execution-Time Clocks for the Ada Ravenscar Profile".
 \newblock In {\em Reliable Software Technologies - Ada-Europe 2004}. pp 132-143. Ada-Europe 2004.
+
+\bibitem{absolute-delay}
+Juan Zamorano, Jose F. Ruiz, Juan Antonio de la Puente.
+\newblock "Implementing Ada.Real Time.Clock and Absolute Delays in Real-Time Kernels".
+\newblock In {\em Reliable SoftwareTechnologies — Ada-Europe 2001}. pp 317-327. Ada-Europe 2004.
 
 \bibitem{rm-dm}
 Jane W. S. W. Liu.
-\newblock Rate-Monotonic and Deadline-Monotonic Algorithms.
+\newblock "Rate-Monotonic and Deadline-Monotonic Algorithms".
 \newblock In {\em Real-Time Systems}. pp 118-119. 2001.
 
 \bibitem{optimality-rm-dm}
 Jane W. S. W. Liu.
-\newblock Optimality of the RM and DM algorithms.
+\newblock "Optimality of the RM and DM algorithms".
 \newblock In {\em Real-Time Systems}. pp 118-119. 2001.
 
 \bibitem{pcp-blocking}
 Jane W. S. W. Liu.
-\newblock Basic Priority Ceiling Protocol - Duration of Blocking.
+\newblock "Basic Priority Ceiling Protocol - Duration of Blocking".
 \newblock In {\em Real-Time Systems}. pp 295-296. 2001.
 
 \bibitem{limited-priorities}
 Jane W. S. W. Liu.
-\newblock Limited-Priority Levels.
+\newblock "Limited-Priority Levels".
 \newblock In {\em Real-Time Systems}. pp 166-168. 2001.
 
 \bibitem{tick-scheduling}
 Jane W. S. W. Liu.
-\newblock Tick Scheduling.
+\newblock "Tick Scheduling".
 \newblock In {\em Real-Time Systems}. pp 168-171. 2001.
 
 \bibitem{anomalies-multiprocessor}
 Jane W. S. W. Liu.
-\newblock Anomalous Behavior of Priority-Driven Systems.
+\newblock "Anomalous Behavior of Priority-Driven Systems".
 \newblock In {\em Real-Time Systems}. pp 72-73. 2001.
 
 \bibitem{hierarchical-scheduling}
 Jane W. S. W. Liu.
-\newblock Schedulability Test of Hierarchically Scheduled Periodic Tasks.
+\newblock "Schedulability Test of Hierarchically Scheduled Periodic Tasks".
 \newblock In {\em Real-Time Systems}. pp 177-179. 2001.
 
 \bibitem{debug-trace}
 Joseph Yiu.
-\newblock Introduction to the Debug and Trace Features.
+\newblock "Introduction to the Debug and Trace Features".
 \newblock In {\em The Definitive Guide to ARM CORTEX-M3 and CORTEX-M4 Processors}. Chapter 4 pp 443-485. 2014.
 
 \bibitem{semihosting}
 Joseph Yiu.
-\newblock Semi-hosting.
+\newblock "Semi-hosting".
 \newblock In {\em The Definitive Guide to ARM CORTEX-M3 and CORTEX-M4 Processors}. Chapter 18.3 pp 591-595. 2014.
 
 \bibitem{pendsv}
 Joseph Yiu.
-\newblock PendSV exception.
+\newblock "PendSV exception".
 \newblock In {\em The Definitive Guide to ARM CORTEX-M3 and CORTEX-M4 Processors}. Chapter 18.3 pp 591-595. 2014.
 
 \bibitem{holistic-analysis}
 KenTindell, JohnClark.
-\newblock Holistic schedulability analysis for distributed hard real-time systems.
+\newblock "Holistic schedulability analysis for distributed hard real-time systems".
 \newblock In {\em Microprocessing and Microprogramming}. Volume 40, Issues 2–3, pp 117-134. April 1994.
 
 \bibitem{liu-utilisation-bound}
 C. L. Liu, James W. Layland.
-\newblock Scheduling Algorithms for Multiprogramming in a Hard-Real-Time Environment.
+\newblock "Scheduling Algorithms for Multiprogramming in a Hard-Real-Time Environment".
 \newblock In {\em Journal of the ACM}. Volume 20 Issue 1, pp 46-61. Jan. 1973.
 
 \bibitem{practitioner-utilisation-bound}
 Klein, M., Ralya, Th., Pollak, B., Obenza, R., Harbour, M.G. .
-\newblock Using Utilization Bounds for Each Event when Deadlines Are Within the Period.
-\newblock In {\em A Practitioner’s Handbook for Real-Time Analysis
+\newblock "Using Utilization Bounds for Each Event when Deadlines Are Within the Period".
+\newblock In {\em A Practitioner's Handbook for Real-Time Analysis
 }. chapter 4.1.2. 1993.
 
 \bibitem{practitioner-common-data}
 Klein, M., Ralya, Th., Pollak, B., Obenza, R., Harbour, M.G. .
-\newblock Designing Tasks that Must Synchronize to Share Common Data.
-\newblock In {\em A Practitioner’s Handbook for Real-Time Analysis
+\newblock "Designing Tasks that Must Synchronize to Share Common Data".
+\newblock In {\em A Practitioner's Handbook for Real-Time Analysis
 }. chapter 5.2. 1993.
 
 \bibitem{effects-runtime}
 Klein, M., Ralya, Th., Pollak, B., Obenza, R., Harbour, M.G. .
-\newblock Effects of Operating System and Runtime Services on Timing Analysis.
-\newblock In {\em A Practitioner’s Handbook for Real-Time Analysis
+\newblock "Effects of Operating System and Runtime Services on Timing Analysis".
+\newblock In {\em A Practitioner's Handbook for Real-Time Analysis
 }. chapter 7. 1993.
 
 \bibitem{interrupt-handler}
 Klein, M., Ralya, Th., Pollak, B., Obenza, R., Harbour, M.G. .
-\newblock Service the Event at a Specified Software Priority.
-\newblock In {\em A Practitioner’s Handbook for Real-Time Analysis
+\newblock "Service the Event at a Specified Software Priority".
+\newblock In {\em A Practitioner's Handbook for Real-Time Analysis
 }. chapter 5.3.5.2. 1993.
+
+\bibitem{timing-events}
+Alan Burns, Andy Wellings.
+\newblock "Timing events".
+\newblock In {\em Concurrent and real-time programming in Ada}. chapter 15.2. 2007.
+
+\bibitem{timing-properties}
+Enrico Mezzetti, Marco Panunzio, Tullio Vardanega.
+\newblock "Preservation of Timing Properties with the Ada Ravenscar Profile".
+\newblock In {\em Reliable Software Technologiey – Ada-Europe 2010}. pp 153-166. 2010.
 
 \bibitem{etc}
 Kristoffer Nyborg Gregertsen, Amund Skavhaug.
-\newblock Implementation and Usage of the new Ada 2012 Execution Time Control Features.
+\newblock "Implementation and Usage of the new Ada 2012 Execution Time Control Features".
 \newblock In {\em Ada User Journal}. 2011.
 
 \bibitem{pessimistic-rma}
 J.C. Palencia ; M. Gonzalez Harbour.
-\newblock Schedulability analysis for tasks with static and dynamic offsets.
+\newblock "Schedulability analysis for tasks with static and dynamic offsets".
 \newblock In {\em Proceedings 19th IEEE Real-Time Systems Symposium}. 1998.
 
 \bibitem{tindell-offsets}
 K. Tindell.
-\newblock Adding Time - Offsets to Schedulability Analysis.
+\newblock "Adding Time - Offsets to Schedulability Analysis".
 \newblock Technical Report YCS 221, Dept. of Computer Science, University of York, England, January 1994.
 
 \bibitem{wcet-problem}
 R. Wilhelm et al..
-\newblock The worst-case execution-time problem—overview of methods and survey of tools.
+\newblock "The worst-case execution-time problem—overview of methods and survey of tools".
 \newblock In {\em Trans. on Embedded Computing Sys}. vol. 7, no. 3, pp. 153, 2008.
 
 \end{thebibliography}
