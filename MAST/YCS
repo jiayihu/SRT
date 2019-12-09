@@ -153,15 +153,15 @@ Operation (
 Operation (
    Type                       => Simple,
    Name                       => overrun_detection,
-   Worst_Case_Execution_Time  => 5.000E-06);
-   Avg_Case_Execution_Time  => 5.000E-06);
+   Worst_Case_Execution_Time  => 5.000E-06,
+   Avg_Case_Execution_Time  => 5.000E-06,
    Best_Case_Execution_Time  => 5.000E-06);
 
 Operation (
    Type                       => Simple,
    Name                       => delay_until,
-   Worst_Case_Execution_Time  => 7.000E-06);
-   Avg_Case_Execution_Time  => 7.000E-06);
+   Worst_Case_Execution_Time  => 7.000E-06,
+   Avg_Case_Execution_Time  => 7.000E-06,
    Best_Case_Execution_Time  => 7.000E-06);
 
 Operation (
