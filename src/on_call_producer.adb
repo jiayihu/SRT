@@ -3,9 +3,12 @@ with Activation_Manager;
 with Ada.Text_IO;
 with Ada.Exceptions; use Ada.Exceptions;
 with Ada.Real_Time;
-with Overrun;
+with Deadline_Miss;
+with Task_Overhead;
 
 package body On_Call_Producer is
+   use Ada.Real_Time;
+
    --  to hide the implementation of the event buffer
    function Start (Activation_Parameter : Positive) return Boolean is
    begin
@@ -17,13 +20,16 @@ package body On_Call_Producer is
       --  for tasks to achieve simultaneous activation
       Activation_Manager.Activation_Sporadic;
       loop
-         Overrun.Start (1, Ada.Real_Time.Milliseconds (On_Call_Producer_Parameters.On_Call_Producer_Deadline));
          --  suspending request for activation event with data exchange
+         Task_Overhead.Start_Tracking;
          Current_Workload := Request_Buffer.Extract;
+         Task_Overhead.End_Tracking;
+         Deadline_Miss.Set_Deadline_Handler (Deadline_Miss.OCP, Ada.Real_Time.Clock +
+            Ada.Real_Time.Milliseconds (On_Call_Producer_Parameters.On_Call_Producer_Deadline));
          --  non-suspending operation code
          On_Call_Producer_Parameters.On_Call_Producer_Operation
            (Current_Workload);
-         Overrun.Check (1);
+         Deadline_Miss.Cancel_Deadline_Handler (Deadline_Miss.OCP);
       end loop;
    exception
       when Error : others =>

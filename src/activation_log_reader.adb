@@ -3,30 +3,38 @@ with Activation_Manager;
 with Ada.Text_IO;
 with Ada.Exceptions; use Ada.Exceptions;
 with Ada.Real_Time;
-with Overrun;
+with Deadline_Miss;
+with Task_Overhead;
 
 package body Activation_Log_Reader is
+   use Ada.Real_Time;
+
    Local_Suspension_Object : Ada.Synchronous_Task_Control.Suspension_Object;
    procedure Signal is
    begin
       Ada.Synchronous_Task_Control.Set_True (Local_Suspension_Object);
    end Signal;
+
    procedure Wait is
    begin
       Ada.Synchronous_Task_Control.Suspend_Until_True
         (Local_Suspension_Object);
    end Wait;
+
    task body Activation_Log_Reader is
    begin
       --  for tasks to achieve simultaneous activation
       Activation_Manager.Activation_Sporadic;
       loop
-         Overrun.Start (2, Ada.Real_Time.Milliseconds (Activation_Log_Reader_Parameters.Activation_Log_Reader_Deadline));
          --  suspending parameterless request of activation event
          Wait;
+         Deadline_Miss.Set_Deadline_Handler (Deadline_Miss.ALR, Ada.Real_Time.Clock +
+            Ada.Real_Time.Milliseconds (Activation_Log_Reader_Parameters.Activation_Log_Reader_Deadline));
+         --  Task_Overhead.Start_Tracking;
          --  non-suspending operation code
          Activation_Log_Reader_Parameters.Activation_Log_Reader_Operation;
-         Overrun.Check (2);
+         --  Task_Overhead.End_Tracking;
+         Deadline_Miss.Cancel_Deadline_handler (Deadline_Miss.ALR);
       end loop;
    exception
       when Error : others =>
@@ -34,4 +42,5 @@ package body Activation_Log_Reader is
          Ada.Text_IO.Put_Line
            ("ALR: Something has gone wrong here: " & Exception_Information (Error));
    end Activation_Log_Reader;
+
 end Activation_Log_Reader;
