@@ -69,13 +69,13 @@ Scheduling_Server (
 Shared_Resource (
    Type        => Immediate_Ceiling_Resource,
    Name        => request_buffer,
-   Ceiling     => 9,
+   Ceiling     => 7,
    Preassigned => YES);
 
 Shared_Resource (
    Type        => Immediate_Ceiling_Resource,
    Name        => activation_log,
-   Ceiling     => 13,
+   Ceiling     => 11,
    Preassigned => YES);
 
 Shared_Resource (
@@ -87,23 +87,23 @@ Shared_Resource (
 Operation (
    Type                       => Simple,
    Name                       => rp_small_whetstone,
-   Worst_Case_Execution_Time  => 0.019363,
-   Avg_Case_Execution_Time  => 0.019363,
-   Best_Case_Execution_Time  => 0.019363);
+   Worst_Case_Execution_Time  => 0.019291,
+   Avg_Case_Execution_Time  => 0.019291,
+   Best_Case_Execution_Time  => 0.019291);
 
 Operation (
    Type                       => Simple,
    Name                       => ocp_small_whetstone,
-   Worst_Case_Execution_Time  => 0.007122,
-   Avg_Case_Execution_Time  => 0.007122,
-   Best_Case_Execution_Time  => 0.007122);
+   Worst_Case_Execution_Time  => 0.007096,
+   Avg_Case_Execution_Time  => 0.007096,
+   Best_Case_Execution_Time  => 0.007096);
 
 Operation (
    Type                       => Simple,
    Name                       => alr_small_whetstone,
-   Worst_Case_Execution_Time  => 0.003562,
-   Avg_Case_Execution_Time  => 0.003562,
-   Best_Case_Execution_Time  => 0.003562);
+   Worst_Case_Execution_Time  => 0.003549,
+   Avg_Case_Execution_Time  => 0.003549,
+   Best_Case_Execution_Time  => 0.003549);
 
 Operation (
    Type                       => Simple,
@@ -152,17 +152,24 @@ Operation (
 
 Operation (
    Type                       => Simple,
-   Name                       => overrun_detection,
-   Worst_Case_Execution_Time  => 5.000E-06,
-   Avg_Case_Execution_Time  => 5.000E-06,
-   Best_Case_Execution_Time  => 5.000E-06);
+   Name                       => set_deadline_handler,
+   Worst_Case_Execution_Time  => 6.000E-06,
+   Avg_Case_Execution_Time  => 6.000E-06,
+   Best_Case_Execution_Time  => 6.000E-06);
+
+Operation (
+   Type                       => Simple,
+   Name                       => cancel_deadline_handler,
+   Worst_Case_Execution_Time  => 3.000E-06,
+   Avg_Case_Execution_Time  => 3.000E-06,
+   Best_Case_Execution_Time  => 3.000E-06);
 
 Operation (
    Type                       => Simple,
    Name                       => delay_until,
-   Worst_Case_Execution_Time  => 7.000E-06,
-   Avg_Case_Execution_Time  => 7.000E-06,
-   Best_Case_Execution_Time  => 7.000E-06);
+   Worst_Case_Execution_Time  => 6.000E-06,
+   Avg_Case_Execution_Time  => 6.000E-06,
+   Best_Case_Execution_Time  => 6.000E-06);
 
 Operation (
    Type                     => Enclosing,
@@ -202,17 +209,19 @@ Operation (
    Type                     => Composite,
    Name                     => regular_producer,
    Composite_Operation_List =>
-      ( overrun_detection,
+      ( set_deadline_handler,
         rp_operation,
+        cancel_deadline_handler,
         delay_until));
 
 Operation (
    Type                     => Composite,
    Name                     => on_call_producer,
    Composite_Operation_List =>
-      ( overrun_detection,
-        rb_extract,
-        ocp_operation));
+      ( set_deadline_handler,
+        rb_extract_enclosing,
+        ocp_operation,
+        cancel_deadline_handler));
 
 Operation (
    Type                       => Simple,
@@ -312,9 +321,10 @@ Operation (
    Type                     => Composite,
    Name                     => activation_log_reader,
    Composite_Operation_List =>
-      ( overrun_detection,
+      ( set_deadline_handler,
         alr_wait,
-        alr_operation));
+        alr_operation,
+        cancel_deadline_handler));
 
 Transaction (
    Type            => regular,
