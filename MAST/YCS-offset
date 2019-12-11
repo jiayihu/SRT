@@ -11,25 +11,20 @@ Calculating Processing Resource Slacks...
 Calculating Processing Resource Slack for cpu
 Calculating System Slack...
 Final invocation of the analysis tool...
- Utilization of cpu : 2.575%
+ Utilization of cpu : 56.838%
 Utilization load of resources is under 100%
 Priorities are all in range
 Optimum Resource Ceilings and Levels:
 request_buffer =>  7, 32767
 activation_log =>  11, 32767
 event_queue =>  241, 32767
-Warning: resource request_buffer has unoptimized ceiling. Ceiling used = 9
-Warning: resource activation_log has unoptimized ceiling. Ceiling used = 13
 List of all critical sections found:
-Resource= request_buffer Server= regular_producer Ceiling=  9 Level=  32767 Kind= LOCAL Length= 2.000E-06
-Resource= request_buffer Server= on_call_producer Ceiling=  9 Level=  32767 Kind= LOCAL Length= 2.000E-06
-Resource= activation_log Server= activation_log_reader Ceiling=  13 Level=  32767 Kind= LOCAL Length= 1.000E-06
-Resource= event_queue Server= interrupt_server Ceiling=  241 Level=  32767 Kind= LOCAL Length= 1.000E-07
+Resource= request_buffer Server= regular_producer Ceiling=  7 Level=  32767 Kind= LOCAL Length= 2.000E-06
+Resource= request_buffer Server= on_call_producer Ceiling=  7 Level=  32767 Kind= LOCAL Length= 2.000E-06
+Resource= activation_log Server= activation_log_reader Ceiling=  11 Level=  32767 Kind= LOCAL Length= 1.000E-06
+Resource= event_queue Server= interrupt_server Ceiling=  241 Level=  32767 Kind= LOCAL Length= 1.000E-06
 Resource= event_queue Server= external_event_server Ceiling=  241 Level=  32767 Kind= LOCAL Length= 1.000E-06
-Resource= activation_log Server= external_event_server Ceiling=  13 Level=  32767 Kind= LOCAL Length= 2.000E-06
-List of all high priority sections found:
-Resource= Overridden_Priority_rb_deposit Server= regular_producer Ceiling=  9 Kind= LOCAL Length= 2.000E-06
-Resource= Overridden_Priority_rb_extract Server= on_call_producer Ceiling=  9 Kind= LOCAL Length= 2.000E-06
+Resource= activation_log Server= external_event_server Ceiling=  11 Level=  32767 Kind= LOCAL Length= 2.000E-06
 Blocking term for segment of transaction rp_transaction starting at operation regular_producer :
     B=2.000E-06
     N= 0
@@ -61,16 +56,16 @@ Initializing array of procedure accesses
         Offset Based Slanted FP for Task :  5, 1
 System Overview :
 Transaction :  1 Period:1.000 ID=  1 Trans_Input_Type= EXTERNAL
-   Task  1 Rbij:0.019284 Rij:0.020392 Jij:0.001108 Prioij: 7 SDij:0.000 Cijown:0.019292 Cbijown:0.019284 Cij:0.019292 Cbij:0.019284 Tijown:1.000 Tij:1.000 Bij:2.000E-06 Dij:0.500000 Schedij:FP Oij:0.000 Jinit:0.001000 Procij: 1 Sch_D:0.000 Delayijmin:0.000 Delayijmax:0.000 Oijmin:0.000 Oijmax:0.000 Model: REGULAR JA : FALSE
+   Task  1 Rbij:0.497456 Rij:0.500409 Jij:0.002953 Prioij: 7 SDij:0.000 Cijown:0.497462 Cbijown:0.497456 Cij:0.497462 Cbij:0.497456 Tijown:1.000 Tij:1.000 Bij:2.000E-06 Dij:0.500000 Schedij:FP Oij:0.000 Jinit:0.001000 Procij: 1 Sch_D:0.000 Delayijmin:0.000 Delayijmax:0.000 Oijmin:0.000 Oijmax:0.000 Model: REGULAR JA : FALSE
 Transaction :  2 Period:5.000 ID=  2 Trans_Input_Type= EXTERNAL
-   Task  1 Rbij:0.007106 Rij:0.026525 Jij:0.019418 Prioij: 5 SDij:0.000 Cijown:0.007106 Cbijown:0.007106 Cij:0.007106 Cbij:0.007106 Tijown:5.000 Tij:5.000 Bij:1.000E-06 Dij:0.800000 Schedij:FP Oij:0.000 Jinit:0.000 Procij: 1 Sch_D:0.000 Delayijmin:0.000 Delayijmax:0.000 Oijmin:0.000 Oijmax:0.000 Model: REGULAR JA : FALSE
+   Task  1 Rbij:0.182945 Rij:0.683066 Jij:0.500121 Prioij: 5 SDij:0.000 Cijown:0.182951 Cbijown:0.182945 Cij:0.182951 Cbij:0.182945 Tijown:5.000 Tij:5.000 Bij:1.000E-06 Dij:0.800000 Schedij:FP Oij:0.000 Jinit:0.000 Procij: 1 Sch_D:0.000 Delayijmin:0.000 Delayijmax:0.000 Oijmin:0.000 Oijmax:0.000 Model: REGULAR JA : FALSE
 Transaction :  3 Period:3.000 ID=  3 Trans_Input_Type= EXTERNAL
-   Task  1 Rbij:0.003569 Rij:0.030108 Jij:0.026539 Prioij: 3 SDij:0.000 Cijown:0.003569 Cbijown:0.003569 Cij:0.003569 Cbij:0.003569 Tijown:3.000 Tij:3.000 Bij:0.000 Dij:1.000 Schedij:FP Oij:0.000 Jinit:0.000 Procij: 1 Sch_D:0.000 Delayijmin:0.000 Delayijmax:0.000 Oijmin:0.000 Oijmax:0.000 Model: REGULAR JA : FALSE
+   Task  1 Rbij:0.091432 Rij:0.774853 Jij:0.683421 Prioij: 3 SDij:0.000 Cijown:0.091438 Cbijown:0.091432 Cij:0.091438 Cbij:0.091432 Tijown:3.000 Tij:3.000 Bij:0.000 Dij:1.000 Schedij:FP Oij:0.000 Jinit:0.000 Procij: 1 Sch_D:0.000 Delayijmin:0.000 Delayijmax:0.000 Oijmin:0.000 Oijmax:0.000 Model: REGULAR JA : FALSE
 Transaction :  4 Period:5.000 ID=  4 Trans_Input_Type= EXTERNAL
-   Task  1 Rbij:5.256E-06 Rij:1.010E-05 Jij:4.844E-06 Prioij: 241 SDij:0.000 Cijown:5.256E-06 Cbijown:5.256E-06 Cij:5.256E-06 Cbij:5.256E-06 Tijown:5.000 Tij:5.000 Bij:1.000E-06 Dij:1.000E+100 Schedij:FP Oij:0.000 Jinit:0.000 Procij: 1 Sch_D:0.000 Delayijmin:0.000 Delayijmax:0.000 Oijmin:0.000 Oijmax:0.000 Model: REGULAR JA : FALSE
-   Task  2 Rbij:2.144E-05 Rij:3.112E-05 Jij:9.688E-06 Prioij: 11 SDij:0.000 Cijown:1.618E-05 Cbijown:1.618E-05 Cij:1.618E-05 Cbij:1.618E-05 Tijown:5.000 Tij:5.000 Bij:1.000E-06 Dij:0.100000 Schedij:FP Oij:0.000 Jinit:0.000 Procij: 1 Sch_D:0.000 Delayijmin:0.000 Delayijmax:0.000 Oijmin:0.000 Oijmax:0.000 Model: REGULAR JA : FALSE
+   Task  1 Rbij:6.156E-06 Rij:1.100E-05 Jij:4.844E-06 Prioij: 241 SDij:0.000 Cijown:6.156E-06 Cbijown:6.156E-06 Cij:6.156E-06 Cbij:6.156E-06 Tijown:5.000 Tij:5.000 Bij:1.000E-06 Dij:1.000E+100 Schedij:FP Oij:0.000 Jinit:0.000 Procij: 1 Sch_D:0.000 Delayijmin:0.000 Delayijmax:0.000 Oijmin:0.000 Oijmax:0.000 Model: REGULAR JA : FALSE
+   Task  2 Rbij:1.616E-05 Rij:3.202E-05 Jij:1.587E-05 Prioij: 11 SDij:0.000 Cijown:1.618E-05 Cbijown:1.000E-05 Cij:1.618E-05 Cbij:1.000E-05 Tijown:5.000 Tij:5.000 Bij:1.000E-06 Dij:0.100000 Schedij:FP Oij:0.000 Jinit:0.000 Procij: 1 Sch_D:0.000 Delayijmin:0.000 Delayijmax:0.000 Oijmin:0.000 Oijmax:0.000 Model: REGULAR JA : FALSE
 Transaction :  5 Period:0.001000 ID=  5 Trans_Input_Type= EXTERNAL
-   Task  1 Rbij:0.000 Rij:0.000 Jij:0.000 Prioij: 255 SDij:0.000 Cijown:3.844E-06 Cbijown:3.844E-06 Cij:3.844E-06 Cbij:3.844E-06 Tijown:0.001000 Tij:0.001000 Bij:0.000 Dij:1.000E+100 Schedij:FP Oij:0.000 Jinit:0.000 Procij: 1 Sch_D:0.000 Delayijmin:0.000 Delayijmax:0.000 Oijmin:0.000 Oijmax:0.000 Model: REGULAR JA : FALSE
+   Task  1 Rbij:0.000 Rij:0.000 Jij:0.000 Prioij: 255 SDij:0.000 Cijown:3.844E-06 Cbijown:0.000 Cij:3.844E-06 Cbij:0.000 Tijown:0.001000 Tij:0.001000 Bij:0.000 Dij:1.000E+100 Schedij:FP Oij:0.000 Jinit:0.000 Procij: 1 Sch_D:0.000 Delayijmin:0.000 Delayijmax:0.000 Oijmin:0.000 Oijmax:0.000 Model: REGULAR JA : FALSE
 final Scheduling Parameter Overview
  1 - p[  7 ] 
  2 - p[  5 ] 
@@ -81,83 +76,83 @@ Results:
 Real_Time_Situation (
    Generation_Tool    => "MAST Schedulability Analysis, version 1.5.1.0",
    Generation_Profile => "mast_analysis offset_based -v -s MAST/YCS",
-   Generation_Date    => 2019-11-27T14:06:55,
+   Generation_Date    => 2019-12-11T18:02:39,
    Results            => 
        ((Type   => Slack,
-         Value  => 2475.4%)));
+         Value  => -0.390625%)));
 
 Transaction (
    Name     => rp_transaction,
    Results  => 
        ((Type   => Slack,
-         Value  => 2477.0%),
+         Value  => -0.390625%),
         (Type                          => Timing_Result,
          Event_Name                    => rpo1,
          Num_Of_Suspensions            => 0,
          Worst_Blocking_Time           => 2.000E-06,
          Worst_Global_Response_Times   => 
             ((Referenced_Event => e1,
-              Time_Value       => 0.020392)),
+              Time_Value       => 0.500409)),
          Best_Global_Response_Times    => 
             ((Referenced_Event => e1,
-              Time_Value       => 0.019284)),
+              Time_Value       => 0.497456)),
          Jitters                       => 
             ((Referenced_Event => e1,
-              Time_Value       => 0.001108)))));
+              Time_Value       => 0.002953)))));
 
 Transaction (
    Name     => ocp_transaction,
    Results  => 
        ((Type   => Slack,
-         Value  => 10852.0%),
+         Value  => -100.00%),
         (Type                          => Timing_Result,
          Event_Name                    => ocpo1,
          Num_Of_Suspensions            => 0,
          Worst_Blocking_Time           => 1.000E-06,
          Worst_Global_Response_Times   => 
             ((Referenced_Event => ocp_activation,
-              Time_Value       => 0.026525)),
+              Time_Value       => 0.683066)),
          Best_Global_Response_Times    => 
             ((Referenced_Event => ocp_activation,
-              Time_Value       => 0.007106)),
+              Time_Value       => 0.182945)),
          Jitters                       => 
             ((Referenced_Event => ocp_activation,
-              Time_Value       => 0.019418)))));
+              Time_Value       => 0.500121)))));
 
 Transaction (
    Name     => alr_transaction,
    Results  => 
        ((Type   => Slack,
-         Value  => 27088.7%),
+         Value  => -100.00%),
         (Type                          => Timing_Result,
          Event_Name                    => alro1,
          Num_Of_Suspensions            => 0,
          Worst_Blocking_Time           => 0.000,
          Worst_Global_Response_Times   => 
             ((Referenced_Event => alr_activation,
-              Time_Value       => 0.030108)),
+              Time_Value       => 0.774853)),
          Best_Global_Response_Times    => 
             ((Referenced_Event => alr_activation,
-              Time_Value       => 0.003569)),
+              Time_Value       => 0.091432)),
          Jitters                       => 
             ((Referenced_Event => alr_activation,
-              Time_Value       => 0.026539)))));
+              Time_Value       => 0.683421)))));
 
 Transaction (
    Name     => event_queue_interrupt,
    Results  => 
        ((Type   => Slack,
-         Value  => >=100000.0%),
+         Value  => -100.00%),
         (Type                          => Timing_Result,
          Event_Name                    => eqo1,
          Num_Of_Suspensions            => 0,
          Worst_Blocking_Time           => 1.000E-06,
          Worst_Global_Response_Times   => 
             ((Referenced_Event => button_click,
-              Time_Value       => 1.010E-05)),
+              Time_Value       => 1.100E-05)),
          Best_Global_Response_Times    => 
             ((Referenced_Event => button_click,
-              Time_Value       => 5.256E-06)),
+              Time_Value       => 6.156E-06)),
          Jitters                       => 
             ((Referenced_Event => button_click,
               Time_Value       => 4.844E-06))),
@@ -167,21 +162,22 @@ Transaction (
          Worst_Blocking_Time           => 1.000E-06,
          Worst_Global_Response_Times   => 
             ((Referenced_Event => button_click,
-              Time_Value       => 3.112E-05)),
+              Time_Value       => 3.202E-05)),
          Best_Global_Response_Times    => 
             ((Referenced_Event => button_click,
-              Time_Value       => 2.144E-05)),
+              Time_Value       => 1.616E-05)),
          Jitters                       => 
             ((Referenced_Event => button_click,
-              Time_Value       => 9.688E-06)))));
+              Time_Value       => 1.587E-05)))));
 
 Processing_Resource (
    Name     => cpu,
    Results  => 
        ((Type   => Slack,
-         Value  => 2401.2%),
+         Value  => 0.00%),
         (Type   => Utilization,
-         Total  => 2.58%)));
+         Total  => 56.84%)));
 
-The system is schedulable
-Final analysis status: DONE
+Timing requirement not met in transaction rp_transaction, internal event rpo1
+Timing requirements not met
+Final analysis status: NOT-SCHEDULABLE
