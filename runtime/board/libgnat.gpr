@@ -20,14 +20,7 @@ library project Libgnat is
    for Source_Dirs use
      Libgnat_Sources.Gnat_Dirs &
      Libgnarl_Sources.Gnarl_Dirs &
-     ("../../../../src/arch",
-      "../../src/crt0",
-      "../src/crt0",
-      "arch",
-      "user_srcs") &
-     ("../../../../src/gnarl",
-      "../../../src/gnarl",
-      "../src/gnarl");
+     ("src");
 
    package Naming renames Target_Options.Naming;
 

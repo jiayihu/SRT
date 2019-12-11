@@ -28,7 +28,7 @@ package body System_Overhead is
       Sub_Program : Time;
       Elapsed : Time;
    begin
-      -- Sometimes End_Tracking may be called before Start_Tracking
+      --  Sometimes End_Tracking may be called before Start_Tracking
       if Initial_Value = 0 then
          return;
       end if;

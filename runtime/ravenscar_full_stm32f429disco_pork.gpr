@@ -1,10 +1,8 @@
 aggregate project Ravenscar_Full_Stm32F429Disco_PORK is
 
-   Base_BSP_Source_Dir   := Project'Project_Dir & "cortex-m/armv7-m/stm32/stm32f429disco/";
-   Base_Installation_Dir := Project'Project_Dir;
+   Base_BSP_Source_Dir   := Project'Project_Dir & "board/";
    Board                 := "stm32f429discopork";
-   Default_Prefix        :=
-     Base_Installation_Dir & "ravenscar-full-" & Board;
+   Default_Prefix        := Project'Project_Dir & "ravenscar-full-" & Board;
    Install_Dir           := external ("PREFIX", Default_Prefix);
 
    for external ("Add_Arith64") use "yes";
@@ -53,15 +51,12 @@ aggregate project Ravenscar_Full_Stm32F429Disco_PORK is
    for external ("INSTALL_PREFIX") use Install_Dir;
 
    for Target use "arm-eabi";
-   for Runtime ("Ada") use Base_BSP_Source_Dir &
-       "ravenscar-full";
+   for Runtime ("Ada") use Base_BSP_Source_Dir;
 
-   for Project_Path use
-     (Base_BSP_Source_Dir & "ravenscar-full",
-      "../lib/gnat");
+   for Project_Path use (Base_BSP_Source_Dir);
    for Project_Files use
-     (Base_BSP_Source_Dir & "ravenscar-full/libgnat.gpr",
-      Base_BSP_Source_Dir & "ravenscar-full/libgnarl.gpr",
-      Base_BSP_Source_Dir & "ravenscar-full/install.gpr");
+     (Base_BSP_Source_Dir & "libgnat.gpr",
+      Base_BSP_Source_Dir & "libgnarl.gpr",
+      Base_BSP_Source_Dir & "install.gpr");
 
 end Ravenscar_Full_Stm32F429Disco_PORK;
