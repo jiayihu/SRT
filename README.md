@@ -33,7 +33,16 @@ If you have just recompiled the application and want to load on the board withou
 
 ## Compiling the runtime
 
+For FPS:
+
 ```bash
 runtime$ gprbuild -P ravenscar_full_stm32f429disco_pork.gpr
 runtime$ gprinstall -P ravenscar_full_stm32f429disco_pork.gpr -p -f
+```
+
+For EDF:
+
+```bash
+runtime$ gprbuild -P ravenscar_full_stm32f429disco_pork.gpr -Xsched=edf
+runtime$ gprinstall -P ravenscar_full_stm32f429disco_pork.gpr -p -f -Xsched=edf
 ```

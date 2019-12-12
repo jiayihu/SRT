@@ -18,7 +18,7 @@ library project Libgnat is
    for Object_Dir use "obj";
 
    EDF := ();
-   type Scheduling_Type is ("fps","edf");
+   type Scheduling_Type is ("fps", "edf");
    Scheduling : Scheduling_Type := external ("sched", "fps");
 
    case Scheduling is
