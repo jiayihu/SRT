@@ -17,7 +17,18 @@ library project Libgnat is
    for Library_Dir use "adalib";
    for Object_Dir use "obj";
 
+   EDF := ();
+   type Scheduling_Type is ("fps","edf");
+   Scheduling : Scheduling_Type := external ("sched", "fps");
+
+   case Scheduling is
+      when "edf"  =>
+         EDF := EDF & (Project'Project_Dir & "../edf-migrated");
+      when others =>
+   end case;
+
    for Source_Dirs use
+     EDF &
      Libgnat_Sources.Gnat_Dirs &
      Libgnarl_Sources.Gnarl_Dirs &
      ("src");
