@@ -88,25 +88,25 @@ Shared_Resource (
 Operation (
    Type                       => Simple,
    Name                       => rp_small_whetstone,
-   Worst_Case_Execution_Time  => 0.497414,
-   Avg_Case_Execution_Time  => 0.497414,
-   Best_Case_Execution_Time  => 0.497414);
+   Worst_Case_Execution_Time  => 0.482555,
+   Avg_Case_Execution_Time  => 0.482555,
+   Best_Case_Execution_Time  => 0.482555);
 
--- 1: 0.007096; 25: 0.177452; 25.77: 0.182915
+-- 1: 0.007096; 25: 0.177452; 25.77: 0.182915; 44: 0.312311
 Operation (
    Type                       => Simple,
    Name                       => ocp_small_whetstone,
-   Worst_Case_Execution_Time  => 0.182915,
-   Avg_Case_Execution_Time  => 0.182915,
-   Best_Case_Execution_Time  => 0.182915);
+   Worst_Case_Execution_Time  => 0.312311,
+   Avg_Case_Execution_Time  => 0.312311,
+   Best_Case_Execution_Time  => 0.312311);
 
--- 1: 0.003549; 25: 0.088669; 25.77: 0.091399
+-- 1: 0.003549; 25: 0.088669; 25.77: 0.091399; 44: 0.156053, 56: 0.198612
 Operation (
    Type                       => Simple,
    Name                       => alr_small_whetstone,
-   Worst_Case_Execution_Time  => 0.091399,
-   Avg_Case_Execution_Time  => 0.091399,
-   Best_Case_Execution_Time  => 0.091399);
+   Worst_Case_Execution_Time  => 0.198612,
+   Avg_Case_Execution_Time  => 0.198612,
+   Best_Case_Execution_Time  => 0.198612);
 
 Operation (
    Type                       => Simple,
