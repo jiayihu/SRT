@@ -20,16 +20,16 @@ package body On_Call_Producer is
       --  for tasks to achieve simultaneous activation
       Activation_Manager.Activation_Sporadic;
       loop
+         --  Task_Overhead.Start_Tracking;
          --  suspending request for activation event with data exchange
-         Task_Overhead.Start_Tracking;
          Current_Workload := Request_Buffer.Extract;
-         Task_Overhead.End_Tracking;
          Deadline_Miss.Set_Deadline_Handler (Deadline_Miss.OCP, Ada.Real_Time.Clock +
             Ada.Real_Time.Milliseconds (On_Call_Producer_Parameters.On_Call_Producer_Deadline));
          --  non-suspending operation code
          On_Call_Producer_Parameters.On_Call_Producer_Operation
            (Current_Workload);
          Deadline_Miss.Cancel_Deadline_Handler (Deadline_Miss.OCP);
+         --  Task_Overhead.End_Tracking;
       end loop;
    exception
       when Error : others =>
