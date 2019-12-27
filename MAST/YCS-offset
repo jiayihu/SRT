@@ -88,25 +88,25 @@ Shared_Resource (
 Operation (
    Type                       => Simple,
    Name                       => rp_small_whetstone,
-   Worst_Case_Execution_Time  => 0.497414,
-   Avg_Case_Execution_Time  => 0.497414,
-   Best_Case_Execution_Time  => 0.497414);
+   Worst_Case_Execution_Time  => 0.482555,
+   Avg_Case_Execution_Time  => 0.482555,
+   Best_Case_Execution_Time  => 0.482555);
 
--- 1: 0.007096; 25: 0.177452; 25.77: 0.182915
+-- 1: 0.007096; 25: 0.177452; 25.77: 0.182915; 44: 0.312311
 Operation (
    Type                       => Simple,
    Name                       => ocp_small_whetstone,
-   Worst_Case_Execution_Time  => 0.182915,
-   Avg_Case_Execution_Time  => 0.182915,
-   Best_Case_Execution_Time  => 0.182915);
+   Worst_Case_Execution_Time  => 0.312311,
+   Avg_Case_Execution_Time  => 0.312311,
+   Best_Case_Execution_Time  => 0.312311);
 
--- 1: 0.003549; 25: 0.088669; 25.77: 0.091399
+-- 1: 0.003549; 25: 0.088669; 25.77: 0.091399; 44: 0.156053, 56: 0.198612
 Operation (
    Type                       => Simple,
    Name                       => alr_small_whetstone,
-   Worst_Case_Execution_Time  => 0.091399,
-   Avg_Case_Execution_Time  => 0.091399,
-   Best_Case_Execution_Time  => 0.091399);
+   Worst_Case_Execution_Time  => 0.198612,
+   Avg_Case_Execution_Time  => 0.198612,
+   Best_Case_Execution_Time  => 0.198612);
 
 Operation (
    Type                       => Simple,
@@ -189,10 +189,20 @@ Operation (
    Composite_Operation_List =>
       ( rp_small_whetstone,
         due_activation,
-        ocp_start,
         check_due,
-        alr_signal,
         put_line));
+
+Operation (
+   Type                     => Composite,
+   Name                     => ocp_activation,
+   Composite_Operation_List =>
+      ( ocp_start));
+
+Operation (
+   Type                     => Composite,
+   Name                     => alr_activation,
+   Composite_Operation_List =>
+      ( alr_signal));
 
 Operation (
    Type                     => Composite,
@@ -344,24 +354,38 @@ Transaction (
           Timing_Requirements =>
             ( Type             => Hard_Global_Deadline,
               Deadline         => 0.500000,
-              Referenced_Event => e1)),
-        ( Type => Regular,
-          Name => ocp_activation),
-        ( Type => Regular,
-          Name => ocpo1,
-          Timing_Requirements =>
-            ( Type             => Hard_Local_Deadline,
-              Deadline         => 0.800000))),
+              Referenced_Event => e1))),
    Event_Handlers  =>
       ( (Type               => System_Timed_Activity,
          Input_Event        => e1,
          Output_Event       => rpo1,
          Activity_Operation => regular_producer,
-         Activity_Server    => regular_producer),
-        (Type               => Rate_Divisor,
-         Input_Event        => rpo1,
+         Activity_Server    => regular_producer)));
+
+Transaction (
+   Type            => regular,
+   Name            => ocp_transaction,
+   External_Events =>
+      ( ( Type       => Periodic,
+          Name       => e2,
+          Period     => 5.000,
+          Max_Jitter => 0.000,
+          Phase      => 0.000)),
+   Internal_Events =>
+      ( ( Type => Regular,
+          Name => ocp_activation),
+        ( Type => Regular,
+          Name => ocpo1,
+          Timing_Requirements =>
+            ( Type             => Hard_Global_Deadline,
+              Deadline         => 0.800000,
+              Referenced_Event => e2))),
+   Event_Handlers  =>
+      ( (Type               => Activity,
+         Input_Event        => e2,
          Output_Event       => ocp_activation,
-         Rate_Factor        => 5),
+         Activity_Operation => ocp_activation,
+         Activity_Server    => regular_producer),
         (Type               => Activity,
          Input_Event        => ocp_activation,
          Output_Event       => ocpo1,
@@ -372,20 +396,27 @@ Transaction (
    Type            => regular,
    Name            => alr_transaction,
    External_Events =>
-      ( ( Type             => Sporadic,
-          Name             => alr_activation,
-          Avg_Interarrival => 3.000,
-          Distribution     => UNIFORM,
-          Min_Interarrival => 3.000)),
+      ( ( Type       => Periodic,
+          Name       => e3,
+          Period     => 3.000,
+          Max_Jitter => 0.000,
+          Phase      => 0.000)),
    Internal_Events =>
       ( ( Type => Regular,
+          Name => alr_activation),
+        ( Type => Regular,
           Name => alro1,
           Timing_Requirements =>
             ( Type             => Hard_Global_Deadline,
               Deadline         => 1.000000,
-              Referenced_Event => alr_activation))),
+              Referenced_Event => e3))),
    Event_Handlers  =>
       ( (Type               => Activity,
+         Input_Event        => e3,
+         Output_Event       => alr_activation,
+         Activity_Operation => alr_activation,
+         Activity_Server    => regular_producer),
+        (Type               => Activity,
          Input_Event        => alr_activation,
          Output_Event       => alro1,
          Activity_Operation => activation_log_reader,
