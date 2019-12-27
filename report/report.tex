@@ -16,6 +16,7 @@
 \usepackage{listings}
 \usepackage{url}
 \usepackage{graphicx}
+\usepackage{longtable}
 
 \lstset{
    basicstyle=\ttfamily\footnotesize
@@ -125,7 +126,18 @@ The application is comprised by the following tasks and attributes. Static prior
 
 Ada protected objects [RM 9.4] are used to ensure mutually exclusive access to shared resources, whereas protected entries are used only for task synchronization purposes where data exchange is involved.
 
-In a real-time application, each protected object has a priority ceiling which represents the maximum priority of any task that calls the object. The Ada Real-Time Systems Annex supports the definition of  \texttt{Locking\_Policy} [RM D.3] and implements the Immediate Priority Ceiling Protocol (IPCP), usually called Priority Ceiling Protocol (PCP) in literature. It's one of the best Priority inheritance protocols, which allow a task to execute with an enhanced priority if it is blocking (or could block) a higher-priority task. To be specific, PCP reduces blocking to its minimum value: every job is blocked at most once for the duration of a critical section, no matter how many jobs conflict with it \cite{pcp-blocking}.
+In a real-time application, each protected object has a priority ceiling which represents the maximum priority of any task that calls the object. The Ada Real-Time Systems Annex supports the definition of  \texttt{Locking\_Policy} [RM D.3] and implements the resource locking protocol called Immediate Priority Ceiling Protocol (IPCP) \cite{ada-pcp}, which is similar to the Priority Ceiling Protocol (PCP).
+
+PCP is an improvement of the Priority Inheritance Protocols (PIP), which allow a task to execute with an enhanced priority if it is blocking (or could block) a higher-priority task. In addition to PIP, PCP prevents deadlock and reduces blocking to its minimum value: every job is blocked at most once for the duration of a critical section, no matter how many jobs conflict with it \cite{pcp-blocking}.
+
+The IPCP is similar to PCP in its use of the ceiling priority, but it has a different set of rules on how a task set behave under the ceiling locking protocol.
+
+\begin{enumerate}
+   \item A task may lock a protected object if it is not yet locked.
+   \item When it enters a critical section it immediately inherits the priority ceiling of the protected object, and recovers its entry priority when it exits the section.
+\end{enumerate}
+
+This protocol effectively prevents any task from starting to execute until all the shared resources it needs are free. This means that no separate mutual exclusion mechanism, such as semaphores, is needed to lock shared resources. It is also cheap to implement at run time and incurs in less context switches. By raising priorities as soon as a resource is locked, whether a higher priority task is trying to access it or not, the protocol avoids the need to make complex scheduling decisions while tasks are already executing.
 
 \begin{table}[!htbp]
    \centering
@@ -148,6 +160,8 @@ $\beta \mu \varsigma h \iota\ \delta \epsilon l\ \zeta \mu l o$.
 
 1. Ada task model
 2. Delay until pro \& cons and implementation \cite{absolute-delay}
+
+The task body for an event-triggered task that conforms to the Ravenscar Profile typically has, as its last statement, an outermost infinite loop whose first statement is either a call to a protected entry or a call to a Suspension Object. The suspension object is used when no other effect is required in the signalling operation; for example, no data is to be transferred from signaller to waiter. In contrast, the protected entry is used for more elaborate event signalling, when additional operations must accompany the resumption of the event-triggered task.
 
 \section{System model and notation}\label{model-notation}
 
@@ -172,15 +186,15 @@ For each task $\tau_{ij}$ we define its response time as the difference between 
 
 If tasks synchronize using shared resources in a mutually exclusive way, they will be using the aforementioned Priority Ceiling Protocol. The effects of lower priority tasks on a task under analysis $\tau_{ab}$ are bounded by an amount called the blocking term $B_{ab}$, calculated as the maximum of all the critical sections of lower priority tasks that have a priority ceiling higher than or equal to the priority of $\tau_{ab}$.
 
-\subsection{Holistic analysis}
+\subsection{Offset-based analysis}
 
 Rate monotonic analysis (RMA) \cite{rm-dm} allows an exact calculation of the worst-case response time of tasks in single-processor real time systems, including the effects of task synchronization, the presence of aperiodic tasks, the effects of deadlines before, at or after the periods of the tasks, precedence constraints and tasks with varying priorities, overhead analysis, etc. However, classic RMA \cite{practitioner-common-data} cannot provide exact solutions in systems in which tasks suspend themselves. Classic techniques for these systems are based on the assumption that all tasks are independent, and thus they lead to pessimistic results \cite{pessimistic-rma}.
 
 For building the worst-case scenario for a task $\tau_{ab}$ under analysis, the analysis must consider the critical instant that leads to the worst-case busy period. A task $\tau_{ab}$ busy period is an interval of time during which the CPU is busy processing task $\tau_{ab}$ or higher priority tasks. For tasks with offsets, it must take into account that the critical instant may not include the simultaneous activation of all higher priority tasks, as it was the case when all tasks were independent. The existence of offsets makes it impossible for some sets of tasks to simultaneously become active.
 
-Works on such problem has been the base of holistic analysis, first proposed by Tindell and Clark \cite{tindell-offsets} for distributed systems and later improved by Palencia and Gonzàlez \cite{pessimistic-rma} who called it Worst-Case analysis of Dynamic Offsets (WCDO). In such analysis, the worst-case response time of each task is used to set the offset and the jitter of the successive task in the same transaction. Then, the computation of worst-case response times is iterated until a stable solution is found. If response times are bounded, the holistic method is guaranteed to converge to a solution.
+Works on such problem has been the base of offset-based analysis, first proposed by Tindell and Clark \cite{tindell-offsets} and later improved by Palencia and Gonzàlez \cite{pessimistic-rma} who called it Worst-Case analysis of Dynamic Offsets (WCDO). In such analysis, the worst-case response time of each task is used to set the offset and the jitter of the successive task in the same transaction. Then, the computation of worst-case response times is iterated until a stable solution is found. If response times are bounded, the offset-based method is guaranteed to converge to a solution.
 
-The MAST analysis tool implements both the latest offset-based WCDO techniques and the more pessimistic holistic approach \cite{mast}, which is included in the toolset for completeness and comparison.
+The MAST analysis tool implements both different offset-based techniques and the more pessimistic holistic approach \cite{holistic-analysis}, which assumes tasks are scheduled independently. Holistic analysis is included in the toolset for completeness and comparison.
 
 \section{Execution times}
 
@@ -640,11 +654,20 @@ Internal Events are generated by an Event Handler. Internal Events have timing r
 
 External events model the interactions of the system with external components or devices through interrupts, signals, etc., or with hardware timing devices. They have a double role in the model: on the one hand they establish the rates or arrival patterns of activities in the system. On the other hand, they provide references for defining global timing requirements. MAST supports different arrival patterns, of which we used the following: \textit{Periodic} represents a stream of events that are generated periodically, such as from the Tick Scheduling; \textit{Sporadic} as a stream of aperiodic events that have a minimum interarrival time.
 
-Event Handlers represent actions that are activated by the arrival of one event, and that in turn generate one or more events at their output. There are two fundamental classes of Event Handlers. The Activities represent the execution of an operation by a Scheduling Server (a task), in a processing resource (the CPU). The other kinds of Event Handlers are just a mechanism for handling events, with no runtime effects. In the model we have used the following classes:
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=3in]{images/event-handlers}
+\caption{Event Handlers}
+\label{event-handlers}
+\end{figure}
+
+Event Handlers in figure \ref{event-handlers} represent actions that are activated by the arrival of one event, and that in turn generate one or more events at their output. There are two fundamental classes of Event Handlers. The Activities represent the execution of an operation by a Scheduling Server (a task), in a processing resource (the CPU). The other kinds of Event Handlers are just a mechanism for handling events, with no runtime effects. In the model we have used the following classes:
 
 \begin{itemize}
    \item \textit{Activity}: an instance of an operation, to be executed by a Scheduling Server;
    \item \textit{System Timed Activity}: an activity that is activated by the system timer, and thus is subject to the aforementioned jitter associated with it;
+   \item \textit{Multicast}: it is an event handler that generates one event in every one of its outputs each time an input event arrives;
+   \item \textit{Rate Divisor}: it is an event handler that generates one output event when a number of input events equal to the Rate Factor have arrived;
    \item \textit{Offset}: an event handler that generates its output event after a time interval has elapsed from the arrival of of some (previous) event. If the time interval has already passed when the input event arrives, the output event is generated immediately.
 \end{itemize}
 
@@ -768,43 +791,48 @@ The push-button interrupt event stream is modeled as triggered by a sporadic eve
 
 \section{MAST analysis}
 
-As of the time of writing, MAST is at version 1.5.1 and supports the following analysis tools.
+As of the time of writing, MAST is at version 1.5.1 and supports the analysis tools \cite{mast-analysis} in figure \ref{mast-analysis-tools}. The techniques relevant for this paper are:
 
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=5in]{images/mast-analysis}
-\caption{MAST analysis tools \cite{mast-description}.}
+\caption{MAST analysis tools \cite{mast-analysis}.}
 \label{mast-analysis-tools}
 \end{figure}
 
-The transaction which defines the button interrupt event stream is considered as a linear transaction, which only has one external event and that its Event handlers are all Activities, but unfortunately it is not a simple transaction, a continuous sequence of activities executed by the same server. We have one server which handles the ISR and another one the associated task of External Event Server.
+\begin{itemize}
+   \item \textit{Classic RM Analysis} (not used): it implements the classic exact response time analysis for single-processor fixed-priority systems and corresponds to Technique 5, "Calculating response time with arbitrary deadlines and blocking" in \cite{practitioner};
+   \item \textit{Holistic Analysis} (used): this analysis extends the response time analysis to multiprocessor and distributed systems. It is not an exact analysis, because it makes the assumption that tasks of the same transaction are independent. It was first developed for fixed priority systems by Tindell and Clark \cite{holistic-analysis};
+   \item \textit{Offset Based Approximate Analysis} (not used): this is a response time analysis for multiprocessor and distributed systems that improves the pessimism of the holistic analysis by taking into account that tasks of the same transaction are not independent, through the use of offsets. Offset based analysis for fixed priorities was first introduced by Tindell \cite{tindell-offsets} and then extended to distributed systems by Palencia and González \cite{pessimistic-rma};
+   \item \textit{Offset Based Approximate with Precedence Relations Analysis} (used): this is an enhancement of the offset based approximate analysis for fixed priority systems in which the priorities of the tasks of a given transaction are used together with the precedence relations among those tasks to provide a tighter estimation of the response times;
+   \item \textit{Offset Based Slanted Analysis} (used): this is another enhancement of the offset based approximate analysis for fixed priority systems in which the maximum interference function is defined with a tighter approximation. This method provides better results that the Offset-Based Approximate Analysis, but it is uncertain if it gets better results than the method with precedence relations.
+\end{itemize}
 
-This means we cannot use the classic Rate Monotonic algorithm \cite{rm-dm}, only offset-based and the traditional holistic analysis \cite{holistic-analysis}. The reason for this lies in the fact that Rate Monotonic assumes independent tasks, but the interrupt transaction is composed by an ISR executed by Interrupt\_FP\_Server, followed by the interrupt handler in External Event Server, which is activated by the former and thus it depends on it for its activation.
+In addition, the analysis tools are subject to different restrictions \cite{mast-restrictions}. The most significant ones are:
 
-As final note, as of the time of writing, offset-based analysis fallbacks to holistic analysis with EDF processing resources \cite{mast-readme}.
+\begin{itemize}
+   \item \textit{No\_Hard\_Local\_Deadlines}: Hard Local Deadlines cannot be used as Timing Requirements;
+   \item \textit{Referenced\_Events\_Are\_External\_Only}: no internal events can be referenced by Global Deadlines;
+   \item \textit{Simple\_Transactions\_Only}: checks that every transaction has only a continuous sequence of activities executed by the same server. This restriction is required by the Rate Monotonic analysis;
+   \item \textit{Linear\_Plus\_Transactions\_Only}: checks that every transaction only has one external event and is not multipath, i.e. it has no Multicasts. This restriction is required by the Offset based analysis tools;
+   \item \textit{Restricted\_Multipath\_Transactions\_Only}: checks that every transaction has a single input event, has no branch elements (Delivery or Query Servers), and has no Rate Divisors. It also checks that the transaction follows the set of allowed constructs mentioned in \cite{mast-restrictions}. This restriction is required by the Holistic analysis.
+\end{itemize}
+
+The transaction which defines the button interrupt event stream is considered as a linear transaction, since it only has one external event, but unfortunately it is not a Simple transaction since Activities are not executed by the same server. An Interrupt Scheduling Server first handles the Interrupt Service Routine and then a regular Scheduling Server executes the application handler defined by External\_Event\_Server.
+
+As a consequence, it's not possible to use the classic Rate Monotonic algorithm \cite{rm-dm} with our model and we are restricted to the traditional Holistic and the Offset-based tools. We believe the reason is that the Rate Monotonic assumes independent tasks, but the interrupt transaction is composed by an ISR executed by the Interrupt\_FP\_Server, followed by the interrupt handler in External Event Server, which is activated by the former and thus dependent on it for its activation.
+
+As final note, as of the time of writing, offset-based analysis fallbacks to holistic analysis with EDF processing resources \cite{mast-analysis}.
 
 \section{FPS analysis}
 
-Assuming sporadic tasks as periodic with period equal to the minimum interarrival time, which is the worst case, the hyperperiod is $LCM(1, 3, 5) = 15s$. The hyperperiod of a set of tasks is least common multiple of all periods. To check that the system will meet the deadlines, it suffices to run it for at least the first hyperperiod amount of time.
+We start the analysis with fixed priority scheduling (FPS) and a MAST model which represents the tasks as stand-alone. Later, we will try to more strictly model the formal transactions comprised of dependent tasks.
 
-\begin{table}[!htbp]
-  \centering
-  \begin{tabular}{lllll}
-    \toprule
-    Transaction & Worst case response time (s) & Slack & Worst blocking time (s) & Jitter \\
-    \midrule
-    rp\_transaction & 0.020440  & 2470.0\% &  2.000E-06 & 0.001107 \\
-    ocp\_transaction & 0.026598 & 10776.6\% & 1.000E-06 & 0.019472 \\
-    alr\_transaction & 0.030201 & 26600.8\% & 0.00 & 0.026619 \\
-    event\_queue\_interrupt ISR & 1.100E-05 & >=100000.0\% & 1.000E-06 & 4.844E-06 \\
-    event\_queue\_interrupt EES & 3.818E-05 & >=100000.0\% & 1.000E-06 & 2.202E-05 \\
-    \bottomrule
-  \end{tabular}
-  \caption{Holistic analysis results for FPS}
-  \label{tab:holistic-fps}
-\end{table}
+To check that the system meets the deadlines, it suffices to run it for at least the first hyperperiod amount of time. Assuming sporadic tasks as periodic with period equal to the minimum interarrival time, which is the worst case, the hyperperiod is $LCM(1, 3, 5) = 15s$. The hyperperiod of a set of tasks is least common multiple of all periods.
 
-The system slack is 2401.2\% and total utilisation 2.58\%.
+\subsection{Independent tasks}
+
+We start with an Holistic analysis of the initial system.
 
 \begin{lstlisting}
 Optimum Resource Ceilings and Levels:
@@ -813,78 +841,267 @@ activation_log =>  11
 event_queue =>  241
 \end{lstlisting}
 
-A first analysis suggests that smaller values can be used as ceilings for \texttt{request\_buffer} and \texttt{activation\_log}. This is expected since the two values are the highest priorities of the tasks Regular\_Producer and External\_Event\_Server respectively. We modify the implementation ceilings accordingly.
+A first analysis suggests that smaller values can be used as ceilings for the protected objects Request\_Buffer and Activation\_Log. This possible improvement is expected since the two values are the highest priorities of the tasks Regular\_Producer and External\_Event\_Server respectively. We leave the ceilings intact nevertheless, since the ceiling is a required to be an upper bound of the priorities between the tasks the request the resource, not the least upper bound. Having some spare priorities between the task priorities and the ceilings might prove to be useful if we need to separate a transaction into two distinct tasks with proper offset to better model the application \cite{tindell-offsets}.
 
-We then increase the Whetstone workload of factor 24 in the first three transactions, since 2477.0\% is the smallest slack of the three of them. It correponds to how much the execution time of all event responses can be increased while preserving system schedulability \cite{practitioner-growth}.
+\begin{longtable}{lllllll}
+   \toprule
+   Task & WCET \\
+   \midrule
+   regular\_producer & 0.019333 \\
+   on\_call\_producer & 0.007126 \\
+   activation\_log\_reader & 0.003582 \\
+   \toprule
+   \toprule
+   Transaction & $R_{min}$ & $R_{max}$ & Slack & Worst blocking time & Jitter \\
+   \midrule
+   rp\_transaction & 0.019333 & 0.020440  & 2470.0\% &  2.000E-06 & 0.001107 \\
+   ocp\_transaction & 0.007126 & 0.026598 & 10776.6\% & 1.000E-06 & 0.019472 \\
+   alr\_transaction & 0.003582 & 0.030201 & 26600.8\% & 0.00 & 0.026619 \\
+   event\_queue\_interrupt ISR & 6.156E-06 & 1.100E-05 & >=100000.0\% & 1.000E-06 & 4.844E-06 \\
+   event\_queue\_interrupt EES & 1.616E-05 & 3.818E-05 & >=100000.0\% & 1.000E-06 & 2.202E-05 \\
+   \toprule
+   \toprule
+   System slack & 2401.2\% \\
+   Total utilisation & 2.58\% \\
+   \bottomrule
+\caption{Holistic analysis results for FPS}
+\label{tab:holistic-fps}
+\end{longtable}
 
-We leave the Event Queue interrupt intact. The new results are as follows:
+Table \ref{tab:holistic-fps} first shows the WCET of the tasks as defined in the MAST model and which are controlled by the Whetstone workloads. Then the results of the analysis are displayed, containing the best-case response time $R_{min}$, the worst-case response time $R_{max}$, the slack, the blocking time and the jitter for each transaction. All transactions suffer jitter due to the system ticker interrupt running at the highest interrupt priority and the context switch overhead.
+
+\begin{itemize}
+   \item \textit{regular\_producer}: suffers additional jitter due to the system clock with granularity 1ms and the possible execution of the ISR. Its blocking time is caused by the On\_Call\_Producer and the Activation\_Log\_Reader which have lower priorities but can access resources with higher ceiling priority than Regular\_Producer;
+   \item \textit{ocp\_transaction}: suffers additional jitter due to interference by Regular\_Producer and the ISR. Its blocking time is caused the Activation\_Log\_Reader.;
+   \item \textit{alr\_transaction}: suffers additional jitter due to interference by On\_Call\_Producer, Regular\_Producer and the ISR. It has no blocking time since it's the task with lowest priority;
+   \item \textit{event\_queue\_interrupt ISR}: it's the first part of the interrupt transaction. It suffers additional jitter due to the runtime ISR overhead. Its blocking time is caused by the External\_Event\_Server;
+   \item \textit{event\_queue\_interrupt EES}: it's the second part of the interrupt transaction. It suffers additional jitter due to the ISR, considered as independent from the former in the Holistic analysis. Its blocking time is caused by the External\_Event\_Server;
+\end{itemize}
+
+We shall now increase the Whetstone workload of factor 24 in the first three transactions, since 2477.0\% is the smallest slack of the three of them. The factor correponds to how much the execution time of all event responses can be increased while preserving system schedulability \cite{practitioner-growth}. We leave the Event\_Queue transaction intact because it doesn't contain any Whetstone operation. The new results are as shown in table \ref{tab:holistic-fps-24}.
+
+\begin{longtable}{lllllll}
+   \toprule
+   Task & WCET \\
+   \midrule
+   regular\_producer & 0.482597 \\
+   on\_call\_producer & 0.177482 \\
+   activation\_log\_reader & 0.088702 \\
+   \toprule
+   \toprule
+   Transaction & $R_{min}$ & $R_{max}$ & Slack & Worst blocking time & Jitter \\
+   \midrule
+   rp\_transaction & 0.482597 & 0.485492  & 2.73\% &  2.000E-06 & 0.002895 \\
+   ocp\_transaction & 0.177482 & 0.662663 & 76.95\% & 1.000E-06 & 0.485181 \\
+   alr\_transaction & 0.088702 & 0.751713 & 277.34\% & 0.00 & 0.663011 \\
+   event\_queue\_interrupt ISR & 6.156E-06 & 1.100E-05 & >=100000.0\% & 1.000E-06 & 4.844E-06 \\
+   event\_queue\_interrupt EES & 1.616E-05 & 3.818E-05 & >=100000.0\% & 1.000E-06 & 2.202E-05 \\
+   \toprule
+   \toprule
+   System slack & 3.21\% \\
+   Total utilisation & 55.15\% \\
+   \bottomrule
+   \caption{Holistic analysis results for FPS increased of factor 24}
+\label{tab:holistic-fps-24}
+\end{longtable}
+
+The blocking times have not changed because protected operations are same as before, but the total utilisation have increased up to 55.15\%. The 2.73\% slack value of Regular\_Producer is already very low so we can leave it as it is. We proceed instead to increase the workload of On\_Call\_Producer and Activation\_Log\_Reader from factor 24 to $43\ =\ 24\ *\ 1.77$, using the slack value 77\%.
+
+\begin{longtable}{lllllll}
+   \toprule
+   Task & WCET \\
+   \midrule
+   regular\_producer & 0.482597 \\
+   on\_call\_producer & 0.312341 \\
+   activation\_log\_reader & 0.156086 \\
+   \toprule
+   \toprule
+   Transaction & $R_{min}$ & $R_{max}$ & Slack & Worst blocking time & Jitter \\
+   \midrule
+   rp\_transaction & 0.482597 & 0.485492  & 0.390625\% &  2.000E-06 & 0.002895 \\
+   ocp\_transaction & 0.312341 & 0.798045 & 0.390625\% & 1.000E-06 & 0.485704 \\
+   alr\_transaction & 0.156086 & 0.954736 & 28.13\% & 0.00 & 0.798650 \\
+   event\_queue\_interrupt ISR & 6.156E-06 & 1.100E-05 & 17737.1\% & 1.000E-06 & 4.844E-06 \\
+   event\_queue\_interrupt EES & 1.616E-05 & 3.818E-05 & 17737.1\% & 1.000E-06 & 2.202E-05 \\
+   \toprule
+   \toprule
+   System slack & 0.390187\% \\
+   Total utilisation & 60.10\% \\
+   \bottomrule
+   \caption{Holistic analysis results for FPS increased of factor 43}
+\label{tab:holistic-fps-24-ocp-44}
+\end{longtable}
+ 
+The system has reached utilisation 60.10\%. We now increase workload of Activation\_Log\_Reader from factor 43 to $55\ =\ 43 * 1.28$, using the slack value 28\%.
+
+\begin{longtable}{lllllll}
+   \toprule
+   Task & WCET \\
+   \midrule
+   regular\_producer & 0.482597 \\
+   on\_call\_producer & 0.312341 \\
+   activation\_log\_reader & 0.198645 \\
+   \toprule
+   \toprule
+   Transaction & $R_{min}$ & $R_{max}$ & Slack & Worst blocking time & Jitter \\
+   \midrule
+   rp\_transaction & 0.482597 & 0.485492  & 0.0\% &  2.000E-06 & 0.002895 \\
+   ocp\_transaction & 0.312341 & 0.798045 & 0.390625\% & 1.000E-06 & 0.485704 \\
+   alr\_transaction & 0.198645 & 0.997460 & 0.390625\% & 0.00 & 0.798650 \\
+   event\_queue\_interrupt ISR & 6.156E-06 & 1.100E-05 & 13963.3\% & 1.000E-06 & 4.844E-06 \\
+   event\_queue\_interrupt EES & 1.616E-05 & 3.818E-05 & 13963.3\% & 1.000E-06 & 2.202E-05 \\
+   \toprule
+   \toprule
+   System slack & 0.390187\% \\
+   Total utilisation & 61.51\% \\
+   \bottomrule
+   \caption{Holistic analysis results for FPS increased of factor 55}
+\label{tab:holistic-fps-24-ocp-44-alr-56}
+\end{longtable}
+
+The maximum utilisation reached is about 61.51\%. The only transaction with significant slack left is \texttt{event\_queue}, but tests show that an increase of the WCET of factor 140 in the operation \textit{external\_event\_server} would improve the utilisation only up to 61.54\%, hence we can ignore it.
+
+\subsection{Adding offsets}
+
+So far, tasks have been assumed to be scheduled independently, there are no relationships between the release of any pair of tasks. Consequently, the worst-case task release pattern has been assumed in the critical instants \cite{critical-instants}; the resulting analysis is therefore sufficient for any task release pattern. It may, however, be advantageous to specify timing constraints on release patterns. We try to include time offsets into the computational model and, by taking account of time offsets, we try to reduce the pessimism when bounding the timing behaviour of the system.
+
+By assuming all tasks are independent, the current analysis is subject to two pessimistic points:
+
+\begin{enumerate}
+   \item Blocking time: offsets can be used to avoid the need for a dynamic concurrency control protocol for access to shared resources. Two tasks in the same transaction may not need to use locks to guard access to a shared resource if certain constraints on response times and offsets hold \cite{tindell-offsets};
+   \item Critical instant: for tasks with offsets, we must take into account that the critical instant may not include the simultaneous activation of all higher priority tasks, as it was the case when all tasks were independent. The existence of offsets makes it impossible for some sets of tasks to simultaneously become active \cite{pessimistic-rma}.
+\end{enumerate}
+
+The above pessimism can be avoided by modeling the precedence constraint: within a pair of tasks, one of them must complete execution before the other can be permitted to commence. If it can be shown that two tasks execute in exclusion then any resources shared exclusively between these tasks need not be guarded by locks, the tasks are guaranteed never to access the shared resource concurrently. Besides, the two tasks cannot be active concurrently, which means that neither task can be permitted to preempt the other causing interference in the critical instant.
+
+Implicitly, we already have modeled a precedence constraint in the \texttt{event\_queue\_interrupt} transaction. By being a linear transaction, it's composed of the two distinct tasks Interrupt Service Routine (ISR) and External\_Event\_Server (EES). The former execution always preceeds the latter and the relation is represented by having the EES Activity wait for the arrival of the ISR Output event, signalling its completion. The ISR and the EES cannot be active simultaneously.
+
+In fact, using the Offset Based Slanted and Offset Based Approximate with Precedence Relations analysis provides an improvement of the jitter, and thus $R_{max}$, for the transaction.
 
 \begin{table}[!htbp]
-   \centering
-   \begin{tabular}{lllll}
-     \toprule
-     Transaction & Worst case response time (s) & Slack & Worst blocking time (s) & Jitter \\
-     \midrule
-     rp\_transaction & 0.485492  & 2.73\% &  2.000E-06 & 0.002895 \\
-     ocp\_transaction & 0.662663 & 76.95\% & 1.000E-06 & 0.485181 \\
-     alr\_transaction & 0.751713 & 277.34\% & 0.00 & 0.663011 \\
-     event\_queue\_interrupt ISR & 1.100E-05 & >=100000.0\% & 1.000E-06 & 4.844E-06 \\
-     event\_queue\_interrupt EES & 3.818E-05 & >=100000.0\% & 1.000E-06 & 2.202E-05 \\
-     \bottomrule
-   \end{tabular}
-   \caption{Holistic analysis results for FPS}
-   \label{tab:holistic-fps}
+  \centering
+  \begin{tabular}{llllll}
+    \toprule
+    Transaction & $R_{min}$ & $R_{max}$ & Slack & Worst blocking time & Jitter \\
+    \midrule
+    event\_queue\_interrupt ISR & 6.156E-06 & 1.100E-05 & 13963.3\% & 1.000E-06 & 4.844E-06 \\
+    event\_queue\_interrupt EES & 1.616E-05 & 3.818E-05 & 13963.3\% & 1.000E-06 & 2.202E-05 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Holistic analysis results for \texttt{event\_queue\_interrupt} }
+  \label{tab:holistic-fps-event-queue}
 \end{table}
-
-The system slack is 3.21\% and total utilisation 55.15\%. Blocking times have not changed because protected operations are same as before.
-
-The slack value of Regular\_Producer is very low so we can leave it as it is, otherwise the MAST analysis will assert as not schedulable because of the transaction having a WCET just slightly larger than the deadline. We proceed instead to increase the workload of On\_Call\_Producer and Activation\_Log\_Reader.
 
 \begin{table}[!htbp]
-   \centering
-   \begin{tabular}{lllll}
-     \toprule
-     Transaction & Worst case response time (s) & Slack & Worst blocking time (s) & Jitter \\
-     \midrule
-     rp\_transaction & 0.485492  & 0.390625\% &  2.000E-06 & 0.002895 \\
-     ocp\_transaction & 0.798045 & 0.390625\% & 1.000E-06 & 0.485704 \\
-     alr\_transaction & 0.954736 & 28.13\% & 0.00 & 0.798650 \\
-     event\_queue\_interrupt ISR & 1.100E-05 & 17737.1\% & 1.000E-06 & 4.844E-06 \\
-     event\_queue\_interrupt EES & 3.818E-05 & 17737.1\% & 1.000E-06 & 2.202E-05 \\
-     \bottomrule
-   \end{tabular}
-   \caption{Holistic analysis results for FPS}
-   \label{tab:holistic-fps}
+  \centering
+  \begin{tabular}{llllll}
+    \toprule
+    Transaction & $R_{min}$ & $R_{max}$ & Slack & Worst blocking time & Jitter \\
+    \midrule
+    event\_queue\_interrupt ISR & 6.156E-06 & 1.100E-05 & 13963.3\% & 1.000E-06 & 4.844E-06 \\
+    event\_queue\_interrupt EES & 1.616E-05 & \textbf{3.202E-05} & 13963.3\% & 1.000E-06 & \textbf{1.587E-05} \\
+    \bottomrule
+  \end{tabular}
+  \caption{Offset Based Slanted analysis results for \texttt{event\_queue\_interrupt} }
+  \label{tab:off-slanted-fps}
 \end{table}
-
-The system slack is 0.390187\% and total utilisation 60.10\%. We now increase workload of Activation\_Log\_Reader.
 
 \begin{table}[!htbp]
-   \centering
-   \begin{tabular}{lllll}
-     \toprule
-     Transaction & Worst case response time (s) & Slack & Worst blocking time (s) & Jitter \\
-     \midrule
-     rp\_transaction & 0.485492  & 0.0\% &  2.000E-06 & 0.002895 \\
-     ocp\_transaction & 0.798045 & 0.390625\% & 1.000E-06 & 0.485704 \\
-     alr\_transaction & 0.997460 & 0.390625\% & 0.00 & 0.798650 \\
-     event\_queue\_interrupt ISR & 1.100E-05 & 13963.3\% & 1.000E-06 & 4.844E-06 \\
-     event\_queue\_interrupt EES & 3.818E-05 & 13963.3\% & 1.000E-06 & 2.202E-05 \\
-     \bottomrule
-   \end{tabular}
-   \caption{Holistic analysis results for FPS}
-   \label{tab:holistic-fps}
+  \centering
+  \begin{tabular}{llllll}
+    \toprule
+    Transaction & $R_{min}$ & $R_{max}$ & Slack & Worst blocking time & Jitter \\
+    \midrule
+    event\_queue\_interrupt ISR & 6.156E-06 & 1.100E-05 & 13963.3\% & 1.000E-06 & 4.844E-06 \\
+    event\_queue\_interrupt EES & 1.616E-05 & \textbf{2.718E-05} & 13963.3\% & 1.000E-06 & \textbf{1.102E-05} \\
+    \bottomrule
+  \end{tabular}
+  \caption{Offset Based Approximate with Precedence Relations analysis results for \texttt{event\_queue\_interrupt} }
+  \label{tab:off-approx-w-pr-fps}
 \end{table}
 
-The system slack is 0.390187\% and total utilisation 61.51\%.
+The Offset Based Slanted tool reduces interference suffered by the EES handler since the ISR cannot be executing at the same time. Thus the jitter and the $R_{max}$ of the former have been reduced by an amount equal to the best-case response time $R_{min}$ of the ISR. We believe this value is used as offset $\Phi$ of the task EES, whereas the difference $R_{ISR\ max} - R_{ISR\ min}$ is counted as possible interference.
 
-The protected methods execution times are so small compared to Whetstone that even if we model it badly, it doesn't matter. But actually we are being to pessimistic because our application has dependency chains, tasks don't compete for the same resource. They synchronize. Let's try putting Whetstone inside the protected methods, now too pessimistic analysis matters. In particular there are 500ms after Regular Producer completion and its next release. If On Call Producer and Activation Log Reader spend less than 500ms together in protected methods, we know for sure that Regular Producer is never blocked by them. Pessimist analysis may consider the blocking time however. Maybe we can model protected methods as message communication overhead and use holistic analysis for distributed systems.
-We may also increase execution times of On Call Producer and Activation Log Reader because maybe the analysis is too pessimistic with the critical instants.
+Offset Based Approximate with Precedence Relations is instead able to provide even a tighter approximation by using the precedence relation and therefore considering a dynamic offset $\Phi_{i2} \in [R_{ISR\ min}, R_{ISR\ max}]$. The EES task is never activated before the ISR completion.
 
-Two pessimistic points:
+Future analysis will provide only the results from the Offset Based Approximate with Precedence Relations technique, referred as only offset-based analysis, as it has proved to be the best of the two tools.
 
-1. Blocking time
-2. Critical instant/busy period
+\subsubsection{Blocking time}
+
+We can further improve the analysis by reducing unnecessary blocking time: the precedence constraint between the ISR and EES means the former cannot suffer blocking time from the latter. There is also no need to use any lock to guard the access to the Event\_Queue resource. The Protected Object can be considered as just a synchronization mechanism with no shared data, like a Suspension Object.
+
+By removing the shared resource Event\_Queue, we obtain the results in table \ref{tab:off-approx-w-pr-blocking-time} for the interrupt transaction.
+
+\begin{table}[!htbp]
+  \centering
+  \begin{tabular}{llllll}
+    \toprule
+    Transaction & $R_{min}$ & $R_{max}$ & Slack & Worst blocking time & Jitter \\
+    \midrule
+    event\_queue\_interrupt ISR & 6.156E-06 & \textbf{1.000E-05} & 13963.3\% & \textbf{0.000} & \textbf{3.844E-06} \\
+    event\_queue\_interrupt EES & 1.616E-05 & 2.718E-05 & 13963.3\% & 1.000E-06 & 1.102E-05 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Offset Based Approximate with Precedence Relations analysis results for \texttt{event\_queue\_interrupt} }
+  \label{tab:off-approx-w-pr-blocking-time}
+\end{table}
+
+EES results are unaltered, but ISR values have improved as expected. The latter is no more subject to any blocking time from the EES, and actually it suffers no blocking at all from other tasks because it runs at interrupt priority. The EES, whereas, continues to have blocking caused by the Activation\_Log\_Reader.
+
+The rest of the analysis has not been affected by the removal of the resourse. The ISR runs at interrupt priority, whereas the EES still has the highest task priority and consequently they don't cause any blocking.
+
+\subsubsection{Critical instant}
+
+The existence of offsets makes it impossible for some sets of tasks to simultaneously become active. This is achieved by "spreading out" the computation of tasks so that all the tasks are not released together.
+
+In our system, the task On\_Call\_Producer (OCP) is actually not truly sporadic given that it's activated by the Regular\_Producer (RP) every 5 \texttt{regular\_producer} transaction invocations. The two tasks are not thus independent and should belong to the same transaction. Equivalent argument holds true for Activation\_Log\_Reader (ALR).
+
+Formally, for the two tasks RP and OCP that are members of the same transaction, task RP must complete before task OCP is run. We have two priority situations: task RP is of higher priority, or task OCP is of higher priority. Fortunately, in our system RP is of higher priority, which means that task OCP (of lower priority) will not execute if task RP has been released before task OCP and has remaining computation.
+
+It can be seen that the condition for the precedence constraint to be met is \cite{tindell-offsets}:
+
+$\Phi_{RP}\ +\ J_{RP}\ \le\ \Phi_{OCP}$
+
+Figure \ref{transaction-multicast} shows what we believe to be the best representation in MAST of the precedence constraints.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=5in]{images/transaction-multicast}
+\caption{Transaction with all the precedence constraints}
+\label{transaction-multicast}
+\end{figure}
+
+The transaction is initiated by an External Event with period 1s and served by the RP Activity. Its completion generates two Output Events, modeled with a Multicast, which are able to release the ALR and/or the OCP. The first Output Event activates the ALR every 3 transaction invocations, as shown by the Rate Divisor with factor 3. The second Output Event has a similar effect on the OCP Activity every 5 transaction invocations. Both ALR and OCP Activity have their respective Hard Local Deadlines, which start as soon as the Input Events arrive.
+
+Unfortunately, at the time of writing, MAST doesn't support this kind of transaction. First of all no transaction can use a Hard Local Deadline due to the No\_Hard\_Local\_Deadlines restriction. Besides, also the usage of Multicast along with Rate Divisors is forbidden by the Restricted\_Multipath\_Transactions\_Only restriction. We were not able to think a transaction which can more strictly model the precedence constraints of our system and yet respect this restrictions. Ours attempts of using workarounds based on offsets had analysis results at least equivalent to modeling as independent tasks.
+
+Nevertheless, we believe that the maximum utilisation reached by assuming stand-alone tasks is very close to the pratictical limit, as shown by the timeline in figure \ref{timeline}.
+
+\newpage
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=5in]{images/timeline}
+\caption{Timeline with the three tasks}
+\label{timeline}
+\end{figure}
+
+Having fixed priority scheduling, the behaviour of the tasks is easily predictable. RP can reach a maximum execution of 0.5s equal to its deadline. Then there is an idle interval of 0.5s before its next release event and, within this interval, the tasks OCP and ALR must complete their executions. The critical instant happens when OCP and ALR are released at the same time, after a completion of the RP, as shown in figure \ref{critical-instant} at time 14. OCP, ALR and the next RP must complete in less or equal than 1s, otherwise at least one of them will not meet its deadline.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=2.5in]{images/critical-instant}
+\caption{Timeline with the three tasks}
+\label{critical-instant}
+\end{figure}
+
+The WCET used in the application for ALR, OCP and ALR are respectively 0.482597, 0.312341s and 0.198645s. Their sum is 0.993583, hence the CPU utilisation is very close to 100\% during the busy period, despite having total utilisation at 61.51\%.
+
+\section{Conclusions}
+
+Non funziona mai un cazzo.
+
+Facile sbagliare con le analisi ed avere bias.
 
 \bibliographystyle{unsrt}
 %\bibliography{references}  %%% Remove comment to use the external .bib file (using bibtex).
@@ -909,15 +1126,25 @@ M. Gonzalez Harbour, J.J. GutiCrrez Garcia, J.C. Palencia GutiCrrez, and J.M. Dr
 \newblock "MAST Modeling and Analysis Suite for Real Time Applications".
 \newblock In {\em Proceedings 13th Euromicro Conference on Real-Time Systems}. 2001.
 
+\bibitem{ada-pcp}
+Albert M. K. Cheng, James Ras.
+\newblock "The Implementation of the Priority Ceiling Protocol in Ada-2005".
+\newblock In {\em ACM SIGAda Ada Letters}. Volume XXVII Issue 1, pp 24-39. 2007.
+
 \bibitem{mast-description}
 J. M. Drake, M. G. Harbour, J. J. Gutiérrez, P. L. Martínez, J. L. Medina, J. C. Palencia
 \newblock "Description of the MAST Model".
 \newblock \url{https://mast.unican.es/mast_description.pdf}
 
-\bibitem{mast-readme}
+\bibitem{mast-analysis}
 J. M. Drake, M. G. Harbour, J. J. Gutiérrez, P. L. Martínez, J. L. Medina, J. C. Palencia
-\newblock "MAST README".
-\newblock \url{https://mast.unican.es/README.txt}
+\newblock "MAST Analysis Techniques".
+\newblock \url{https://mast.unican.es/mast_analysis_techniques.pdf}
+
+\bibitem{mast-restrictions}
+J. M. Drake, M. G. Harbour, J. J. Gutiérrez, P. L. Martínez, J. L. Medina, J. C. Palencia
+\newblock "MAST Restrictions".
+\newblock \url{https://mast.unican.es/mast_restrictions.pdf}
 
 \bibitem{overrundetection}
 Juan Zamorano, Alejandro Alonso, José Antonio Pulido, Juan Antonio de la Puente.
@@ -933,6 +1160,11 @@ Juan Zamorano, Jose F. Ruiz, Juan Antonio de la Puente.
 Jane W. S. W. Liu.
 \newblock "Rate-Monotonic and Deadline-Monotonic Algorithms".
 \newblock In {\em Real-Time Systems}. pp 118-119. 2001.
+
+\bibitem{critical-instants}
+Jane W. S. W. Liu.
+\newblock "Critical Instants".
+\newblock In {\em Real-Time Systems}. pp 131-134. 2001.
 
 \bibitem{optimality-rm-dm}
 Jane W. S. W. Liu.
@@ -988,6 +1220,10 @@ KenTindell, JohnClark.
 C. L. Liu, James W. Layland.
 \newblock "Scheduling Algorithms for Multiprogramming in a Hard-Real-Time Environment".
 \newblock In {\em Journal of the ACM}. Volume 20 Issue 1, pp 46-61. Jan. 1973.
+
+\bibitem{practitioner}
+Klein, M., Ralya, Th., Pollak, B., Obenza, R., Harbour, M.G. .
+\newblock "A Practitioner's Handbook for Real-Time Analysis". 1993.
 
 \bibitem{practitioner-utilisation-bound}
 Klein, M., Ralya, Th., Pollak, B., Obenza, R., Harbour, M.G. .
