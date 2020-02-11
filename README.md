@@ -3,7 +3,7 @@
 ## Building like a true man
 
 ```bash
-$ gprbuild --target=arm-eabi -f -d -P gee.gpr src/gee.adb -largs -Wl,-Map=map.txt
+$ gprbuild --target=arm-eabi -f -d -P gee.gpr -largs -Wl,-Map=map.txt
 
 # Only to run the application without debugging
 $ arm-eabi-objcopy -O binary obj/gee obj/gee.bin
