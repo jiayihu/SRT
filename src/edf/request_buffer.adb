@@ -1,4 +1,5 @@
 with Request_Buffer_Parameters;
+with System.Tasking.Protected_Objects;
 
 package body Request_Buffer is
    type Request_Buffer_Index is
@@ -72,4 +73,8 @@ package body Request_Buffer is
          end if;
       end Deposit;
    end Request_Buffer;
+
+begin
+   System.Tasking.Protected_Objects.Initialize_Protection_Deadline
+     (System.Tasking.Protected_Objects.Current_Object, 90000000); -- 0.5 * 180Mhz
 end Request_Buffer;

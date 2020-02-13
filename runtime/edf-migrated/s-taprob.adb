@@ -39,6 +39,7 @@ use System.BB.Time;
 --  Used for Set_Priority
 --           Get_Priority
 --           Self
+--  with System.IO;
 
 package body System.Tasking.Protected_Objects is
 
@@ -54,6 +55,9 @@ package body System.Tasking.Protected_Objects is
    is
       Init_Relative_Deadline : Relative_Deadline := Floor_Deadline;
    begin
+      --  System.IO.Put_Line ("Init_Relative_Deadline"
+      --     & Relative_Deadline'Image (Init_Relative_Deadline));
+
       if Init_Relative_Deadline =
         System.BB.Deadlines.Unspecified_Relative_Deadline
       then
@@ -77,7 +81,7 @@ package body System.Tasking.Protected_Objects is
       Init_Priority : Integer := Ceiling_Priority;
 
    begin
-
+      --  System.IO.Put_Line ("Init_Priority" & Integer'Image (Init_Priority));
       Current_Object := Object;
 
       Init_Priority := System.Priority'Last;
@@ -122,6 +126,12 @@ package body System.Tasking.Protected_Objects is
       --  the same priority because a running task will never be preempted by
       --  another task at the same priority (no potentially blocking operation,
       --  no time slicing).
+
+      --  System.IO.Put_Line ("======= LOCK =======");
+      --  System.IO.Put_Line ("Caller_Relative_Deadline"
+      --     & Relative_Deadline'Image (Caller_Relative_Deadline));
+      --  System.IO.Put_Line ("Object.Floor"
+      --     & Relative_Deadline'Image (Object.Floor));
 
       if Caller_Relative_Deadline < Object.Floor then
          raise Program_Error;

@@ -4,6 +4,8 @@ with Ada.Text_IO;
 with Ada.Exceptions; use Ada.Exceptions;
 with Deadline_Miss;
 with Task_Overhead;
+with System.BB.Time;
+with System.BB.Threads;
 
 package body Regular_Producer is
    Period : constant Ada.Real_Time.Time_Span :=
@@ -13,8 +15,14 @@ package body Regular_Producer is
       --  for periodic suspension
       Next_Time : Ada.Real_Time.Time;
    begin
+      -- Ada.Text_IO.Put_Line ("Initial Clock" & System.BB.Time.Time'Image (System.BB.Time.Clock));
+      --  Setting artificial deadline
+      System.BB.Threads.Set_Relative_Deadline
+         (System.BB.Time.Milliseconds (Regular_Producer_Parameters.Regular_Producer_Deadline));
+
       --  for tasks to achieve simultaneous activation
       Activation_Manager.Activation_Cyclic (Next_Time);
+
       loop
          --  Task_Overhead.Start_Tracking;
          Deadline_Miss.Set_Deadline_Handler (Deadline_Miss.RP, Next_Time +

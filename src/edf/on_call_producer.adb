@@ -5,6 +5,8 @@ with Ada.Exceptions; use Ada.Exceptions;
 with Ada.Real_Time;
 with Deadline_Miss;
 with Task_Overhead;
+with System.BB.Time;
+with System.BB.Threads;
 
 package body On_Call_Producer is
    use Ada.Real_Time;
@@ -17,8 +19,13 @@ package body On_Call_Producer is
    task body On_Call_Producer is
       Current_Workload : Positive;
    begin
+      --  Setting artificial deadline
+      System.BB.Threads.Set_Relative_Deadline
+         (System.BB.Time.Milliseconds (On_Call_Producer_Parameters.On_Call_Producer_Deadline));
+
       --  for tasks to achieve simultaneous activation
       Activation_Manager.Activation_Sporadic;
+
       loop
          --  Task_Overhead.Start_Tracking;
          --  suspending request for activation event with data exchange

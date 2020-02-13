@@ -5,6 +5,8 @@ with Ada.Exceptions; use Ada.Exceptions;
 with Ada.Real_Time;
 with Deadline_Miss;
 with Task_Overhead;
+with System.BB.Time;
+with System.BB.Threads;
 
 package body Activation_Log_Reader is
    use Ada.Real_Time;
@@ -23,6 +25,10 @@ package body Activation_Log_Reader is
 
    task body Activation_Log_Reader is
    begin
+      --  Setting artificial deadline
+      System.BB.Threads.Set_Relative_Deadline
+         (System.BB.Time.Milliseconds (Activation_Log_Reader_Parameters.Activation_Log_Reader_Deadline));
+
       --  for tasks to achieve simultaneous activation
       Activation_Manager.Activation_Sporadic;
       loop

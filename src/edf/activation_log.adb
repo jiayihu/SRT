@@ -1,3 +1,5 @@
+with System.Tasking.Protected_Objects;
+
 package body Activation_Log is
    protected body Activation_Log is
       procedure Write is
@@ -12,4 +14,7 @@ package body Activation_Log is
          Last_Active_Time := Activation_Time;
       end Read;
    end Activation_Log;
+begin
+   System.Tasking.Protected_Objects.Initialize_Protection_Deadline
+     (System.Tasking.Protected_Objects.Current_Object, 18000000); -- 0.1 * 180Mhz
 end Activation_Log;

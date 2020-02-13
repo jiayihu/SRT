@@ -15,7 +15,7 @@ project Gee is
    for Object_Dir use "obj";
 
    package Compiler is
-      for Default_Switches ("Ada") use ("-O0", "-gnatQ", "-gnatw.X", "-gnateE");
+      for Default_Switches ("Ada") use ("-O0", "-gnatQ", "-gnatw.X", "-gnatwI", "-gnateE");
    end Compiler;
 
    package Builder is

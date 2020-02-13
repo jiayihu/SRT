@@ -72,6 +72,7 @@ with System.BB.Time; use System.BB.Time;
 with System.BB.Threads.Queues; use System.BB.Threads.Queues;
 with System.BB.Debug; use System.BB.Debug;
 with System.IO;
+--  with System.BB.Deadlines;
 
 package body System.Tasking.Protected_Objects.Single_Entry is
 
@@ -155,6 +156,15 @@ package body System.Tasking.Protected_Objects.Single_Entry is
          raise Program_Error;
       end if;
       Now := System.BB.Time.Clock;
+
+      --  System.IO.Put_Line ("======= Entry Call =======");
+      --  System.IO.Put_Line ("Active relative deadline" &
+      --        System.BB.Deadlines.Relative_Deadline'Image (
+      --           Running_Thread.Active_Relative_Deadline));
+      --  System.IO.Put_Line ("Active absolute deadline" &
+      --        System.BB.Deadlines.Absolute_Deadline'Image (
+      --           Running_Thread.Active_Absolute_Deadline));
+      --  System.IO.Put_Line ("Now" & System.BB.Time.Time'Image (Now));
 
       if Print_Miss then
          if Now > Running_Thread.Active_Absolute_Deadline then

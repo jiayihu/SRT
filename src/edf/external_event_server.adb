@@ -2,10 +2,17 @@ with Event_Queue;
 with Activation_Manager;
 with Ada.Text_IO;
 with Ada.Exceptions; use Ada.Exceptions;
+with System.BB.Time;
+with System.BB.Threads;
+
 package body External_Event_Server is
    procedure Wait renames Event_Queue.Handler.Wait;
    task body External_Event_Server is
    begin
+      --  Setting artificial deadline
+      System.BB.Threads.Set_Relative_Deadline
+         (System.BB.Time.Milliseconds (External_Event_Server_Parameters.External_Event_Server_Deadline));
+
       --  for tasks to achieve simultaneous activation
       Activation_Manager.Activation_Sporadic;
       loop
