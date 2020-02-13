@@ -6,22 +6,44 @@ Processing_Resource (
    Worst_ISR_Switch       => 2.578E-06,
    Avg_ISR_Switch         => 2.578E-06,
    Best_ISR_Switch        => 2.578E-06,
-   --System_Timer           =>
-   --   ( Type           => Ticker,
-   --     Worst_Overhead => 3.844E-06,
-   --     Period         => 0.001000),
+   System_Timer           =>
+      ( Type           => Ticker,
+        Worst_Overhead => 3.844E-06,
+        Period         => 0.001000),
    Speed_Factor           => 1.00);
+
+--Schedulers
 
 Scheduler (
    Type            => Primary_Scheduler,
-   Name            => EDF_Scheduler,
+   Name            => FPS_Scheduler,
    Host            => CPU,
+   Policy          =>
+      ( Type                 => Fixed_Priority,
+        Worst_Context_Switch => 3.090E-06,
+        Max_Priority         => 240,
+        Min_Priority         => 1
+    ));
+
+Scheduler (
+   Type            => Secondary_Scheduler,
+   Name            => EDF_Scheduler,
+   Server          => EDF_Server,
    Policy          =>
       ( Type                 => EDF,
         Worst_Context_Switch => 3.090E-06
-        --Max_Priority         => 240,
-        --Min_Priority         => 1
     ));
+
+--Scheduling Servers
+
+Scheduling_Server (
+        Type                    => Regular,
+        Name                    => EDF_Server,
+        Server_Sched_Parameters => (
+                Type         => Fixed_Priority_Policy,
+                The_Priority => 1,
+                Preassigned  => YES),
+        Scheduler               => FPS_Scheduler);
 
 Scheduling_Server (
    Type                       => Regular,
@@ -81,29 +103,19 @@ Scheduling_Server (
    Server_Sched_Parameters    =>
       ( Type             => Interrupt_FP_Policy,
         The_Priority     => 241),
-   Synchronization_Parameters => (
-                Type             => SRP_Parameters,
-                Preemption_Level => 50,
-                Preassigned      => No),
-   Scheduler                  => EDF_Scheduler);
+   Scheduler                  => FPS_Scheduler);
 
 Shared_Resource (
-   Type        => SRP_Resource,
-   Name        => request_buffer,
-   Preemption_Level     => 30,
-   Preassigned => YES);
+   Type              => SRP_Resource,
+   Name              => request_buffer,
+   Preemption_Level  => 30,
+   Preassigned       => NO);
 
 Shared_Resource (
    Type        => SRP_Resource,
    Name        => activation_log,
    Preemption_Level     => 40,
-   Preassigned => YES);
-
-Shared_Resource (
-   Type        => SRP_Resource,
-   Name        => event_queue,
-   Preemption_Level     => 50,
-   Preassigned => YES);
+   Preassigned => NO);
 
 -- 1: 0.019291; 25: 0.482555; 25.77: 0.497414
 Operation (
@@ -252,22 +264,14 @@ Operation (
    Name                       => eq_signal,
    Worst_Case_Execution_Time  => 1.000E-06,
    Avg_Case_Execution_Time  => 1.000E-06,
-   Best_Case_Execution_Time  => 1.000E-06,
-   Shared_Resources_To_Lock   =>
-      ( event_queue),
-   Shared_Resources_To_Unlock =>
-      ( event_queue));
+   Best_Case_Execution_Time  => 1.000E-06);
 
 Operation (
    Type                       => Simple,
    Name                       => eq_wait,
    Worst_Case_Execution_Time  => 1.000E-06,
    Avg_Case_Execution_Time  => 1.000E-06,
-   Best_Case_Execution_Time  => 1.000E-06,
-   Shared_Resources_To_Lock   =>
-      ( event_queue),
-   Shared_Resources_To_Unlock =>
-      ( event_queue));
+   Best_Case_Execution_Time  => 1.000E-06);
 
 Operation (
    Type                       => Simple,
@@ -443,7 +447,7 @@ Transaction (
    Name            => ees_transaction,
    External_Events =>
       ( ( Type             => Sporadic,
-          Name             => virtual,
+          Name             => button_click2,
           Avg_Interarrival => 0.000,
           Distribution     => UNIFORM,
           Min_Interarrival => 5.000)),
@@ -453,10 +457,10 @@ Transaction (
           Timing_Requirements =>
             ( Type             => Hard_Global_Deadline,
               Deadline         => 0.100000,
-              Referenced_Event => virtual))),
+              Referenced_Event => button_click2))),
    Event_Handlers  =>
       ( (Type               => Activity,
-         Input_Event        => virtual,
+         Input_Event        => button_click2,
          Output_Event       => eqo2,
          Activity_Operation => external_event_server,
          Activity_Server    => external_event_server)));      
