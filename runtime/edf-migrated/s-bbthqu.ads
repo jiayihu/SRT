@@ -193,7 +193,8 @@ package System.BB.Threads.Queues is
 
    procedure Change_Relative_Deadline
      (Thread       : Thread_Id;
-      Rel_Deadline : System.BB.Deadlines.Relative_Deadline);
+      Rel_Deadline : System.BB.Deadlines.Relative_Deadline;
+      Is_Floor     : Boolean := False);
    pragma Inline (Change_Relative_Deadline);
    --  Move the thread to a new relative deadline within the ready queue
    --  In addiction updates absolute deadline value of the thread and then

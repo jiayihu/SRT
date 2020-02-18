@@ -110,6 +110,8 @@ package body System.Tasking.Protected_Objects is
       --  Store caller absolute deadline value
       Caller_Absolute_Deadline : constant Absolute_Deadline :=
                             Get_Absolute_Deadline (Self_Id);
+
+      --  Now : System.BB.Time.Time;
    begin
       --  For this run time, pragma Detect_Blocking is always active. As
       --  described in ARM 9.5.1, par. 15, an external call on a protected
@@ -137,9 +139,16 @@ package body System.Tasking.Protected_Objects is
          raise Program_Error;
       end if;
 
+      --  Now := System.BB.Time.Clock;
+      --  System.IO.Put_Line ("Now" & System.BB.Time.Time'Image (Now));
+      --  System.IO.Put_Line ("Absolute_Deadline"
+      --     & Absolute_Deadline'Image (Get_Absolute_Deadline (Self_Id)));
+
       --  Set_Priority (Self_Id, Object.Ceiling);
-      Set_Relative_Deadline (Self_Id, Object.Floor);
+      Set_Relative_Deadline (Self_Id, Object.Floor, True);
       --  Locking for multiprocessor systems
+      --  System.IO.Put_Line ("Absolute_Deadline"
+      --     & Absolute_Deadline'Image (Get_Absolute_Deadline (Self_Id)));
 
       --  This lock ensure mutual exclusion of tasks from different processors,
       --  not for tasks on the same processors. But, because of the ceiling

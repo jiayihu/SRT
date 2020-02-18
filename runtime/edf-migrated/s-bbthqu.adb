@@ -317,11 +317,12 @@ package body System.BB.Threads.Queues is
 
    procedure Change_Relative_Deadline
      (Thread       : Thread_Id;
-      Rel_Deadline : Relative_Deadline)
+      Rel_Deadline : Relative_Deadline;
+      Is_Floor     : Boolean := False)
    is
-      Aux_Pointer : Thread_Id;
-      CPU_Id      : constant CPU := Get_CPU (Thread);
-      Now         : constant System.BB.Time.Time := System.BB.Time.Clock;
+      Aux_Pointer  : Thread_Id;
+      CPU_Id       : constant CPU := Get_CPU (Thread);
+      Now          : constant System.BB.Time.Time := System.BB.Time.Clock;
    begin
       --  A CPU can only change the relative deadline of its own tasks
 
@@ -336,19 +337,25 @@ package body System.BB.Threads.Queues is
       --  not change
       Thread.Active_Relative_Deadline := Rel_Deadline;
 
---  if Thread.Active_Relative_Deadline <= Thread.Active_Period then
---     Change_Absolute_Deadline (Thread, System.BB.Time.Time_First +
---                               Thread.Active_Starting_Time -
---                 (Thread.Active_Period - Thread.Active_Relative_Deadline)
---                              + Global_Interrupt_Delay);
---  else
---     Change_Absolute_Deadline (Thread, System.BB.Time.Time_First +
---                               Thread.Active_Starting_Time +
---                 (Thread.Active_Relative_Deadline - Thread.Active_Period)
---                                + Global_Interrupt_Delay);
---  end if;
+      if Is_Floor then
+         Change_Absolute_Deadline (Thread, Absolute_Deadline'Min (
+            Now + Thread.Active_Relative_Deadline,
+            Thread.Active_Absolute_Deadline));
+      else
+         if Thread.Active_Relative_Deadline <= Thread.Active_Period then
+            Change_Absolute_Deadline (Thread, System.BB.Time.Time_First +
+               Thread.Active_Starting_Time -
+               (Thread.Active_Period - Thread.Active_Relative_Deadline)
+                  + Global_Interrupt_Delay);
+         else
+            Change_Absolute_Deadline (Thread, System.BB.Time.Time_First +
+               Thread.Active_Starting_Time +
+               (Thread.Active_Relative_Deadline - Thread.Active_Period)
+                  + Global_Interrupt_Delay);
+         end if;
+      end if;
 
-      Thread.Active_Absolute_Deadline := (Rel_Deadline + Now);
+      --  Thread.Active_Absolute_Deadline := (Rel_Deadline + Now);
 
       --  When lowering the relative deadline, we have to lower absolute
       --  deadline too because our considerations about enqueuing will be
@@ -841,7 +848,8 @@ package body System.BB.Threads.Queues is
          Wakeup_Thread.Preemption_Needed := True;
 
          Change_Absolute_Deadline (Wakeup_Thread,
-            (Wakeup_Thread.Active_Relative_Deadline + Now));
+            (Wakeup_Thread.Active_Period +
+               Wakeup_Thread.Active_Absolute_Deadline));
 
          Insert (Wakeup_Thread);
 

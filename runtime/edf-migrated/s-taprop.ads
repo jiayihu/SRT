@@ -87,7 +87,8 @@ package System.Task_Primitives.Operations is
 
    procedure Set_Relative_Deadline
      (T    : ST.Task_Id;
-      Relative_Deadline : System.BB.Deadlines.Relative_Deadline);
+      Relative_Deadline : System.BB.Deadlines.Relative_Deadline;
+      Is_Floor : Boolean := False);
    pragma Inline (Set_Relative_Deadline);
 
    procedure Restore_Relative_Deadline

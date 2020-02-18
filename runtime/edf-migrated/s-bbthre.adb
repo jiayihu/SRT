@@ -397,7 +397,10 @@ package body System.BB.Threads is
    -- Set_Relative_Deadline --
    ---------------------------
 
-   procedure Set_Relative_Deadline (Rel_Deadline : Relative_Deadline) is
+   procedure Set_Relative_Deadline
+      (Rel_Deadline : Relative_Deadline;
+       Is_Floor     : Boolean := False)
+   is
    begin
       Protection.Enter_Kernel;
 
@@ -415,7 +418,7 @@ package body System.BB.Threads is
               Queues.Running_Thread.Base_Relative_Deadline);
 
       Queues.Change_Relative_Deadline
-              (Queues.Running_Thread, Rel_Deadline);
+              (Queues.Running_Thread, Rel_Deadline, Is_Floor);
 
       Protection.Leave_Kernel;
    end Set_Relative_Deadline;

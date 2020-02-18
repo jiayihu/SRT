@@ -185,7 +185,8 @@ package System.OS_Interface is
    --  Get the current base priority of a thread
 
    procedure Set_Relative_Deadline
-            (Rel_Deadline  : System.BB.Deadlines.Relative_Deadline)
+            (Rel_Deadline  : System.BB.Deadlines.Relative_Deadline;
+             Is_Floor : Boolean := False)
      renames System.BB.Threads.Set_Relative_Deadline;
    --  Set the active relative deadline of the executing thread to the
    --  given value

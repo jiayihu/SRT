@@ -299,7 +299,8 @@ package System.BB.Threads is
    --  Set a fake integer number ID
 
    procedure Set_Relative_Deadline
-          (Rel_Deadline : System.BB.Deadlines.Relative_Deadline);
+          (Rel_Deadline : System.BB.Deadlines.Relative_Deadline;
+           Is_Floor : Boolean := False);
    pragma Inline (Set_Relative_Deadline);
    --  Set the active relative deadline of the executing thread to the
    --  given value

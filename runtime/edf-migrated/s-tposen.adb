@@ -157,7 +157,7 @@ package body System.Tasking.Protected_Objects.Single_Entry is
       end if;
       Now := System.BB.Time.Clock;
 
-      --  System.IO.Put_Line ("======= Entry Call =======");
+      --  System.IO.Put_Line ("============ Entry Call ============");
       --  System.IO.Put_Line ("Active relative deadline" &
       --        System.BB.Deadlines.Relative_Deadline'Image (
       --           Running_Thread.Active_Relative_Deadline));

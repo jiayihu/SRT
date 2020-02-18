@@ -377,7 +377,7 @@ package body System.BB.Time is
       else
          --  If alarm time is not in the future, the thread must yield the CPU
          Threads.Queues.Change_Absolute_Deadline
-           (Self, Self.Active_Absolute_Deadline + T);
+           (Self, Self.Active_Absolute_Deadline + Self.Active_Period);
          System.BB.Threads.Queues.Set_Check (Self.Fake_Number_ID, False);
          Yield (Self);
       end if;

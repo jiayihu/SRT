@@ -181,13 +181,14 @@ package body System.Task_Primitives.Operations is
    ---------------------------
 
    procedure Set_Relative_Deadline (T : ST.Task_Id;
-        Relative_Deadline : System.BB.Deadlines.Relative_Deadline) is
+        Relative_Deadline : System.BB.Deadlines.Relative_Deadline;
+        Is_Floor : Boolean := False) is
    begin
       --  A task can only change its own relative deadline
       pragma Assert (T = Self);
 
       --  Change the relative deadline in the underlying executive
-      System.OS_Interface.Set_Relative_Deadline (Relative_Deadline);
+      System.OS_Interface.Set_Relative_Deadline (Relative_Deadline, Is_Floor);
    end Set_Relative_Deadline;
 
    ---------------------------

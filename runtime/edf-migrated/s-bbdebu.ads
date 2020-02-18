@@ -43,7 +43,7 @@ package System.BB.Debug is
    Queues  : constant Boolean := False;
    Delays  : constant Boolean := False;
    Clocks  : constant Boolean := False;
-   Bench   : constant Boolean := True;
+   Bench   : constant Boolean := False;
 
    Debug_Inte  : Boolean := General;
    Debug_Hand  : Boolean := General;
