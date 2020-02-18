@@ -6,7 +6,8 @@ with Ada.Real_Time;
 with Deadline_Miss;
 with Task_Overhead;
 with System.BB.Time;
-with System.BB.Threads;
+with System.BB.Threads; use System.BB.Threads;
+with On_Call_Producer_Parameters; use On_Call_Producer_Parameters;
 
 package body On_Call_Producer is
    use Ada.Real_Time;
@@ -18,23 +19,22 @@ package body On_Call_Producer is
    end Start;
    task body On_Call_Producer is
       Current_Workload : Positive;
+      --  for tasks to achieve simultaneous activation
+      Next_Time : Ada.Real_Time.Time := Activation_Manager.Get_Activation_Time;
    begin
       --  Setting artificial deadline
-      System.BB.Threads.Set_Relative_Deadline
-         (System.BB.Time.Milliseconds (On_Call_Producer_Parameters.On_Call_Producer_Deadline));
+      Set_Starting_Time (Activation_Manager.Time_Conversion (Next_Time));
+      Set_Relative_Deadline (System.BB.Time.Milliseconds (On_Call_Producer_Deadline));
 
-      --  for tasks to achieve simultaneous activation
-      Activation_Manager.Activation_Sporadic;
-
+      delay until Next_Time;
       loop
          --  Task_Overhead.Start_Tracking;
          --  suspending request for activation event with data exchange
          Current_Workload := Request_Buffer.Extract;
          Deadline_Miss.Set_Deadline_Handler (Deadline_Miss.OCP, Ada.Real_Time.Clock +
-            Ada.Real_Time.Milliseconds (On_Call_Producer_Parameters.On_Call_Producer_Deadline));
+            Ada.Real_Time.Milliseconds (On_Call_Producer_Deadline));
          --  non-suspending operation code
-         On_Call_Producer_Parameters.On_Call_Producer_Operation
-           (Current_Workload);
+         On_Call_Producer_Operation (Current_Workload);
          Deadline_Miss.Cancel_Deadline_Handler (Deadline_Miss.OCP);
          --  Task_Overhead.End_Tracking;
       end loop;

@@ -6,7 +6,9 @@ with Ada.Real_Time;
 with Deadline_Miss;
 with Task_Overhead;
 with System.BB.Time;
-with System.BB.Threads;
+with System.BB.Threads; use System.BB.Threads;
+with Activation_Log_Reader_Parameters; use Activation_Log_Reader_Parameters;
+with System.Tasking.Protected_Objects;
 
 package body Activation_Log_Reader is
    use Ada.Real_Time;
@@ -24,21 +26,23 @@ package body Activation_Log_Reader is
    end Wait;
 
    task body Activation_Log_Reader is
+      --  for tasks to achieve simultaneous activation
+      Next_Time : Ada.Real_Time.Time := Activation_Manager.Get_Activation_Time;
    begin
       --  Setting artificial deadline
-      System.BB.Threads.Set_Relative_Deadline
-         (System.BB.Time.Milliseconds (Activation_Log_Reader_Parameters.Activation_Log_Reader_Deadline));
+      Set_Starting_Time (Activation_Manager.Time_Conversion (Next_Time));
+      Set_Relative_Deadline (System.BB.Time.Milliseconds (Activation_Log_Reader_Deadline));
 
-      --  for tasks to achieve simultaneous activation
-      Activation_Manager.Activation_Sporadic;
+
+      delay until Next_Time;
       loop
          --  suspending parameterless request of activation event
          Wait;
          Deadline_Miss.Set_Deadline_Handler (Deadline_Miss.ALR, Ada.Real_Time.Clock +
-            Ada.Real_Time.Milliseconds (Activation_Log_Reader_Parameters.Activation_Log_Reader_Deadline));
+            Ada.Real_Time.Milliseconds (Activation_Log_Reader_Deadline));
          --  Task_Overhead.Start_Tracking;
          --  non-suspending operation code
-         Activation_Log_Reader_Parameters.Activation_Log_Reader_Operation;
+         Activation_Log_Reader_Operation;
          --  Task_Overhead.End_Tracking;
          Deadline_Miss.Cancel_Deadline_handler (Deadline_Miss.ALR);
       end loop;
@@ -49,4 +53,7 @@ package body Activation_Log_Reader is
            ("ALR: Something has gone wrong here: " & Exception_Information (Error));
    end Activation_Log_Reader;
 
+begin
+   System.Tasking.Protected_Objects.Initialize_Protection_Deadline
+      (System.Tasking.Protected_Objects.Current_Object, 90000000); -- 0.5 * 180Mhz
 end Activation_Log_Reader;

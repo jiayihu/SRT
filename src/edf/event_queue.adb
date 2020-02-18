@@ -1,6 +1,7 @@
 with ST;              use ST;
 with ST.STM32F4;      use ST.STM32F4;
 with ST.STM32F4.EXTI; use ST.STM32F4.EXTI;
+with System.Tasking.Protected_Objects;
 
 package body Event_Queue is
    Button_Line : constant Interrupt_Line := 0;
@@ -28,4 +29,7 @@ begin
 
    EXTI.Interrupt_Mask_Register.Line (Button_Line) := Not_Masked;
    EXTI.Rising_Trigger_Selection_Register.Line (Button_Line) := Enabled;
+
+   System.Tasking.Protected_Objects.Initialize_Protection_Deadline
+     (System.Tasking.Protected_Objects.Current_Object, 18000000); -- 0.1 * 180Mhz
 end Event_Queue;

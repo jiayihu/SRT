@@ -1,4 +1,6 @@
 with Ada.Real_Time;
+with System.BB.Time;
+
 package Activation_Manager is
    use Ada.Real_Time;
    function Clock return Ada.Real_Time.Time renames Ada.Real_Time.Clock;
@@ -14,7 +16,7 @@ package Activation_Manager is
    --  absolute time for synchronization of task activation after elaboration
    Activation_Time : Ada.Real_Time.Time :=
      System_Start_Time + Task_Start_Time;
-   procedure Activation_Sporadic;
-   procedure Activation_Cyclic
-     (Next_Time : out Ada.Real_Time.Time);
+   function Get_Activation_Time return Ada.Real_Time.Time;
+
+   function Time_Conversion (Time_in  : Ada.Real_Time.Time) return System.BB.Time.Time_Span;
 end Activation_Manager;
