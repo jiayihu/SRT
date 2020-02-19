@@ -8,7 +8,7 @@
 
 with System; use System;
 
-package ST.STM32F4.EXTI is
+package ST.EXTI is
 
    ---------------------------
    -- EXTI Memory Addresses --
@@ -105,4 +105,4 @@ package ST.STM32F4.EXTI is
      with Volatile, Address =>
        System'To_Address (EXTI_Base_Address + PR_Offset_Address);
 
-end ST.STM32F4.EXTI;
+end ST.EXTI;

@@ -3,8 +3,7 @@ with Activation_Manager;
 with Ada.Text_IO;
 with Ada.Exceptions; use Ada.Exceptions;
 with ST;              use ST;
-with ST.STM32F4;      use ST.STM32F4;
-with ST.STM32F4.EXTI; use ST.STM32F4.EXTI;
+with ST.EXTI; use ST.EXTI;
 with System.BB.Time;
 with System.BB.Threads; use System.BB.Threads;
 

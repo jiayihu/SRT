@@ -1,6 +1,5 @@
 with ST;              use ST;
-with ST.STM32F4;      use ST.STM32F4;
-with ST.STM32F4.EXTI; use ST.STM32F4.EXTI;
+with ST.EXTI; use ST.EXTI;
 with System.Tasking.Protected_Objects;
 
 package body Event_Queue is
