@@ -4,7 +4,7 @@ with Ada.Text_IO;
 with Ada.Exceptions; use Ada.Exceptions;
 with Ada.Real_Time;
 with Deadline_Miss;
-with Task_Overhead;
+with Task_Metrics;
 with System.BB.Time;
 with System.BB.Threads; use System.BB.Threads;
 with Activation_Log_Reader_Parameters; use Activation_Log_Reader_Parameters;
@@ -40,10 +40,10 @@ package body Activation_Log_Reader is
          Wait;
          Deadline_Miss.Set_Deadline_Handler (Deadline_Miss.ALR, Ada.Real_Time.Clock +
             Ada.Real_Time.Milliseconds (Activation_Log_Reader_Deadline));
-         --  Task_Overhead.Start_Tracking;
+         --  Task_Metrics.Start_Tracking;
          --  non-suspending operation code
          Activation_Log_Reader_Operation;
-         --  Task_Overhead.End_Tracking;
+         --  Task_Metrics.End_Tracking;
          Deadline_Miss.Cancel_Deadline_handler (Deadline_Miss.ALR);
       end loop;
    exception

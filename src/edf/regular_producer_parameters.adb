@@ -3,7 +3,7 @@ with Production_Workload;
 with Activation_Log_Reader;
 with Auxiliary;
 with Ada.Text_IO;
-with Task_Overhead;
+with Task_Metrics;
 
 package body Regular_Producer_Parameters is
    --  approximately 5,001,000 processor cycles of Whetstone load
@@ -16,10 +16,10 @@ package body Regular_Producer_Parameters is
    Activation_Condition : constant Auxiliary.Range_Counter := 2;
    procedure Regular_Producer_Operation is
    begin
-      --  Task_Overhead.Start_Tracking;
+      --  Task_Metrics.Start_Tracking;
       --  we execute the guaranteed level of workload
       Production_Workload.Small_Whetstone (Regular_Producer_Workload);
-      --  Task_Overhead.End_Tracking;
+      --  Task_Metrics.End_Tracking;
       --  then we check whether we need to farm excess load out to
       --  On_Call_Producer
       if Auxiliary.Due_Activation (Activation_Condition) then
