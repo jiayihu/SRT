@@ -5,6 +5,7 @@ with External_Event_Server;
 with On_Call_Producer;
 with Regular_Producer;
 with Request_Buffer;
+with Force_Interrupt;
 with Ada.Real_Time;
 
 procedure Gee is

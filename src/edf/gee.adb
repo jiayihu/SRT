@@ -4,6 +4,7 @@ with Event_Queue;
 with External_Event_Server;
 with On_Call_Producer;
 with Regular_Producer;
+with Force_Interrupt;
 with System.Task_Primitives.Operations;
 with System.BB.Time;
 

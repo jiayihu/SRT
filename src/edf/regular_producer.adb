@@ -15,7 +15,6 @@ package body Regular_Producer is
       --  for periodic suspension
       Next_Time : Ada.Real_Time.Time := Activation_Manager.Get_Activation_Time;
    begin
-      -- Ada.Text_IO.Put_Line ("Initial Clock" & System.BB.Time.Time'Image (System.BB.Time.Clock));
       --  Setting artificial deadline
       Set_Period (System.BB.Time.Milliseconds (Regular_Producer_Period));
       Set_Starting_Time (Activation_Manager.Time_Conversion (Next_Time));
