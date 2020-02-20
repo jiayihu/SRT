@@ -4,3 +4,616 @@
    - Attenzione: la task rilasciata a tempo $s$ con deadline relativa $d$ e che accede alla risorsa protetta con deadline floor $D$ a tempo $t$ ($s \lt t$), dovrebbe vedersi la deadline relativa cambiata in $D$ e la deadline assoluta calcolata come $min\{t + D, s + d\}$
 2. Perché il controllo di deadline miss avviene solo all'interno di una entry? E non ad esempio anche quando una task viene messa in coda di sospensione a causa del `delay until`?
 3. I Suspension Objects sono senza deadline floor
+
+Processing_Resource (
+   Type                   => Regular_Processor,
+   Name                   => cpu,
+   Max_Interrupt_Priority => 255,
+   Min_Interrupt_Priority => 241,
+   Worst_ISR_Switch       => 2.578E-06,
+   Avg_ISR_Switch         => 2.578E-06,
+   Best_ISR_Switch        => 2.578E-06,
+   System_Timer           =>
+      ( Type           => Ticker,
+        Worst_Overhead => 3.844E-06,
+        Period         => 0.001000),
+   Speed_Factor           => 1.00);
+
+Scheduler (
+   Type            => Primary_Scheduler,
+   Name            => fps,
+   Host            => cpu,
+   Policy          =>
+      ( Type                 => Fixed_Priority,
+        Worst_Context_Switch => 3.090E-06,
+        Max_Priority         => 240,
+        Min_Priority         => 1));
+
+Scheduling_Server (
+   Type                       => Regular,
+   Name                       => regular_producer,
+   Server_Sched_Parameters    =>
+      ( Type         => Fixed_Priority_Policy,
+        The_Priority => 7,
+        Preassigned  => YES),
+   Scheduler                  => fps);
+
+Scheduling_Server (
+   Type                       => Regular,
+   Name                       => on_call_producer,
+   Server_Sched_Parameters    =>
+      ( Type         => Fixed_Priority_Policy,
+        The_Priority => 5,
+        Preassigned  => YES),
+   Scheduler                  => fps);
+
+Scheduling_Server (
+   Type                       => Regular,
+   Name                       => activation_log_reader,
+   Server_Sched_Parameters    =>
+      ( Type         => Fixed_Priority_Policy,
+        The_Priority => 3,
+        Preassigned  => YES),
+   Scheduler                  => fps);
+
+Scheduling_Server (
+   Type                       => Regular,
+   Name                       => external_event_server,
+   Server_Sched_Parameters    =>
+      ( Type         => Fixed_Priority_Policy,
+        The_Priority => 11,
+        Preassigned  => YES),
+   Scheduler                  => fps);
+
+Scheduling_Server (
+   Type                       => Regular,
+   Name                       => interrupt_server,
+   Server_Sched_Parameters    =>
+      ( Type         => Interrupt_FP_Policy,
+        The_Priority => 241),
+   Scheduler                  => fps);
+
+Shared_Resource (
+   Type        => Immediate_Ceiling_Resource,
+   Name        => request_buffer,
+   Ceiling     => 7,
+   Preassigned => YES);
+
+Shared_Resource (
+   Type        => Immediate_Ceiling_Resource,
+   Name        => activation_log,
+   Ceiling     => 11,
+   Preassigned => YES);
+
+Shared_Resource (
+   Type        => Immediate_Ceiling_Resource,
+   Name        => event_queue,
+   Ceiling     => 241,
+   Preassigned => YES);
+
+-- 1: 0.019291; 25: 0.482555; 25.77: 0.497414
+Operation (
+   Type                       => Simple,
+   Name                       => rp_small_whetstone,
+   Worst_Case_Execution_Time  => 0.482555,
+   Avg_Case_Execution_Time  => 0.482555,
+   Best_Case_Execution_Time  => 0.482555);
+
+-- 1: 0.007096; 25: 0.177452; 25.77: 0.182915; 44: 0.312311
+Operation (
+   Type                       => Simple,
+   Name                       => ocp_small_whetstone,
+   Worst_Case_Execution_Time  => 0.312311,
+   Avg_Case_Execution_Time  => 0.312311,
+   Best_Case_Execution_Time  => 0.312311);
+
+-- 1: 0.003549; 25: 0.088669; 25.77: 0.091399; 44: 0.156053, 56: 0.198612
+Operation (
+   Type                       => Simple,
+   Name                       => alr_small_whetstone,
+   Worst_Case_Execution_Time  => 0.198612,
+   Avg_Case_Execution_Time  => 0.198612,
+   Best_Case_Execution_Time  => 0.198612);
+
+Operation (
+   Type                       => Simple,
+   Name                       => due_activation,
+   Worst_Case_Execution_Time  => 1.000E-06,
+   Avg_Case_Execution_Time  => 1.000E-06,
+   Best_Case_Execution_Time  => 1.000E-06);
+
+Operation (
+   Type                       => Simple,
+   Name                       => check_due,
+   Worst_Case_Execution_Time  => 1.000E-06,
+   Avg_Case_Execution_Time  => 1.000E-06,
+   Best_Case_Execution_Time  => 1.000E-06);
+
+Operation (
+   Type                       => Simple,
+   Name                       => rb_deposit,
+   Worst_Case_Execution_Time  => 2.000E-06,
+   Avg_Case_Execution_Time  => 2.000E-06,
+   Best_Case_Execution_Time  => 2.000E-06,
+   Shared_Resources_To_Lock   =>
+      ( request_buffer),
+   Shared_Resources_To_Unlock =>
+      ( request_buffer));
+
+Operation (
+   Type                       => Simple,
+   Name                       => rb_extract,
+   Worst_Case_Execution_Time  => 2.000E-06,
+   Avg_Case_Execution_Time  => 2.000E-06,
+   Best_Case_Execution_Time  => 2.000E-06,
+   Shared_Resources_To_Lock   =>
+      ( request_buffer),
+   Shared_Resources_To_Unlock =>
+      ( request_buffer));
+
+Operation (
+   Type                     => Enclosing,
+   Name                     => rb_extract_enclosing,
+   Worst_Case_Execution_Time=> 7.000E-06,
+   Avg_Case_Execution_Time=> 7.000E-06,
+   Best_Case_Execution_Time=> 7.000E-06,
+   Composite_Operation_List =>
+      ( rb_extract));
+
+Operation (
+   Type                       => Simple,
+   Name                       => set_deadline_handler,
+   Worst_Case_Execution_Time  => 6.000E-06,
+   Avg_Case_Execution_Time  => 6.000E-06,
+   Best_Case_Execution_Time  => 6.000E-06);
+
+Operation (
+   Type                       => Simple,
+   Name                       => cancel_deadline_handler,
+   Worst_Case_Execution_Time  => 3.000E-06,
+   Avg_Case_Execution_Time  => 3.000E-06,
+   Best_Case_Execution_Time  => 3.000E-06);
+
+Operation (
+   Type                       => Simple,
+   Name                       => delay_until,
+   Worst_Case_Execution_Time  => 6.000E-06,
+   Avg_Case_Execution_Time  => 6.000E-06,
+   Best_Case_Execution_Time  => 6.000E-06);
+
+Operation (
+   Type                     => Enclosing,
+   Name                     => ocp_start,
+   Worst_Case_Execution_Time=> 6.000E-06,
+   Avg_Case_Execution_Time=> 6.000E-06,
+   Best_Case_Execution_Time=> 6.000E-06,
+   Composite_Operation_List =>
+      ( rb_deposit));
+
+Operation (
+   Type                     => Composite,
+   Name                     => rp_operation,
+   Composite_Operation_List =>
+      ( rp_small_whetstone,
+        due_activation,
+        ocp_start,
+        check_due,
+        alr_signal,
+        put_line));
+
+Operation (
+   Type                     => Composite,
+   Name                     => ocp_operation,
+   Composite_Operation_List =>
+      ( ocp_small_whetstone,
+        put_line));
+
+Operation (
+   Type                       => Simple,
+   Name                       => put_line,
+   Worst_Case_Execution_Time  => 1.400E-05,
+   Avg_Case_Execution_Time  => 1.400E-05,
+   Best_Case_Execution_Time  => 1.400E-05);
+
+Operation (
+   Type                     => Composite,
+   Name                     => regular_producer,
+   Composite_Operation_List =>
+      ( set_deadline_handler,
+        rp_operation,
+        cancel_deadline_handler,
+        delay_until));
+
+Operation (
+   Type                     => Composite,
+   Name                     => on_call_producer,
+   Composite_Operation_List =>
+      ( set_deadline_handler,
+        rb_extract_enclosing,
+        ocp_operation,
+        cancel_deadline_handler));
+
+Operation (
+   Type                       => Simple,
+   Name                       => eq_signal,
+   Worst_Case_Execution_Time  => 1.000E-06,
+   Avg_Case_Execution_Time  => 1.000E-06,
+   Best_Case_Execution_Time  => 1.000E-06,
+   Shared_Resources_To_Lock   =>
+      ( event_queue),
+   Shared_Resources_To_Unlock =>
+      ( event_queue));
+
+Operation (
+   Type                       => Simple,
+   Name                       => eq_wait,
+   Worst_Case_Execution_Time  => 1.000E-06,
+   Avg_Case_Execution_Time  => 1.000E-06,
+   Best_Case_Execution_Time  => 1.000E-06,
+   Shared_Resources_To_Lock   =>
+      ( event_queue),
+   Shared_Resources_To_Unlock =>
+      ( event_queue));
+
+Operation (
+   Type                       => Simple,
+   Name                       => al_read,
+   Worst_Case_Execution_Time  => 1.000E-06,
+   Avg_Case_Execution_Time  => 1.000E-06,
+   Best_Case_Execution_Time  => 1.000E-06,
+   Shared_Resources_To_Lock   =>
+      ( activation_log),
+   Shared_Resources_To_Unlock =>
+      ( activation_log));
+
+Operation (
+   Type                       => Enclosing,
+   Name                       => al_read_enclosing,
+   Worst_Case_Execution_Time  => 4.000E-06,
+   Avg_Case_Execution_Time  => 4.000E-06,
+   Best_Case_Execution_Time  => 4.000E-06,
+   Composite_Operation_List =>
+      ( al_read));
+
+Operation (
+   Type                       => Simple,
+   Name                       => al_write,
+   Worst_Case_Execution_Time  => 2.000E-06,
+   Avg_Case_Execution_Time  => 2.000E-06,
+   Best_Case_Execution_Time  => 2.000E-06,
+   Shared_Resources_To_Lock   =>
+      ( activation_log),
+   Shared_Resources_To_Unlock =>
+      ( activation_log));
+
+Operation (
+   Type                     => Enclosing,
+   Name                     => server_operation,
+   Worst_Case_Execution_Time=> 4.000E-06,
+   Avg_Case_Execution_Time=> 4.000E-06,
+   Best_Case_Execution_Time=> 4.000E-06,
+   Composite_Operation_List =>
+      ( al_write));
+
+Operation (
+   Type                     => Enclosing,
+   Name                     => external_event_server,
+   Worst_Case_Execution_Time=> 1.000E-05,
+   Avg_Case_Execution_Time=> 1.000E-05,
+   Best_Case_Execution_Time=> 1.000E-05,
+   Composite_Operation_List =>
+      ( eq_wait,
+        server_operation));
+
+Operation (
+   Type                       => Simple,
+   Name                       => alr_signal,
+   Worst_Case_Execution_Time  => 5.000E-06,
+   Avg_Case_Execution_Time  => 5.000E-06,
+   Best_Case_Execution_Time  => 5.000E-06);
+
+Operation (
+   Type                       => Simple,
+   Name                       => alr_wait,
+   Worst_Case_Execution_Time  => 6.000E-06,
+   Avg_Case_Execution_Time  => 6.000E-06,
+   Best_Case_Execution_Time  => 6.000E-06);
+
+Operation (
+   Type                     => Composite,
+   Name                     => alr_operation,
+   Composite_Operation_List =>
+      ( alr_small_whetstone,
+        al_read_enclosing,
+        put_line));
+
+Operation (
+   Type                     => Composite,
+   Name                     => activation_log_reader,
+   Composite_Operation_List =>
+      ( set_deadline_handler,
+        alr_wait,
+        alr_operation,
+        cancel_deadline_handler));
+
+Transaction (
+   Type            => regular,
+   Name            => rp_transaction,
+   External_Events =>
+      ( ( Type       => Periodic,
+          Name       => e1,
+          Period     => 15.000,
+          Max_Jitter => 0.000,
+          Phase      => 0.000)),
+   Internal_Events =>
+      ( ( Type => Regular,
+          Name => rpo1,
+          Timing_Requirements =>
+            ( Type             => Hard_Global_Deadline,
+              Deadline         => 0.500000,
+              Referenced_Event => e1)),
+        ( Type => Regular,
+          Name => rpo2,
+          Timing_Requirements =>
+            ( Type             => Hard_Global_Deadline,
+              Deadline         => 3.500000,
+              Referenced_Event => e1)),
+        ( Type => Regular,
+          Name => rpo3,
+          Timing_Requirements =>
+            ( Type             => Hard_Global_Deadline,
+              Deadline         => 4.500000,
+              Referenced_Event => e1)),
+        ( Type => Regular,
+          Name => rpo4,
+          Timing_Requirements =>
+            ( Type             => Hard_Global_Deadline,
+              Deadline         => 7.500000,
+              Referenced_Event => e1)),
+        ( Type => Regular,
+          Name => rpo5,
+          Timing_Requirements =>
+            ( Type             => Hard_Global_Deadline,
+              Deadline         => 9.500000,
+              Referenced_Event => e1)),
+        ( Type => Regular,
+          Name => rpo6,
+          Timing_Requirements =>
+            ( Type             => Hard_Global_Deadline,
+              Deadline         => 10.500000,
+              Referenced_Event => e1)),
+        ( Type => Regular,
+          Name => rpo7,
+          Timing_Requirements =>
+            ( Type             => Hard_Global_Deadline,
+              Deadline         => 12.500000,
+              Referenced_Event => e1)),
+        ( Type => Regular,
+          Name => rpo8,
+          Timing_Requirements =>
+            ( Type             => Hard_Global_Deadline,
+              Deadline         => 13.500000,
+              Referenced_Event => e1)),
+        ( Type => Regular,
+          Name => offset1),
+        ( Type => Regular,
+          Name => offset2),
+        ( Type => Regular,
+          Name => offset3),
+        ( Type => Regular,
+          Name => offset4),
+        ( Type => Regular,
+          Name => offset5),
+        ( Type => Regular,
+          Name => offset6),
+        ( Type => Regular,
+          Name => offset7)),
+   Event_Handlers  =>
+      ( (Type               => System_Timed_Activity,
+         Input_Event        => e1,
+         Output_Event       => rpo1,
+         Activity_Operation => regular_producer,
+         Activity_Server    => regular_producer),
+        (Type 			=> Offset,
+         Input_Event 		=> rpo1,
+         Output_Event 		=> offset1,
+         Delay_Min_Interval     => 3,
+         Delay_Max_Interval     => 3,
+         Referenced_Event       => e1),
+        (Type               => System_Timed_Activity,
+         Input_Event        => offset1,
+         Output_Event       => rpo2,
+         Activity_Operation => regular_producer,
+         Activity_Server    => regular_producer),
+        (Type 			=> Offset,
+         Input_Event 		=> rpo2,
+         Output_Event 		=> offset2,
+         Delay_Min_Interval     => 4,
+         Delay_Max_Interval     => 4,
+         Referenced_Event       => e1),
+        (Type               => System_Timed_Activity,
+         Input_Event        => offset2,
+         Output_Event       => rpo3,
+         Activity_Operation => regular_producer,
+         Activity_Server    => regular_producer),
+        (Type 			=> Offset,
+         Input_Event 		=> rpo3,
+         Output_Event 		=> offset3,
+         Delay_Min_Interval     => 7,
+         Delay_Max_Interval     => 7,
+         Referenced_Event       => e1),
+        (Type               => System_Timed_Activity,
+         Input_Event        => offset3,
+         Output_Event       => rpo4,
+         Activity_Operation => regular_producer,
+         Activity_Server    => regular_producer),
+        (Type 			=> Offset,
+         Input_Event 		=> rpo4,
+         Output_Event 		=> offset4,
+         Delay_Min_Interval     => 9,
+         Delay_Max_Interval     => 9,
+         Referenced_Event       => e1),
+        (Type               => System_Timed_Activity,
+         Input_Event        => offset4,
+         Output_Event       => rpo5,
+         Activity_Operation => regular_producer,
+         Activity_Server    => regular_producer),
+        (Type 			=> Offset,
+         Input_Event 		=> rpo5,
+         Output_Event 		=> offset5,
+         Delay_Min_Interval     => 10,
+         Delay_Max_Interval     => 10,
+         Referenced_Event       => e1),
+        (Type               => System_Timed_Activity,
+         Input_Event        => offset5,
+         Output_Event       => rpo6,
+         Activity_Operation => regular_producer,
+         Activity_Server    => regular_producer),
+        (Type 			=> Offset,
+         Input_Event 		=> rpo6,
+         Output_Event 		=> offset6,
+         Delay_Min_Interval     => 12,
+         Delay_Max_Interval     => 12,
+         Referenced_Event       => e1),
+        (Type               => System_Timed_Activity,
+         Input_Event        => offset6,
+         Output_Event       => rpo7,
+         Activity_Operation => regular_producer,
+         Activity_Server    => regular_producer),
+        (Type 			=> Offset,
+         Input_Event 		=> rpo7,
+         Output_Event 		=> offset7,
+         Delay_Min_Interval     => 13,
+         Delay_Max_Interval     => 13,
+         Referenced_Event       => e1),
+        (Type               => System_Timed_Activity,
+         Input_Event        => offset7,
+         Output_Event       => rpo8,
+         Activity_Operation => regular_producer,
+         Activity_Server    => regular_producer)));
+
+Transaction (
+   Type            => regular,
+   Name            => ocp_transaction,
+   External_Events =>
+      ( ( Type       => Periodic,
+          Name       => e2,
+          Period     => 15.000,
+          Max_Jitter => 0.000,
+          Phase      => 0.000)),
+   Internal_Events =>
+      ( ( Type => Regular,
+          Name => rpo1,
+          Timing_Requirements =>
+            ( Type             => Hard_Global_Deadline,
+              Deadline         => 1.500000,
+              Referenced_Event => e2)),
+        ( Type => Regular,
+          Name => rpo2,
+          Timing_Requirements =>
+            ( Type             => Hard_Global_Deadline,
+              Deadline         => 6.500000,
+              Referenced_Event => e2)),
+        ( Type => Regular,
+          Name => rpo3,
+          Timing_Requirements =>
+            ( Type             => Hard_Global_Deadline,
+              Deadline         => 11.500000,
+              Referenced_Event => e2)),
+        ( Type => Regular,
+          Name => ocpo1,
+          Timing_Requirements =>
+            ( Type             => Hard_Global_Deadline,
+              Deadline         => 2.300000,
+              Referenced_Event => e2)),
+        ( Type => Regular,
+          Name => ocpo2,
+          Timing_Requirements =>
+            ( Type             => Hard_Global_Deadline,
+              Deadline         => 7.300000,
+              Referenced_Event => e2)),
+        ( Type => Regular,
+          Name => ocpo3,
+          Timing_Requirements =>
+            ( Type             => Hard_Global_Deadline,
+              Deadline         => 12.300000,
+              Referenced_Event => e2)),
+        ( Type => Regular,
+          Name => offset1),
+        ( Type => Regular,
+          Name => offset2),
+        ( Type => Regular,
+          Name => offset3)),
+   Event_Handlers  =>
+      ( (Type 			=> Offset,
+         Input_Event 		=> e2,
+         Output_Event 		=> offset1,
+         Delay_Min_Interval     => 1,
+         Delay_Max_Interval     => 1,
+         Referenced_Event       => e2),
+        (Type               => System_Timed_Activity,
+         Input_Event        => offset1,
+         Output_Event       => rpo1,
+         Activity_Operation => regular_producer,
+         Activity_Server    => regular_producer),
+        (Type               => Activity,
+         Input_Event        => rpo1,
+         Output_Event       => ocpo1,
+         Activity_Operation => on_call_producer,
+         Activity_Server    => on_call_producer),
+        (Type 			=> Offset,
+         Input_Event 		=> ocpo1,
+         Output_Event 		=> offset2,
+         Delay_Min_Interval     => 6,
+         Delay_Max_Interval     => 6,
+         Referenced_Event       => e2),
+        (Type               => System_Timed_Activity,
+         Input_Event        => offset2,
+         Output_Event       => rpo2,
+         Activity_Operation => regular_producer,
+         Activity_Server    => regular_producer),
+        (Type               => Activity,
+         Input_Event        => rpo2,
+         Output_Event       => ocpo2,
+         Activity_Operation => on_call_producer,
+         Activity_Server    => on_call_producer),
+        (Type 			=> Offset,
+         Input_Event 		=> ocpo2,
+         Output_Event 		=> offset3,
+         Delay_Min_Interval     => 1,
+         Delay_Max_Interval     => 1,
+         Referenced_Event       => e2),
+        (Type               => System_Timed_Activity,
+         Input_Event        => offset3,
+         Output_Event       => rpo3,
+         Activity_Operation => regular_producer,
+         Activity_Server    => regular_producer),
+        (Type               => Activity,
+         Input_Event        => rpo3,
+         Output_Event       => ocpo3,
+         Activity_Operation => on_call_producer,
+         Activity_Server    => on_call_producer)));
+
+Transaction (
+   Type            => regular,
+   Name            => event_queue_interrupt,
+   External_Events =>
+      ( ( Type             => Sporadic,
+          Name             => button_click,
+          Avg_Interarrival => 0.000,
+          Distribution     => UNIFORM,
+          Min_Interarrival => 5.000)),
+   Internal_Events =>
+      ( ( Type => Regular,
+          Name => eqo1,
+          Timing_Requirements =>
+            ( Type             => Hard_Global_Deadline,
+              Deadline         => 0.100000,
+              Referenced_Event => button_click))),
+   Event_Handlers  =>
+      ( (Type               => Activity,
+         Input_Event        => button_click,
+         Output_Event       => eqo1,
+         Activity_Operation => external_event_server,
+         Activity_Server    => external_event_server)));
+
