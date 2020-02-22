@@ -58,14 +58,6 @@ Scheduling_Server (
         Preassigned  => YES),
    Scheduler                  => fps);
 
-Scheduling_Server (
-   Type                       => Regular,
-   Name                       => interrupt_server,
-   Server_Sched_Parameters    =>
-      ( Type         => Interrupt_FP_Policy,
-        The_Priority => 241),
-   Scheduler                  => fps);
-
 Shared_Resource (
    Type        => Immediate_Ceiling_Resource,
    Name        => request_buffer,
@@ -92,7 +84,7 @@ Operation (
    Avg_Case_Execution_Time  => 0.482555,
    Best_Case_Execution_Time  => 0.482555);
 
--- 1: 0.007096; 25: 0.177452; 25.77: 0.182915; 44: 0.312311
+-- 1: 0.007096; 25: 0.177452; 44: 0.312311
 Operation (
    Type                       => Simple,
    Name                       => ocp_small_whetstone,
@@ -100,7 +92,7 @@ Operation (
    Avg_Case_Execution_Time  => 0.312311,
    Best_Case_Execution_Time  => 0.312311);
 
--- 1: 0.003549; 25: 0.088669; 25.77: 0.091399; 44: 0.156053, 56: 0.198612
+-- 1: 0.003549; 25: 0.088669; 44: 0.156053, 56: 0.198612
 Operation (
    Type                       => Simple,
    Name                       => alr_small_whetstone,
@@ -225,17 +217,6 @@ Operation (
         rb_extract_enclosing,
         ocp_operation,
         cancel_deadline_handler));
-
-Operation (
-   Type                       => Simple,
-   Name                       => eq_signal,
-   Worst_Case_Execution_Time  => 1.000E-06,
-   Avg_Case_Execution_Time  => 1.000E-06,
-   Best_Case_Execution_Time  => 1.000E-06,
-   Shared_Resources_To_Lock   =>
-      ( event_queue),
-   Shared_Resources_To_Unlock =>
-      ( event_queue));
 
 Operation (
    Type                       => Simple,
@@ -400,7 +381,7 @@ Transaction (
 
 Transaction (
    Type            => regular,
-   Name            => event_queue_interrupt,
+   Name            => interrupt_transaction,
    External_Events =>
       ( ( Type             => Sporadic,
           Name             => button_click,
@@ -409,9 +390,7 @@ Transaction (
           Min_Interarrival => 5.000)),
    Internal_Events =>
       ( ( Type => Regular,
-          Name => eqo1),
-        ( Type => Regular,
-          Name => eqo2,
+          Name => eqo1,
           Timing_Requirements =>
             ( Type             => Hard_Global_Deadline,
               Deadline         => 0.100000,
@@ -420,11 +399,6 @@ Transaction (
       ( (Type               => Activity,
          Input_Event        => button_click,
          Output_Event       => eqo1,
-         Activity_Operation => eq_signal,
-         Activity_Server    => interrupt_server),
-        (Type               => Activity,
-         Input_Event        => eqo1,
-         Output_Event       => eqo2,
          Activity_Operation => external_event_server,
          Activity_Server    => external_event_server)));
 
