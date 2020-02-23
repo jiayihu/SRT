@@ -1097,6 +1097,29 @@ Having fixed priority scheduling, the behaviour of the tasks is easily predictab
 
 The WCET used in the application for ALR, OCP and ALR are respectively 0.482597, 0.312341s and 0.198645s. Their sum is 0.993583, hence the CPU utilisation is very close to 100\% during the busy period, despite having total utilisation at 61.51\%.
 
+\section{EDF Analysis}
+
+The EDF scheduling is a dynamic-priority algorithm that assigns priorities to individual jobs of a task based on its absolute deadline.
+EDF, in contrast to FPS, is an optimal scheduler and can handle a total utilization less or equal to 1.
+
+Before we go any further, there are two issues to be addressed.
+
+First, as mentioned in chapter 7, MAST demands further restrictions for EDF analysis tools. 
+To keep consistency between Gee model and application, we had to discard Offset_Based_Approx and Holistic tools:
+The former rollback to the latter, the latter lacks shared resources support.
+The last standing option was EDF_monoprocessor tool which implements the exact response time analysis for single-processor EDF systems.
+We are restricted to Simple_Transaction_Only and to be compliant, only an independent task set can be modeled.
+In addition, EDF_monoprocessor doesn't allow to take into account jitter related to system ticker.
+%We believe this is due to the inability to handle an interrupt without the notion of priority, stranger to EDF scheduling.
+
+The synchronization protocol required by EDF_monoprocessor is the well known Stack Resource Policy, while the runtime implementation uses the Deadline Floor Protocol (DFP).
+DFP is an EDF counterpart of IPCP, as outlined in section 1.1.
+Indeed, rather than assigning a ceiling priority to each shared resource, a deadline ﬂoor is computed and rather than raising the priority of a task to the resource's ceiling,
+the task reduces its current deadline to reﬂect the ﬂoor value of the resource.
+The deadline floor of a resource is computed as the minimum relative deadline of any task accessing such resource.
+Nevertheless, the above disparity in resource access control can be ignored because of the worst-case behavior equivalence among SRP and DFP. 
+Indeed they lead to the same blocking time in the scheduling analysis.
+
 \section{Conclusions}
 
 Non funziona mai un cazzo.
