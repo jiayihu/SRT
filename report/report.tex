@@ -79,15 +79,17 @@ Embedded systems have to satisfy strict timing requirements and especially in th
 
 The choice of a suitable design and development method, in conjunction with supporting tools that enable the real-time performance of a system to be analysed and simulated, can lead to a high level of confidence that the final system meets its real-time constraints.
 
-As a matter of fact, the use of Ada has proven to be of great value within high integrity and real-time applications, thanks to language subsets of deterministic constructs, to ensure full analysability of the code. In the next sections we will use the term [RM] to refer to a section of the Ada Reference Manual\footnote{\url{http://www.ada-auth.org/standards/rm12_w_tc1/html/RM-TOC.html}}.
+As a matter of fact, the use of Ada has proven to be of great value within high integrity and real-time applications, thanks to language subsets of deterministic constructs, to ensure full analysability of the code. In the next sections whenever we will use the term [RM] we refer to a section of the Ada Language Reference Manual\footnote{\url{http://www.ada-auth.org/standards/rm12_w_tc1/html/RM-TOC.html}}.
 
 Notably, the Ravenscar profile \cite{ycs} is a subset of the tasking model, restricted to meet the real-time community requirements for determinism, schedulability analysis and memory-boundedness, as well as being suitable for mapping to a small and efficient run-time system that supports task synchronization and communication.
 
 Along with the Ravenscar profile, we have used a model for representing the temporal and logical elements of real-time applications, called MAST \cite{mast}. This model allows a very rich description of the system, including the effects of event or message-based synchronization, multiprocessor and distributed architectures as well as shared resource synchronization.
 
-The board-specific values shown in the paper are relative to the bare-board STM32F429I-Discovery and we have used the GNAT \texttt{ravenscar-full-stm32f429disco} runtime environment for supporting the Ravenscar restricted tasking model. The runtime implementation is based upon the Open Ravenscar Real-Time Kernel \cite{ork}, whose design document can help the reader to understand the GNAT source code.
+The bare-board used throughout our analysis is the STM32F429I-Discovery, along with the \texttt{ravenscar-full-stm32f429disco} runtime environment for supporting the Ravenscar restricted tasking model. The runtime implementation is provided GNAT, a free-software compiler for the Ada language, is based upon the Open Ravenscar Real-Time Kernel \cite{ork}, whose design document can help the reader to understand the runtime source code.
 
-We have instead preferred the usage of a bare-board instead of the GNAT emulator as we have noticed significant standard deviation with the execution times measured on the latter. The board also includes an ST-LINK/V2 embedded debug tool, which can stop the processor (halting), insert/remove breakpoints and execute instructions line by line (single stepping) \cite{debug-trace}.
+We have preferred the usage of a bare-board instead of the GNAT ARM emulator as we have noticed significant variance with the execution times measured on the latter. The board also includes an ST-LINK/V2 embedded debug tool, which can halt the processor, insert/remove breakpoints and execute instructions line by line \cite{debug-trace}.
+
+We shall start the paper assuming Fixed Priority Scheduling (FPS) since its behaviour is more predictable and easier to reason about, and then introduce the Earliest Deadline First (EDF) scheduling by means of their differences.
 
 \subsection{The application}
 
@@ -106,7 +108,7 @@ When specific conditions hold, the periodic process releases a further sporadic 
 
 The correct implementation of this policy also requires assigning the periodic process a higher priority than those assigned to the sporadic processes, so that guaranteed work can be performed in preference to subsidiary activities.
 
-The application is comprised by the following tasks and attributes. Static priorities are given based on the deadline monotonic scheduling \cite{rm-dm}, which the most optimal between the fixed priority algorithms \cite{optimality-rm-dm}.
+The application is comprised by the tasks and attributes in Table \ref{tab:tasks-attributes}. Static priorities are given based on the deadline monotonic scheduling \cite{rm-dm}, which the most optimal between the fixed priority algorithms \cite{optimality-rm-dm}.
 
 \begin{table}[!htbp]
    \centering
@@ -128,9 +130,9 @@ Ada protected objects [RM 9.4] are used to ensure mutually exclusive access to s
 
 In a real-time application, each protected object has a priority ceiling which represents the maximum priority of any task that calls the object. The Ada Real-Time Systems Annex supports the definition of  \texttt{Locking\_Policy} [RM D.3] and implements the resource locking protocol called Immediate Priority Ceiling Protocol (IPCP) \cite{ada-pcp}, which is similar to the Priority Ceiling Protocol (PCP).
 
-PCP is an improvement of the Priority Inheritance Protocols (PIP), which allow a task to execute with an enhanced priority if it is blocking (or could block) a higher-priority task. In addition to PIP, PCP prevents deadlock and reduces blocking to its minimum value: every job is blocked at most once for the duration of a critical section, no matter how many jobs conflict with it \cite{pcp-blocking}.
+PCP is an improvement of the Priority Inheritance Protocols (PIP) which allow a task to execute with an enhanced priority if it is blocking (or could block) a higher-priority task. In addition to PIP, PCP prevents deadlock and reduces blocking to its minimum value: every job is blocked at most once for the duration of a critical section, no matter how many jobs conflict with it \cite{pcp-blocking}.
 
-The IPCP is similar to PCP in its use of the ceiling priority, but it has a different set of rules on how a task set behave under the ceiling locking protocol.
+The IPCP is similar to PCP in its use of the ceiling priority, but it has a different set of rules on how a task behaves under the ceiling locking protocol.
 
 \begin{enumerate}
    \item A task may lock a protected object if it is not yet locked.
@@ -174,31 +176,29 @@ The described application is a set of tasks executing in the same processor, gro
 \label{transactions}
 \end{figure}
 
-Figure \ref{transactions} shows an example of such system: the horizontal axis represents time; down-pointing arrows represent the arrival of the external events associated to each transaction, while up-pointing arrows represent the activation times of each task; and shaded boxes represent task execution \cite{pessimistic-rma}. Each task has its own unique priority and in this example the task set is scheduled using a preemptive fixed priority scheduling.
+Figure \ref{transactions} shows an example of such system: the horizontal axis represents time; down-pointing arrows represent the arrival of the external events associated to each transaction, while up-pointing arrows represent the activation times of each task; and shaded boxes represent task execution \cite{pessimistic-rma}. Each task has its own unique priority and in this example the task set is scheduled using a preemptive FPS.
 
 Each task will be identified with two subscripts: the first one identifies the transaction to which it belongs, and the second one the position that the task occupies within the tasks of its transaction, when they are ordered by increasing offsets. In this way, $\tau_{ij}$ will be the j-th task of transaction $\Gamma_i$, with an offset of $\Phi_{ij}$ and a worst-case execution time of $C_{ij}$. In addition, we will allow each task to have jitter, that is to have its activation time delayed by an arbitrary amount of time between 0 and the maximum jitter for that task, which we will call $J_{ij}$. This means that the activation time of task $\tau_{ij}$ may occur at any time between $t_0 + \Phi_{ij}$ and $t_0 + \Phi_{ij} + J_{ij}$, where $t_0$ is the instant at which the external event arrived.
 
-The reason for this is that tasks must execute in order, e.g. On\_Call\_Producer can start executing only after the preceding task Regular\_Producer in the transaction has completed. The precedence constraints are modeled by assigning each task an initial offset and a maximum jitter \cite{tindell-offsets}. The initial offset $\Phi_{ij}$ of a periodic task is the instant of the first activation of the task. However, a task belonging to a transaction may start only after it has been activated and the preceding task in the transaction has completed execution. Hence maximum jitter is the maximum time interval it can occur from the task activation until the completion time of the preceding task in the transaction.
+The reason for this is that tasks must execute in order, i.e. On\_Call\_Producer can start executing only after the preceding task in the transaction, Regular\_Producer, has completed. The precedence constraints are modeled by assigning each task an initial offset and a maximum jitter \cite{tindell-offsets}. The initial offset $\Phi_{ij}$ of a periodic task is the instant of the first activation of the task. However, a task belonging to a transaction may start only after it has been activated and the preceding task in the transaction has completed execution. Hence maximum jitter is the maximum time interval it can occur from the task activation until the completion time of the preceding task in the transaction.
 
 In addition to maximum jitter, tasks offsets are allowed to vary dynamically, from one activation to the next, within a minimum and a maximum value: $\Phi_{ij} \in [\Phi_{ij\ min}, \Phi_{ij\ max}]$. Dynamic offsets are useful in systems in which tasks suspend themselves, like in the case of protected object entries. The task On\_Call\_Producer $\tau_{i2}$ calls the protected entry \texttt{Extract} and suspends itself until the task Regular\_Producer $\tau_{i1}$ replenishes the \texttt{Request\_Buffer}. The activation time of On\_Call\_Producer depends on the completion time of the Regular\_Producer and thus the offset for task $\tau_{i2}$ is variable in the interval $\Phi_{i2} \in [R_{i1\ min}, R_{i1\ max}]$, where $R_{i1\ min}$ and $R_{i1\ max}$ are respectively the best-case and worst-case response times of task Regular\_Producer.
 
 For each task $\tau_{ij}$ we define its response time as the difference between its completion time and the instant at which the associated external event arrived. The worst-case response time will be called $R_{ij}$. Each task has also an associated global deadline, $D_{ij}$, which is again relative to the arrival of the external event.
 
-If tasks synchronize using shared resources in a mutually exclusive way, they will be using the aforementioned Priority Ceiling Protocol. The effects of lower priority tasks on a task under analysis $\tau_{ab}$ are bounded by an amount called the blocking term $B_{ab}$, calculated as the maximum of all the critical sections of lower priority tasks that have a priority ceiling higher than or equal to the priority of $\tau_{ab}$.
+If tasks synchronize using shared resources in a mutually exclusive way, they will be using the aforementioned Immediate Priority Ceiling Protocol. The effects of lower priority tasks on a task under analysis $\tau_{ab}$ are bounded by an amount called the blocking term $B_{ab}$, calculated as the maximum of all the critical sections of lower priority tasks that have a priority ceiling higher than or equal to the priority of $\tau_{ab}$.
 
 \subsection{Offset-based analysis}
 
-Rate monotonic analysis (RMA) \cite{rm-dm} allows an exact calculation of the worst-case response time of tasks in single-processor real time systems, including the effects of task synchronization, the presence of aperiodic tasks, the effects of deadlines before, at or after the periods of the tasks, precedence constraints and tasks with varying priorities, overhead analysis, etc. However, classic RMA \cite{practitioner-common-data} cannot provide exact solutions in systems in which tasks suspend themselves. Classic techniques for these systems are based on the assumption that all tasks are independent, and thus they lead to pessimistic results \cite{pessimistic-rma}.
+Rate monotonic analysis (RMA) \cite{rm-dm} allows an exact calculation of the worst-case response time of tasks in single-processor real time systems, including the effects of task synchronization, the presence of aperiodic tasks, the effects of deadlines before, at or after the periods of the tasks, tasks with varying priorities, overhead analysis, etc. However, classic RMA \cite{practitioner-common-data} cannot provide exact solutions in systems in which tasks suspend themselves. Classic techniques for these systems are based on the assumption that all tasks are independent, and thus they lead to pessimistic results \cite{pessimistic-rma}.
 
 For building the worst-case scenario for a task $\tau_{ab}$ under analysis, the analysis must consider the critical instant that leads to the worst-case busy period. A task $\tau_{ab}$ busy period is an interval of time during which the CPU is busy processing task $\tau_{ab}$ or higher priority tasks. For tasks with offsets, it must take into account that the critical instant may not include the simultaneous activation of all higher priority tasks, as it was the case when all tasks were independent. The existence of offsets makes it impossible for some sets of tasks to simultaneously become active.
 
-Works on such problem has been the base of offset-based analysis, first proposed by Tindell and Clark \cite{tindell-offsets} and later improved by Palencia and Gonzàlez \cite{pessimistic-rma} who called it Worst-Case analysis of Dynamic Offsets (WCDO). In such analysis, the worst-case response time of each task is used to set the offset and the jitter of the successive task in the same transaction. Then, the computation of worst-case response times is iterated until a stable solution is found. If response times are bounded, the offset-based method is guaranteed to converge to a solution.
-
-The MAST analysis tool implements both different offset-based techniques and the more pessimistic holistic approach \cite{holistic-analysis}, which assumes tasks are scheduled independently. Holistic analysis is included in the toolset for completeness and comparison.
+Works on such problem has been the base of offset-based analysis, first proposed by Tindell and Clark \cite{tindell-offsets} and later improved by Palencia and Gonzàlez \cite{pessimistic-rma} who called it Worst-Case Analysis of Dynamic Offsets. In such analysis, the best and worst-case response times of each task are used to set the offset and the jitter of the successive task in the same transaction.
 
 \section{Execution times}
 
-To use the described model, upper bounds on the execution times are needed. Unfortunately precise Worst-Case Execution Time (WCET) is hard to find due to pipelines, caches and other performance enhancing techniques used on contemporary computer architectures \cite{wcet-problem}. Therefore pessimistic scheduling is needed in order to provide an offline guarantee that all hard deadlines will be met, which leads to poor processor utilization.
+To use the described model, upper bounds on the execution times are needed. Unfortunately precise Worst-Case Execution Time (WCET) is hard to find due to pipelines, caches and other performance enhancing techniques used on contemporary computer architectures \cite{wcet-problem}. This effects are reduced in the case of a more predictable bare-board environment, which can nevertheless suffers a small amount of indeterminism. Therefore pessimistic scheduling is needed in order to provide an offline guarantee that all hard deadlines will be met, but leads to poor processor utilization.
 
 \begin{figure}[!htbp]
 \centering
@@ -211,9 +211,9 @@ Figure \ref{wcet-curve} shows the set of all execution times as the upper curve.
 
 The common method to estimate execution time bounds is to measure the end-to-end execution time of the task for a subset of the possible executions. This determines the minimal observed and maximal observed execution times. These will, in general, overestimate the BCET and underestimate the WCET.
 
-Nevertheless, we have adopted the same approach, aware of the mentioned perils. In most cases, we had deterministic execution times with always the same exact number of CPU cycles or with a difference less than 1$\mu$s, except for the Whetstone operations which showed more significant variation. However, we always had very low standard errors minor than 1\%. The example application is quite simple, comprised of few tasks with predictable executions and the only interrupts are the periodic ticker and the external board push button.
+Nevertheless, we have adopted the same approach, aware of the mentioned perils. In most cases, we had deterministic execution times with always the same exact number of CPU cycles or with a difference less than 1$\mu$s, except for the Whetstone operations which showed more significant variation. However, we always had very low standard errors minor than 1\%. The example application is quite simple, comprised of few tasks with predictable executions and the only interrupts are the periodic ticker and the external push button.
 
-Execution times are measured using two custom packages: \texttt{System\_Overhead} and \texttt{Task\_Overhead}. The former is able to provide the exact number of elapsed CPU ticks, which is then converted as seconds by dividing it with the clock frequency. It's used to measure runtime overhead and task operations which do not self-suspend. The latter measures task execution time if self-suspension can happen, which would make usage of the clock ticks unsuitable.
+Execution times are measured using two custom packages: \texttt{System\_Overhead} and \texttt{Task\_Metrics}. The former is able to provide the exact number of elapsed CPU ticks, which is then converted as seconds by dividing it with the clock frequency. It's used to measure runtime overhead, whereas the latter provides task execution time if self-suspension can happen, which would make usage of the clock ticks unsuitable.
 
 \begin{lstlisting}[language=Ada]
 -- system-overhead.ads
@@ -293,15 +293,15 @@ end System_Overhead;
 
 The \texttt{System\_Overhead} package uses the board-specific \texttt{System.BB.Time} package, which provides the \texttt{Clock} function to read the real-time monotonic clock. It's the same primitive used under-the-hood by \texttt{Ada.Real\_Time} [RM D.8] to provide physical time as observed in the external environment.
 
-The package \texttt{Task\_Overhead} has the same interface as \texttt{System\_Overhead}, but it replaces \texttt{System.BB.Time} with \texttt{Ada.Execution\_Time} [RM D.14] to measure the elapsed execution time of a task. The \texttt{ravenscar-full-stm32f429disco} runtime supports the Ada 2012 implementation to separately account for the execution time of interrupt handlers \cite{etc}.
+The package \texttt{Task\_Metrics} has the same interface as \texttt{System\_Overhead}, but it replaces \texttt{System.BB.Time} with \texttt{Ada.Execution\_Time} [RM D.14] to measure the elapsed execution time of a task. The \texttt{ravenscar-full-stm32f429disco} runtime supports the Ada 2012 implementation to separately account for the execution time of interrupt handlers \cite{etc}.
 
 The functionality of the real-time clock (RTC) and execution time clocks (ETCs) are quite similar: both clocks support high accuracy measurement of the monotonic passing of time since an epoch, and both support calling a protected handler when a given timeout time is reached. The main difference is that the RTC is always active, while an ETC is active only when its corresponding task or interrupt is executed.
 
 \subsection{Semi-hosting}
 
-It is worth mentioning the usage of semi-hosting \cite{semihosting}, which allow print messages to be transferred from the board to the host computer using the debug connection. Using semi-hosting for printing is usually much slower than UART because the semi-hosting mechanism needs to halt the processor, but on the other hand the system tick timer \texttt{Sys\_Tick} counter is stopped during the transmission thus avoiding affecting the schedule of the tasks. The example application has no timing requirements relative to external interrupts, with the exception of the manual push-button.
+It is worth mentioning the usage of semi-hosting \cite{semihosting}, which allows print messages to be transferred from the board to the host computer using the debug connection. Using semi-hosting for printing is usually much slower than UART because the semi-hosting mechanism needs to halt the processor, but on the other hand the system tick timer \texttt{Sys\_Tick} counter is stopped during the transmission, thus avoiding affecting the schedule of the tasks. The example application has no timing requirements relative to external interrupts, with the exception of the manual push-button.
 
-Both \texttt{System\_Overhead} and \texttt{Task\_Overhead} use semi-hosting to send execution time data to the host computer. Besides, it is leveraged also in the \texttt{ravenscar-full-stm32f429disco} runtime implementation of the \texttt{Ada.Text\_IO} package, whose method \texttt{Put\_Line} is called by the tasks.
+Both \texttt{System\_Overhead} and \texttt{Task\_Metrics} use semi-hosting to send execution time data to the host computer. Besides, it is leveraged also in the \texttt{ravenscar-full-stm32f429disco} runtime implementation of the \texttt{Ada.Text\_IO} package, whose method \texttt{Put\_Line} is called by the tasks.
 
 The runtime defines a semi-hosting buffer size of 128 characters before flushing a string, therefore we have padded all the print messages with white space to reach the fixed size of 50 characters. By doing so we have fixed execution time due to buffer insertion, simplifying MAST modeling of the \texttt{Put\_Line} operation.
 
@@ -309,7 +309,7 @@ The runtime defines a semi-hosting buffer size of 128 characters before flushing
 
 In later analysis, we will want to achieve the maximum schedulable utilization by analyzing a MAST model with low utilization and then increasing tasks utilization until the system no longer meets its deadlines. However, for design attributes to turn into system properties, we must enforce them at runtime. In particular, we have to check that the jobs of the tasks always complete before their respective deadline, to ensure consistency between the MAST analysis and the execution \cite{timing-properties}.
 
-Fortunately, Ada 2005 introduced a lower level facility that maps a handler to a specific time without the need to use a separate task. The handler is associated with a timing event. When the event's time is due, and detected by the runtime (see Chapter \ref{processing-resources}), the handler code is executed.
+Fortunately, Ada 2005 introduced a lower level facility that maps a handler to a specific time without the need to use a separate task. The handler is associated with a timing event. When the event time is due, and detected by the runtime, the handler code is executed.
 
 The most effective way for an implementation to support timing events is to execute the handlers directly from the interrupt handler of the clock \cite{timing-events}, and this is indeed what happens in \texttt{ravenscar-full-stm32f429disco}.
 
@@ -364,11 +364,11 @@ package body Deadline_Miss is
 end Deadline_Miss;
 \end{lstlisting}
 
-Ispiration from \cite{overrundetection}. The measured execution times include overrun detection overhead for Regular Producer, On Call Producer and Activation Log Reader.
+The implementation is based on the example shown in \cite{overrundetection} to detect deadline misses. The measured execution times include overrun detection overhead for Regular Producer, On Call Producer and Activation Log Reader.
 
 \section{MAST}
 
-MAST \cite{mast} is a Modeling and Analysis Suite for Real-Time Applications and its main goal is to provide an open source set of tools that enables engineers developing real-time applications to check the timing behavior of their application, including schedulability analysis for checking hard timing requirements.
+MAST \cite{mast} is a Modeling and Analysis Suite for Real-Time Applications and its main goal is to provide an open source set of tools that enables engineers developing real-time applications to check the timing behavior of their application, including schedulability analysis with hard timing requirements.
 
 It is designed to handle both fixed priority and dynamic priority scheduled systems, although offset-based analysis for Earliest Deadline First scheduling is still missing as of the time of writing. However, within fixed priorities, different scheduling strategies are allowed, including preemptive and non preemptive scheduling, interrupt service routines, sporadic server scheduling, and periodic polling servers.
 
@@ -406,7 +406,7 @@ The board is built with only one CPU, whereas the interrupt ranges are taken fro
 
 The Interrupt Service Routine (ISR) overhead is measured as the time taken to run the \texttt{Interrupt\_Handler} in \texttt{System.BB.Board\_Support} package, without counting the execution time of the application interrupt handler. In Ada, the code in the handler itself executes at the hardware interrupt level, whereas the major part of the processing of the response to the interrupt is moved into an event response task, which executes at a software priority level with interrupts fully enabled.
 
-The first procedure executes for a very short time-typically executing only the instructions that are strictly necessary to service the interrupt and reset the associated piece of hardware. The second one is implemented as a task that is activated from the interrupt handler and its priority is assigned as defined in \ref{tab:tasks-attributes}.
+The first procedure executes for a very short time-typically executing only the instructions that are strictly necessary to service the interrupt and reset the associated piece of hardware. The second one is implemented as a task that is activated from the interrupt handler and its priority is assigned as defined in Table \ref{tab:tasks-attributes}.
 
 Both parts are not accounted into the ISR overhead. However, the overhead takes into account the management of the aforementioned Execution Time Clocks (ETC) \cite{etc}.
 
@@ -416,7 +416,7 @@ Tick scheduling introduces two additional factors that must be accounted for in 
 
 Second, a self-suspended task is held in a queue which we will call the delay queue. When the scheduler executes, it scans the delay queue and moves the jobs that have been released since the last clock interrupt to the ready job queue and places them there in order of their priorities. Once in the ready queue, the jobs execute in priority order without intervention by the scheduler. The time the scheduler takes to scan and move the jobs introduces additional scheduling overhead. Similar overhead must be accounted for any timing events that need to be triggered.
 
-The scheduling overhead is accounted in the analysis using the technique described in \cite{effects-runtime}. We can model the scheduler as a periodic task $\tau_0$ whose period is $p_0$. This task has the highest priority among all tasks in the system. Its execution time $C_0$ is the amount of time the scheduler takes to service the clock interrupt. This time is spent even when there is no job in the pending job queue.
+The scheduling overhead is accounted in the analysis using the technique described in \cite{effects-runtime}. MAST can model the scheduler as a periodic task $\tau_0$ whose period is $p_0$. This task has the highest priority among all tasks in the system. Its execution time $C_0$ is the amount of time the scheduler takes to service the clock interrupt. This time is spent even when there is no job in the pending job queue.
 
 In the \texttt{ravenscar-full-stm32f429disco} runtime, the period $p_0$ of the tick is 1ms, defined in the \texttt{System.BB.Board\_Support} package, and the worst overhead is measured as the time taken to execute \texttt{Timer\_Interrupt\_Handler}, the trap handler defined in the same package for the \texttt{Sys\_Tick} trap.
 
@@ -447,11 +447,11 @@ The context switch overhead is measured as time to set the context switch interr
 
 \subsubsection{Scheduling Servers}
 
-Scheduling Servers represent schedulable entities in a processing resource, in particular if the resource is a processor, the scheduling server is a task or thread of control. As a matter of fact, each of them has a priority and a type, which for our application may be \texttt{Fixed\_Regular\_Policy} or \texttt{Interrupt\_FP\_Policy}. The former represents a regular preemptive fixed priority, whereas the latter models an interrupt service routine.
+Scheduling Servers represent schedulable entities in a processing resource, in particular if the resource is a processor, the scheduling server is a task or thread of control. As a matter of fact, each of them has a priority and a type, which for our application may be \texttt{Fixed\_Regular\_Policy} or \texttt{Interrupt\_FP\_Policy}. The former represents a regular preemptive fixed priority, whereas the latter models an interrupt service routine. In reality, we have not used a \texttt{Interrupt\_FP\_Policy} as the interrupt overhead is negligible.
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=6.5in]{images/scheduling-servers}
+\includegraphics[width=5in]{images/scheduling-servers}
 \caption{Scheduling Servers representing the application tasks}
 \label{scheduling-servers}
 \end{figure}
@@ -492,17 +492,7 @@ Scheduling_Server (
         The_Priority => 11,
         Preassigned  => YES),
    Scheduler                  => fps);
-
-Scheduling_Server (
-   Type                       => Regular,
-   Name                       => interrupt_server,
-   Server_Sched_Parameters    =>
-      ( Type         => Interrupt_FP_Policy,
-        The_Priority => 241),
-   Scheduler                  => fps);
 \end{lstlisting}
-
-The Scheduling Server \texttt{interrupt\_server} allows to model the runtime which runs the Interrupt Service Routine using the technique described in \cite{interrupt-handler}. Each aperiodic response will be rappresented as two MAST operations. The first operation is the interrupt handler and executes as \texttt{interrupt\_server} at interrupt priority 241. The second part is implemented as an operation of the task External\_Event\_Server at software priority 11.
 
 \subsubsection{Shared Resources}
 
@@ -542,7 +532,7 @@ MAST Operations represent a piece of code to be executed by the processor. We ha
 \begin{itemize}
    \item \textbf{Simple}: it represents a simple piece of code or a message. It may have the list of shared resources to lock before executing the operation, and the list of shared resources that must be unlocked after executing the operation. Simple Operations have been used to model methods of protected objects. The execution time is measured from the first line of the method to the last one, thus it doesn't include the runtime overhead associated with invoking protected methods.
    \item \textbf{Composite}: it represents an operation composed of an ordered sequence of other operations, simple or composite. The execution time attribute of this class cannot be set, because it is the sum of the execution times of the comprised operations.
-   \item \textbf{Enclosing}: it represents an operation that contains other operations as part of its execution, but in this case the total execution time must be set explicitly; it is not the sum of execution times of the comprised operations, because other pieces of code may be executed in addition. For each protected method there is an Enclosing Operation which takes into account the overhead associated with calling protected methods. Sometimes corresponds to a method defined by the application, other times it's defined in the model specifically. By doing so, we can define the caller procedures as simpler Composite operations, which have the execution time with the runtime overhead included.
+   \item \textbf{Enclosing}: it represents an operation that contains other operations as part of its execution, but in this case the total execution time must be set explicitly; it is not the sum of execution times of the comprised operations, because other pieces of code may be executed in addition. For each protected method there is an Enclosing Operation which takes into account the overhead associated with calling protected methods. Sometimes corresponds to a method defined by the application, other times it's defined in the model specifically to include the runtime overhead. By doing so, we can define the caller procedures as simple Composite operations.
 \end{itemize}
 
 Examples of protected methods as Simple Operations:
@@ -642,7 +632,7 @@ Operation (
 
 The Small\_Whetstone algorithm allows to control the computational workload of Regular\_Producer, On\_Call\_Producer and Activation\_Log\_Reader. By changing the workload parameters of \texttt{Small\_Whetstone} in the application, we will be able to test different utilisation of the system with likewise ease in updating the MAST model.
 
-The Whetstone execution time is proportional to the workload parameter and exhibits deterministic behaviour. If we wanted to try what happens by increasing the load of factor 10, we would just multiply the WCET in the model by 11, without the need to measure again all the Enclosing operations, since all the methods which use Whetstone are defined as Composite. However we have been careful to avoid forgetting any overhead in a Enclosing method and make sure they are not impacted by any change of the Whetstone workload.
+The Whetstone execution time is proportional to the workload parameter and exhibits deterministic behaviour. If we wanted to try what would happen by increasing the load of factor 10, we would just multiply the WCET in the model by 11, without the need to measure again all the Enclosing operations, since all the methods which use Whetstone are defined as Composite. However we have been careful to avoid forgetting to include any overhead in a Enclosing method and we have made sure they are not impacted by any change of the Whetstone workload.
 
 \subsubsection{Transactions}
 
@@ -650,7 +640,7 @@ A Transaction represents a transaction of our model (see Section \ref{model-nota
 
 Events may be internal or external, and represent channels of event streams, through which individual event instances may be generated.
 
-Internal Events are generated by an Event Handler. Internal Events have timing requirements, most of the time a Global Deadlines relative to the arrival of a Referenced External Event. Local Deadlines are instead relative to the arrival of the event that activated that Event Handler. All of our deadlines are Hard Deadlines, e.g. they must be met in all cases, including the worst case.
+Internal Events are generated by an Event Handler. Internal Events have timing requirements, a Global Deadline relative to the arrival of a Referenced External Event. MAST allows also to use Local Deadlines, relative to the arrival of the event that activated that Event Handler. All of our deadlines are Hard Deadlines, e.g. they must be met in all cases, including the worst case.
 
 External events model the interactions of the system with external components or devices through interrupts, signals, etc., or with hardware timing devices. They have a double role in the model: on the one hand they establish the rates or arrival patterns of activities in the system. On the other hand, they provide references for defining global timing requirements. MAST supports different arrival patterns, of which we used the following: \textit{Periodic} represents a stream of events that are generated periodically, such as from the Tick Scheduling; \textit{Sporadic} as a stream of aperiodic events that have a minimum interarrival time.
 
@@ -668,7 +658,7 @@ Event Handlers in figure \ref{event-handlers} represent actions that are activat
    \item \textit{System Timed Activity}: an activity that is activated by the system timer, and thus is subject to the aforementioned jitter associated with it;
    \item \textit{Multicast}: it is an event handler that generates one event in every one of its outputs each time an input event arrives;
    \item \textit{Rate Divisor}: it is an event handler that generates one output event when a number of input events equal to the Rate Factor have arrived;
-   \item \textit{Offset}: an event handler that generates its output event after a time interval has elapsed from the arrival of of some (previous) event. If the time interval has already passed when the input event arrives, the output event is generated immediately.
+   \item \textit{Offset}: an event handler that generates its output event after a time interval has elapsed from the arrival of some (previous) external event. If the time interval has already passed when the input event arrives, the output event is generated immediately.
 \end{itemize}
 
 We now proceed to model the three transactions which model the respective independent tasks. We will start with an initial analysis of the system as stand-alone tasks, then compare its maximum utilisation with the model using dynamic offsets to represent dependant tasks.
@@ -758,7 +748,7 @@ The sporadic On\_Call\_Producer event stream is modeled as activated by a bounde
 \begin{lstlisting}
 Transaction (
    Type            => regular,
-   Name            => event_queue_interrupt,
+   Name            => interrupt_transaction,
    External_Events =>
       ( ( Type             => Sporadic,
           Name             => button_click,
@@ -767,9 +757,7 @@ Transaction (
           Min_Interarrival => 5.000)),
    Internal_Events =>
       ( ( Type => Regular,
-          Name => eqo1),
-        ( Type => Regular,
-          Name => eqo2,
+          Name => eqo1,
           Timing_Requirements =>
             ( Type             => Hard_Global_Deadline,
               Deadline         => 0.100000,
@@ -778,20 +766,15 @@ Transaction (
       ( (Type               => Activity,
          Input_Event        => button_click,
          Output_Event       => eqo1,
-         Activity_Operation => eq_signal,
-         Activity_Server    => interrupt_server),
-        (Type               => Activity,
-         Input_Event        => eqo1,
-         Output_Event       => eqo2,
          Activity_Operation => external_event_server,
          Activity_Server    => external_event_server)));
 \end{lstlisting}
 
-The push-button interrupt event stream is modeled as triggered by a sporadic event of 5s as minimum interarrival time and it's first handled by the \texttt{interrupt\_server} which runs the interrupt handler at hardware interrupt priority and then by the \texttt{external\_event\_server} job at software priority.
+The push-button interrupt event stream is modeled as triggered by a sporadic event of 5s as minimum interarrival time and it's handled by the \texttt{external\_event\_server} job at software priority. The interrupt handler at hardware interrupt priority has not been modeled since it's execution time is negligible.
 
 \section{MAST analysis}
 
-As of the time of writing, MAST is at version 1.5.1 and supports the analysis tools \cite{mast-analysis} in figure \ref{mast-analysis-tools}. The techniques relevant for this paper are:
+As of the time of writing, MAST is at version 1.5.1 and supports the analysis tools \cite{mast-analysis} in Figure \ref{mast-analysis-tools}. The techniques relevant for this paper are:
 
 \begin{figure}[!htbp]
 \centering
@@ -801,11 +784,12 @@ As of the time of writing, MAST is at version 1.5.1 and supports the analysis to
 \end{figure}
 
 \begin{itemize}
-   \item \textit{Classic RM Analysis} (not used): it implements the classic exact response time analysis for single-processor fixed-priority systems and corresponds to Technique 5, "Calculating response time with arbitrary deadlines and blocking" in \cite{practitioner};
-   \item \textit{Holistic Analysis} (used): this analysis extends the response time analysis to multiprocessor and distributed systems. It is not an exact analysis, because it makes the assumption that tasks of the same transaction are independent. It was first developed for fixed priority systems by Tindell and Clark \cite{holistic-analysis};
-   \item \textit{Offset Based Approximate Analysis} (not used): this is a response time analysis for multiprocessor and distributed systems that improves the pessimism of the holistic analysis by taking into account that tasks of the same transaction are not independent, through the use of offsets. Offset based analysis for fixed priorities was first introduced by Tindell \cite{tindell-offsets} and then extended to distributed systems by Palencia and González \cite{pessimistic-rma};
-   \item \textit{Offset Based Approximate with Precedence Relations Analysis} (used): this is an enhancement of the offset based approximate analysis for fixed priority systems in which the priorities of the tasks of a given transaction are used together with the precedence relations among those tasks to provide a tighter estimation of the response times;
-   \item \textit{Offset Based Slanted Analysis} (used): this is another enhancement of the offset based approximate analysis for fixed priority systems in which the maximum interference function is defined with a tighter approximation. This method provides better results that the Offset-Based Approximate Analysis, but it is uncertain if it gets better results than the method with precedence relations.
+   \item \textit{Classic RM Analysis}: it implements the classic exact response time analysis for single-processor fixed-priority systems and corresponds to the Technique "Calculating response time with arbitrary deadlines and blocking" in \cite{practitioner};
+   \item \textit{Holistic Analysis}: this analysis extends the response time analysis to multiprocessor and distributed systems. It is not an exact analysis, because it makes the assumption that tasks of the same transaction are independent. It was first developed for fixed priority systems by Tindell and Clark \cite{holistic-analysis}. It has no use for our purposes, but it is worth mentioning to the reader because it can support both FPS and EDF monoprocessor and has less restrictions compared to \textit{Classic RM Analysis}, as explained below. In terms of our example application, both techniques provides equivalent results;
+   \item \textit{EDF Monoprocessor / Single Processor}: it implements the exact response time analysis for single-processor EDF systems first developed by Spuri \cite{spuri};
+   \item \textit{Offset Based Approximate Analysis}: this is a response time analysis for multiprocessor and distributed systems that improves the pessimism of the holistic analysis by taking into account that tasks of the same transaction are not independent, through the use of offsets. Offset based analysis for fixed priorities was first introduced by Tindell \cite{tindell-offsets} and then extended to distributed systems by Palencia and González \cite{pessimistic-rma};
+   \item \textit{Offset Based Approximate with Precedence Relations Analysis}: this is an enhancement of the offset based approximate analysis for fixed priority systems in which the priorities of the tasks of a given transaction are used together with the precedence relations among those tasks to provide a tighter estimation of the response times;
+   \item \textit{Offset Based Slanted Analysis}: this is another enhancement of the offset based approximate analysis for fixed priority systems in which the maximum interference function is defined with a tighter approximation. This method provides better results that the Offset-Based Approximate Analysis, but it is uncertain if it gets better results than the method with precedence relations.
 \end{itemize}
 
 In addition, the analysis tools are subject to different restrictions \cite{mast-restrictions}. The most significant ones are:
@@ -813,8 +797,8 @@ In addition, the analysis tools are subject to different restrictions \cite{mast
 \begin{itemize}
    \item \textit{No\_Hard\_Local\_Deadlines}: Hard Local Deadlines cannot be used as Timing Requirements;
    \item \textit{Referenced\_Events\_Are\_External\_Only}: no internal events can be referenced by Global Deadlines;
-   \item \textit{Simple\_Transactions\_Only}: checks that every transaction has only a continuous sequence of activities executed by the same server. This restriction is required by the Rate Monotonic analysis;
-   \item \textit{Linear\_Plus\_Transactions\_Only}: checks that every transaction only has one external event and is not multipath, i.e. it has no Multicasts. This restriction is required by the Offset based analysis tools;
+   \item \textit{Simple\_Transactions\_Only}: checks that every transaction has only a continuous sequence of activities executed by the same server. This restriction is required by the Rate Monotonic analysis and the EDF Monoprocessor analysis;
+   \item \textit{Linear\_Plus\_Transactions\_Only}: less restrictive than \textit{Simple\_Transactions\_Only}, checks that every transaction only has one external event and is not multipath, e.g. it has no Multicasts. This restriction is required by the Holistic Analysis and the different Offset based analysis tools;
    \item \textit{Restricted\_Multipath\_Transactions\_Only}: checks that every transaction has a single input event, has no branch elements (Delivery or Query Servers), and has no Rate Divisors. It also checks that the transaction follows the set of allowed constructs mentioned in \cite{mast-restrictions}. This restriction is required by the Holistic analysis.
 \end{itemize}
 
@@ -822,7 +806,7 @@ The transaction which defines the button interrupt event stream is considered as
 
 As a consequence, it's not possible to use the classic Rate Monotonic algorithm \cite{rm-dm} with our model and we are restricted to the traditional Holistic and the Offset-based tools. We believe the reason is that the Rate Monotonic assumes independent tasks, but the interrupt transaction is composed by an ISR executed by the Interrupt\_FP\_Server, followed by the interrupt handler in External Event Server, which is activated by the former and thus dependent on it for its activation.
 
-As final note, as of the time of writing, offset-based analysis fallbacks to holistic analysis with EDF processing resources \cite{mast-analysis}.
+As final note, as of the time of writing, offset-based analysis with EDF tasks fallbacks to holistic analysis \cite{mast-analysis}, which in turn does not support shared resources in EDF yet.
 
 \section{FPS analysis}
 
@@ -841,7 +825,7 @@ activation_log =>  11
 event_queue =>  241
 \end{lstlisting}
 
-A first analysis suggests that smaller values can be used as ceilings for the protected objects Request\_Buffer and Activation\_Log. This possible improvement is expected since the two values are the highest priorities of the tasks Regular\_Producer and External\_Event\_Server respectively. We leave the ceilings intact nevertheless, since the ceiling is a required to be an upper bound of the priorities between the tasks the request the resource, not the least upper bound. Having some spare priorities between the task priorities and the ceilings might prove to be useful if we need to separate a transaction into two distinct tasks with proper offset to better model the application \cite{tindell-offsets}.
+A first analysis suggests that smaller values can be used as ceilings for the protected objects Request\_Buffer and Activation\_Log. This possible improvement is expected since the two values are the highest priorities of the tasks Regular\_Producer and External\_Event\_Server respectively. We leave the ceilings intact nevertheless, since the ceiling is a required to be an upper bound of the priorities between the tasks the request the resource, not the least upper bound. Having some spare priorities between the task priorities and the ceilings might prove to be useful if we need to separate a task into two distinct tasks with proper offset to better model the application \cite{tindell-offsets}.
 
 \begin{longtable}{lllllll}
    \toprule
@@ -854,11 +838,10 @@ A first analysis suggests that smaller values can be used as ceilings for the pr
    \toprule
    Transaction & $R_{min}$ & $R_{max}$ & Slack & Worst blocking time & Jitter \\
    \midrule
-   rp\_transaction & 0.019333 & 0.020440  & 2470.0\% &  2.000E-06 & 0.001107 \\
-   ocp\_transaction & 0.007126 & 0.026598 & 10776.6\% & 1.000E-06 & 0.019472 \\
-   alr\_transaction & 0.003582 & 0.030201 & 26600.8\% & 0.00 & 0.026619 \\
-   event\_queue\_interrupt ISR & 6.156E-06 & 1.100E-05 & >=100000.0\% & 1.000E-06 & 4.844E-06 \\
-   event\_queue\_interrupt EES & 1.616E-05 & 3.818E-05 & >=100000.0\% & 1.000E-06 & 2.202E-05 \\
+   rp\_transaction & 0.019333 & 0.020434  & 2470.0\% &  2.000E-06 & 0.001101 \\
+   ocp\_transaction & 0.007126 & 0.026592 & 10776.6\% & 1.000E-06 & 0.019472 \\
+   alr\_transaction & 0.003582 & 0.030195 & 26600.8\% & 0.00 & 0.026613 \\
+   interrupt\_transaction & 1.000E-05 & 2.102E-05 & >=100000.0\% & 1.000E-06 & 1.102E-05 \\
    \toprule
    \toprule
    System slack & 2401.2\% \\
@@ -871,11 +854,10 @@ A first analysis suggests that smaller values can be used as ceilings for the pr
 Table \ref{tab:holistic-fps} first shows the WCET of the tasks as defined in the MAST model and which are controlled by the Whetstone workloads. Then the results of the analysis are displayed, containing the best-case response time $R_{min}$, the worst-case response time $R_{max}$, the slack, the blocking time and the jitter for each transaction. All transactions suffer jitter due to the system ticker interrupt running at the highest interrupt priority and the context switch overhead.
 
 \begin{itemize}
-   \item \textit{regular\_producer}: suffers additional jitter due to the system clock with granularity 1ms and the possible execution of the ISR. Its blocking time is caused by the On\_Call\_Producer and the Activation\_Log\_Reader which have lower priorities but can access resources with higher ceiling priority than Regular\_Producer;
+   \item \textit{regular\_producer}: suffers additional jitter due to the system clock with granularity 1ms and the possible execution of the interrupt handler. Its blocking time is caused by the On\_Call\_Producer and the Activation\_Log\_Reader which have lower priorities but can access resources with higher ceiling priority than Regular\_Producer;
    \item \textit{ocp\_transaction}: suffers additional jitter due to interference by Regular\_Producer and the ISR. Its blocking time is caused the Activation\_Log\_Reader.;
    \item \textit{alr\_transaction}: suffers additional jitter due to interference by On\_Call\_Producer, Regular\_Producer and the ISR. It has no blocking time since it's the task with lowest priority;
-   \item \textit{event\_queue\_interrupt ISR}: it's the first part of the interrupt transaction. It suffers additional jitter due to the runtime ISR overhead. Its blocking time is caused by the External\_Event\_Server;
-   \item \textit{event\_queue\_interrupt EES}: it's the second part of the interrupt transaction. It suffers additional jitter due to the ISR, considered as independent from the former in the Holistic analysis. Its blocking time is caused by the External\_Event\_Server;
+   \item \textit{interrupt\_transaction}: it's the software level handler of the interrupt. It suffers no additional jitter other than the aforementioned overheads. Its blocking time is caused by the External\_Event\_Server;
 \end{itemize}
 
 We shall now increase the Whetstone workload of factor 24 in the first three transactions, since 2477.0\% is the smallest slack of the three of them. The factor correponds to how much the execution time of all event responses can be increased while preserving system schedulability \cite{practitioner-growth}. We leave the Event\_Queue transaction intact because it doesn't contain any Whetstone operation. The new results are as shown in table \ref{tab:holistic-fps-24}.
@@ -891,11 +873,10 @@ We shall now increase the Whetstone workload of factor 24 in the first three tra
    \toprule
    Transaction & $R_{min}$ & $R_{max}$ & Slack & Worst blocking time & Jitter \\
    \midrule
-   rp\_transaction & 0.482597 & 0.485492  & 2.73\% &  2.000E-06 & 0.002895 \\
-   ocp\_transaction & 0.177482 & 0.662663 & 76.95\% & 1.000E-06 & 0.485181 \\
-   alr\_transaction & 0.088702 & 0.751713 & 277.34\% & 0.00 & 0.663011 \\
-   event\_queue\_interrupt ISR & 6.156E-06 & 1.100E-05 & >=100000.0\% & 1.000E-06 & 4.844E-06 \\
-   event\_queue\_interrupt EES & 1.616E-05 & 3.818E-05 & >=100000.0\% & 1.000E-06 & 2.202E-05 \\
+   rp\_transaction & 0.482597 & 0.485486  & 2.73\% &  2.000E-06 & 0.002889 \\
+   ocp\_transaction & 0.177482 & 0.662657 & 76.95\% & 1.000E-06 & 0.485175 \\
+   alr\_transaction & 0.088702 & 0.751706 & 277.34\% & 0.00 & 0.663004 \\
+   interrupt\_transaction & 1.000E-05 & 2.102E-05 & >=100000.0\% & 1.000E-06 & 1.102E-05 \\
    \toprule
    \toprule
    System slack & 3.21\% \\
@@ -918,11 +899,10 @@ The blocking times have not changed because protected operations are same as bef
    \toprule
    Transaction & $R_{min}$ & $R_{max}$ & Slack & Worst blocking time & Jitter \\
    \midrule
-   rp\_transaction & 0.482597 & 0.485492  & 0.390625\% &  2.000E-06 & 0.002895 \\
-   ocp\_transaction & 0.312341 & 0.798045 & 0.390625\% & 1.000E-06 & 0.485704 \\
-   alr\_transaction & 0.156086 & 0.954736 & 28.13\% & 0.00 & 0.798650 \\
-   event\_queue\_interrupt ISR & 6.156E-06 & 1.100E-05 & 17737.1\% & 1.000E-06 & 4.844E-06 \\
-   event\_queue\_interrupt EES & 1.616E-05 & 3.818E-05 & 17737.1\% & 1.000E-06 & 2.202E-05 \\
+   rp\_transaction & 0.482597 & 0.485486  & 0.390625\% &  2.000E-06 & 0.002889 \\
+   ocp\_transaction & 0.312341 & 0.798039 & 0.390625\% & 1.000E-06 & 0.485698 \\
+   alr\_transaction & 0.156086 & 0.954730 & 28.13\% & 0.00 & 0.798644 \\
+   interrupt\_transaction & 1.000E-05 & 2.102E-05 & >=100000.0\% & 1.000E-06 & 1.102E-05 \\
    \toprule
    \toprule
    System slack & 0.390187\% \\
@@ -945,11 +925,10 @@ The system has reached utilisation 60.10\%. We now increase workload of Activati
    \toprule
    Transaction & $R_{min}$ & $R_{max}$ & Slack & Worst blocking time & Jitter \\
    \midrule
-   rp\_transaction & 0.482597 & 0.485492  & 0.0\% &  2.000E-06 & 0.002895 \\
-   ocp\_transaction & 0.312341 & 0.798045 & 0.390625\% & 1.000E-06 & 0.485704 \\
-   alr\_transaction & 0.198645 & 0.997460 & 0.390625\% & 0.00 & 0.798650 \\
-   event\_queue\_interrupt ISR & 6.156E-06 & 1.100E-05 & 13963.3\% & 1.000E-06 & 4.844E-06 \\
-   event\_queue\_interrupt EES & 1.616E-05 & 3.818E-05 & 13963.3\% & 1.000E-06 & 2.202E-05 \\
+   rp\_transaction & 0.482597 & 0.485492  & 0.0\% &  2.000E-06 & 0.002889 \\
+   ocp\_transaction & 0.312341 & 0.798039 & 0.390625\% & 1.000E-06 & 0.485698 \\
+   alr\_transaction & 0.198645 & 0.997454 & 0.390625\% & 0.00 & 0.798809 \\
+   interrupt\_transaction & 1.000E-05 & 2.102E-05 & >=100000.0\% & 1.000E-06 & 1.102E-05 \\
    \toprule
    \toprule
    System slack & 0.390187\% \\
@@ -1307,6 +1286,11 @@ K. Tindell.
 R. Wilhelm et al..
 \newblock "The worst-case execution-time problem—overview of methods and survey of tools".
 \newblock In {\em Trans. on Embedded Computing Sys}. vol. 7, no. 3, pp. 153, 2008.
+
+\bibitem{spuri}
+M. Spuri.
+\newblock "Analysis of Deadline Scheduled Real-Time Systems".
+\newblock In {\em [Research Report] RR-2772, INRIA}. 1996.
 
 \end{thebibliography}
 

@@ -58,14 +58,6 @@ Scheduling_Server (
         Preassigned  => YES),
    Scheduler                  => fps);
 
-Scheduling_Server (
-   Type                       => Regular,
-   Name                       => interrupt_server,
-   Server_Sched_Parameters    =>
-      ( Type         => Interrupt_FP_Policy,
-        The_Priority => 241),
-   Scheduler                  => fps);
-
 Shared_Resource (
    Type        => Immediate_Ceiling_Resource,
    Name        => request_buffer,
@@ -225,17 +217,6 @@ Operation (
         rb_extract_enclosing,
         ocp_operation,
         cancel_deadline_handler));
-
-Operation (
-   Type                       => Simple,
-   Name                       => eq_signal,
-   Worst_Case_Execution_Time  => 1.000E-06,
-   Avg_Case_Execution_Time  => 1.000E-06,
-   Best_Case_Execution_Time  => 1.000E-06,
-   Shared_Resources_To_Lock   =>
-      ( event_queue),
-   Shared_Resources_To_Unlock =>
-      ( event_queue));
 
 Operation (
    Type                       => Simple,
