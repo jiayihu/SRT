@@ -1099,6 +1099,44 @@ The deadline floor of a resource is computed as the minimum relative deadline of
 Nevertheless, the above disparity in resource access control can be ignored because of the worst-case behavior equivalence among SRP and DFP. 
 Indeed they lead to the same blocking time in the scheduling analysis.
 
+To write down an EDF MAST model, the preemption level for each Task must be defined according to SRP.
+A preemption level is inversely proportional to the Task relative deadline.
+
+\begin{table}[!htbp]
+   \centering
+   \begin{tabular}{lllll}
+     \toprule
+     Task name & Deadline (ms) & Preemption Level \\
+     \midrule
+     External\_Event\_Server & 100 & 40 \\
+     Regular\_Producer & 500 & 30 \\
+     On\_Call\_Producer & 800 & 20 \\
+     Activation\_Log\_Reader & 1000 & 10 \\
+     \bottomrule
+   \end{tabular}
+   \caption{Task set suggested Preemption Levels}
+   \label{tab:tasks-attributes}
+\end{table}
+
+The next step is to define a ceiling preemption level for each resource as the highest preemption level between any task accessing the resource.
+
+\begin{table}[!htbp]
+   \centering
+   \begin{tabular}{lllll}
+     \toprule
+     Resource name & Ceiling Preemption Level \\
+     \midrule
+     Request\_Buffer & 30 \\
+     Activation\_Log & 40 \\
+     Event\_Queue    & ?  \\
+     \bottomrule
+   \end{tabular}
+   \caption{Resource set Ceiling Preemption Levels}
+   \label{tab:tasks-attributes}
+\end{table}
+
+
+
 \section{Conclusions}
 
 Non funziona mai un cazzo.
