@@ -852,10 +852,6 @@ In addition, the analysis tools are subject to different restrictions \cite{mast
    \item \textit{Restricted\_Multipath\_Transactions\_Only}: checks that every transaction has a single input event, has no branch elements (Delivery or Query Servers), and has no Rate Divisors. It also checks that the transaction follows the set of allowed constructs mentioned in \cite{mast-restrictions}. This restriction is required by the Holistic analysis.
 \end{itemize}
 
-The transaction which defines the button interrupt event stream is considered as a linear transaction, since it only has one external event, but unfortunately it is not a Simple transaction since Activities are not executed by the same server. An Interrupt Scheduling Server first handles the Interrupt Service Routine and then a regular Scheduling Server executes the application handler defined by External\_Event\_Server.
-
-As a consequence, it's not possible to use the classic Rate Monotonic algorithm \cite{rm-dm} with our model and we are restricted to the traditional Holistic and the Offset-based tools. We believe the reason is that the Rate Monotonic assumes independent tasks, but the interrupt transaction is composed by an ISR executed by the Interrupt\_FP\_Server, followed by the interrupt handler in External Event Server, which is activated by the former and thus dependent on it for its activation.
-
 As final note, as of the time of writing, offset-based analysis with EDF tasks fallbacks to holistic analysis \cite{mast-analysis}, which in turn does not support shared resources in EDF yet.
 
 \section{FPS analysis}
@@ -866,7 +862,7 @@ To check that the system meets the deadlines, it suffices to run it for at least
 
 \subsection{Independent tasks}
 
-We start with an Holistic analysis of the initial system.
+We start with the Rate Monotonic analysis of the initial system.
 
 \begin{lstlisting}
 Optimum Resource Ceilings and Levels:
@@ -912,7 +908,7 @@ All transactions suffer jitter due to the system ticker interrupt running at the
    \item \textit{interrupt\_transaction}: it's the software level handler of the interrupt. It suffers no additional jitter other than the aforementioned overheads. Its blocking time is caused by the Activation\_Log\_Reader;
 \end{itemize}
 
-We shall now increase the Whetstone workload of factor 24 in the first three transactions, since 2477.0\% is the smallest slack of the three of them. The factor correponds to how much the execution time of all event responses can be increased while preserving system schedulability \cite{practitioner-growth}. We leave the Event\_Queue transaction intact because it doesn't contain any Whetstone operation. The new results are as shown in table \ref{tab:rm-fps-24}.
+We shall now increase the Whetstone workload of factor 24 in the first three transactions, since 2477.0\% is the smallest slack of the three of them. The factor correponds to how much the execution time of all event responses can be increased while preserving system schedulability \cite{practitioner-growth}. We leave the {interrupt\_transaction} intact because it doesn't contain any Whetstone operation. The new results are as shown in table \ref{tab:rm-fps-24}.
 
 \begin{longtable}{llllll}
    \toprule
@@ -954,7 +950,7 @@ The blocking times have not changed because protected operations are same as bef
    rp\_transaction & 0.485486  & 0.390625\% &  2.000E-06 & 0.002889 \\
    ocp\_transaction & 0.798039 & 0.390625\% & 1.000E-06 & 0.485698 \\
    alr\_transaction & 0.954730 & 28.13\% & 0.00 & 0.798644 \\
-   interrupt\_transaction & 2.102E-05 & >=100000.0\% & 1.000E-06 & 1.102E-05 \\
+   interrupt\_transaction & 2.102E-05 & 15421.1\% & 1.000E-06 & 1.102E-05 \\
    \toprule
    \toprule
    System slack & 0.390187\% \\
@@ -980,7 +976,7 @@ The system has reached utilisation 64.26\%. We now increase workload of Activati
    rp\_transaction & 0.485492  & 0.0\% &  2.000E-06 & 0.002889 \\
    ocp\_transaction & 0.798039 & 0.390625\% & 1.000E-06 & 0.485698 \\
    alr\_transaction & 0.997454 & 0.390625\% & 0.00 & 0.798809 \\
-   interrupt\_transaction & 2.102E-05 & >=100000.0\% & 1.000E-06 & 1.102E-05 \\
+   interrupt\_transaction & 2.102E-05 & 15421.1\% & 1.000E-06 & 1.102E-05 \\
    \toprule
    \toprule
    System slack & 0.390187\% \\
@@ -990,7 +986,7 @@ The system has reached utilisation 64.26\%. We now increase workload of Activati
 \label{tab:rm-fps-24-ocp-44-alr-56}
 \end{longtable}
 
-The maximum utilisation reached is about 65.68\%. The only transaction with significant slack left is \texttt{event\_queue}, but tests show that an increase of the WCET of factor 140 in the operation \textit{external\_event\_server} would improve the utilisation only up to 61.54\%, hence we can ignore it.
+The maximum utilisation reached is about 65.68\%. The only transaction with significant slack left is \texttt{interrupt\_transaction}, but tests show that an increase of the WCET of factor 154 in the operation \textit{external\_event\_server} would improve the utilisation only up to 65.71\%, hence we can ignore it.
 
 \subsection{Adding offsets}
 
@@ -1020,29 +1016,29 @@ MAST Offset-based analysis tools are able to derive such condition from the foll
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=5in]{images/transaction-rp-offset}
-\caption{\texttt{regular\_producer} transaction}
+\caption{Transaction A}
 \label{transaction-rp-offset}
 \end{figure}
 
-The {regular\_producer} transaction has a period of 3, representing the stand-alone RP instance.
+The transaction A has a period of 3, representing the stand-alone RP instance.
 
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=6.5in]{images/transaction-ocp-offset}
-\caption{\texttt{on\_call\_producer} transaction}
+\caption{Transaction B}
 \label{transaction-ocp-offset}
 \end{figure}
 
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=6.5in]{images/transaction-alr-offset}
-\caption{\texttt{activation\_log\_reader} transaction}
+\caption{Transaction C}
 \label{transaction-alr-offset}
 \end{figure}
 
-The {on\_call\_producer} and {activation\_log\_reader} transactions have also a period of 3 and include the RP job which activates the OCP and ALR jobs respectively. Both transactions have an initial offset from the external periodic event to differentiate each RP instance from the others.
+The transactions B and C have also a period of 3 and include the RP job which activates the OCP and ALR jobs respectively. Both transactions have an initial offset from the external periodic event to differentiate each RP instance from the others.
 
-The unfolding the of three transactions reproduces the timeline in Figure \ref{timeline-offsets}, assuming the Whetstone values reached by the previous analysis. It is clear from the timeline that there is possibility for the OCP and ALR jobs to expand their execution further without provoking any deadline miss. Nevertheless, the pessimistic Rate Monotonic analysis returns zero slack because of the possible interference between stand-alone tasks.
+The unfolding the of three transactions reproduces the timeline in Figure \ref{timeline-offsets}, assuming the Whetstone values reached by the previous analysis. It is clear from the timeline that there is possibility for the OCP and ALR jobs to further expand their executions without provoking any deadline miss. Nevertheless, the pessimistic Rate Monotonic analysis returns zero slack because of the possible interference between stand-alone tasks.
 
 \begin{figure}[!htbp]
 \centering
@@ -1064,11 +1060,11 @@ As can be seen below, the Offset Based Slanted analysis provides an improvement 
    \toprule
    Transaction & $R_{min}$ & $R_{max}$ & Slack & Worst blocking time & Jitter \\
    \midrule
-   rp\_transaction & 0.482597 & 1.454 & -66.02\% &  2.000E-06 & 0.971820 \\
-   ocp\_transaction RP & 1.483 & 2.454 & -66.02\% & 2.000E-06 & 0.971820 \\
-   ocp\_transaction OCP & 1.795 & 3.737 & -66.02\% & 1.000E-06 & 1.942 \\
-   alr\_transaction RP & 2.483 & 3.454 & -66.02\% & 2.000E-06 & 0.971820 \\
-   alr\_transaction ALR & 2.681 & 4.936 & -66.02\% & 0.00 & 2.255 \\
+   transaction\_a & 0.482597 & 1.454 & -66.02\% &  2.000E-06 & 0.971820 \\
+   transaction\_b RP & 1.483 & 2.454 & -66.02\% & 2.000E-06 & 0.971820 \\
+   transaction\_b OCP & 1.795 & 3.737 & -66.02\% & 1.000E-06 & 1.942 \\
+   transaction\_c RP & 2.483 & 3.454 & -66.02\% & 2.000E-06 & 0.971820 \\
+   transaction\_c ALR & 2.681 & 4.936 & -66.02\% & 0.00 & 2.255 \\
    interrupt\_transaction & 1.000E-05 & 2.102E-05 & -100.0\% & 1.000E-06 & 1.102E-05 \\
    \toprule
    \toprule
@@ -1098,11 +1094,11 @@ To be thorough, we provide a possible explanation of the jitters. The RP jitters
    \toprule
    Transaction & $R_{min}$ & $R_{max}$ & Slack & Worst blocking time & Jitter \\
    \midrule
-   rp\_transaction & 0.482597 & 1.454 & -66.02\% &  2.000E-06 & 0.971820 \\
-   ocp\_transaction RP & 1.483 & 2.454 & -66.02\% & 2.000E-06 & 0.971820 \\
-   ocp\_transaction OCP & 1.795 & \textbf{2.768} & -66.02\% & 1.000E-06 & \textbf{0.973028} \\
-   alr\_transaction RP & 2.483 & 3.454 & -66.02\% & 2.000E-06 & 0.971820 \\
-   alr\_transaction ALR & 2.681 & \textbf{3.967} & -66.02\% & 0.00 & \textbf{1.286} \\
+   transaction\_a & 0.482597 & 1.454 & -66.02\% &  2.000E-06 & 0.971820 \\
+   transaction\_b RP & 1.483 & 2.454 & -66.02\% & 2.000E-06 & 0.971820 \\
+   transaction\_b OCP & 1.795 & \textbf{2.768} & -66.02\% & 1.000E-06 & \textbf{0.973028} \\
+   transaction\_c RP & 2.483 & 3.454 & -66.02\% & 2.000E-06 & 0.971820 \\
+   transaction\_c ALR & 2.681 & \textbf{3.967} & -66.02\% & 0.00 & \textbf{1.286} \\
    interrupt\_transaction & 1.000E-05 & 2.102E-05 & -100.0\% & 1.000E-06 & 1.102E-05 \\
    \toprule
    \toprule
@@ -1136,11 +1132,11 @@ By removing the resource lock on Request\_Buffer, we obtain the results in table
     \toprule
     Transaction & $R_{min}$ & Worst blocking time & Jitter \\
     \midrule
-    rp\_transaction & 0.482597 &  \textbf{1.000E-06} & 0.971820 \\
-    ocp\_transaction RP & 1.483 & \textbf{1.000E-06} & 0.971820 \\
-    ocp\_transaction OCP & 1.795 & 1.000E-06 & \textbf{0.973028} \\
-    alr\_transaction RP & 2.483 & \textbf{1.000E-06} & 0.971820 \\
-    alr\_transaction ALR & 2.681 & 0.00 & \textbf{1.286} \\
+    transaction\_a & 0.482597 &  \textbf{1.000E-06} & 0.971820 \\
+    transaction\_b RP & 1.483 & \textbf{1.000E-06} & 0.971820 \\
+    transaction\_b OCP & 1.795 & 1.000E-06 & \textbf{0.973028} \\
+    transaction\_c RP & 2.483 & \textbf{1.000E-06} & 0.971820 \\
+    transaction\_c ALR & 2.681 & 0.00 & \textbf{1.286} \\
     interrupt\_transaction & 1.000E-05 & 1.000E-06 & 1.102E-05 \\
     \toprule
     \toprule
@@ -1171,11 +1167,11 @@ Actually, compared to the Rate Monotonic Analysis, RP can be increased by a tiny
     \toprule
     Transaction & $R_{min}$ & Worst blocking time \\
     \midrule
-    rp\_transaction & 0.497003 &  1.000E-06 \\
-    ocp\_transaction RP & 1.497 & 1.000E-06 \\
-    ocp\_transaction OCP & 1.995 & 1.000E-06 \\
-    alr\_transaction RP & 2.497 & 1.000E-06 \\
-    alr\_transaction ALR & 2.995 & 0.00 \\
+    transaction\_a & 0.497003 &  1.000E-06 \\
+    transaction\_b RP & 1.497 & 1.000E-06 \\
+    transaction\_b OCP & 1.995 & 1.000E-06 \\
+    transaction\_c RP & 2.497 & 1.000E-06 \\
+    transaction\_c ALR & 2.995 & 0.00 \\
     interrupt\_transaction & 1.000E-05 & 1.000E-06 \\
     \toprule
     \toprule
@@ -1185,7 +1181,7 @@ Actually, compared to the Rate Monotonic Analysis, RP can be increased by a tiny
    \label{tab:off-approx-w-pr-max-utilisation}
  \end{table}
 
-The concluding maximum utilisation, with proven runtime feasibility, of the FPS system is approximately 83.28\%. If we flatten the final transactions onto a single timeline, we obtain Figure \ref{timeline-flatten}. Within the hyperperiod of 3 seconds, or equivalently 6 blocks of 0.5seconds, there is only a single block of 0.5s of task idleness. The theoretical utilisation is then $5 / 6 = 0.8\bar{3}\%$, very close to the value provided by the MAST analysis.
+All the best-case response times are within the deadlines and the concluding maximum utilisation, with proven runtime feasibility, of the FPS system is approximately 83.28\%. If we flatten the final transactions onto a single timeline, we obtain Figure \ref{timeline-flatten}. Within the hyperperiod of 3 seconds, or equivalently 6 blocks of 0.5seconds, there is only a single block of 0.5s of task idleness. The theoretical utilisation is then $5 / 6 = 0.8\bar{3}\%$, very close to the value provided by the MAST analysis.
 
 \begin{figure}[!htbp]
    \centering
