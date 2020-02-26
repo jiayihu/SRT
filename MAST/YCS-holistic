@@ -339,9 +339,9 @@ Transaction (
    External_Events =>
       ( ( Type             => Sporadic,
           Name             => ocp_activation,
-          Avg_Interarrival => 5.000,
+          Avg_Interarrival => 0.000,
           Distribution     => UNIFORM,
-          Min_Interarrival => 5.000)),
+          Min_Interarrival => 3.000)),
    Internal_Events =>
       ( ( Type => Regular,
           Name => ocpo1,
@@ -362,7 +362,7 @@ Transaction (
    External_Events =>
       ( ( Type             => Sporadic,
           Name             => alr_activation,
-          Avg_Interarrival => 3.000,
+          Avg_Interarrival => 0.000,
           Distribution     => UNIFORM,
           Min_Interarrival => 3.000)),
    Internal_Events =>
