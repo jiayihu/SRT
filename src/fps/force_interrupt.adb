@@ -4,6 +4,7 @@ with Ada.Text_IO;
 with Ada.Exceptions; use Ada.Exceptions;
 with ST;              use ST;
 with ST.EXTI; use ST.EXTI;
+with Task_Metrics;
 
 package body Force_Interrupt is
    Period : constant Ada.Real_Time.Time_Span :=
@@ -18,6 +19,7 @@ package body Force_Interrupt is
       --  for tasks to achieve simultaneous activation
       Activation_Manager.Activation_Cyclic (Next_Time);
       loop
+         --  Task_Metrics.Start_Tracking;
          Next_Time := Next_Time + Period;
 
          EXTI.Software_Interrupt_Event_Register.Line :=
@@ -25,6 +27,7 @@ package body Force_Interrupt is
          Ada.Text_IO.Put_Line ("Interrupt generated");
 
          delay until Next_Time; --  delay statement at end of loop
+         --  Task_Metrics.End_Tracking;
       end loop;
    exception
       when Error : others =>

@@ -26,15 +26,15 @@ package body Activation_Log_Reader is
       --  for tasks to achieve simultaneous activation
       Activation_Manager.Activation_Sporadic;
       loop
+         --  Task_Metrics.Start_Tracking;
          --  suspending parameterless request of activation event
          Wait;
          Deadline_Miss.Set_Deadline_Handler (Deadline_Miss.ALR, Ada.Real_Time.Clock +
             Ada.Real_Time.Milliseconds (Activation_Log_Reader_Parameters.Activation_Log_Reader_Deadline));
-         --  Task_Metrics.Start_Tracking;
          --  non-suspending operation code
          Activation_Log_Reader_Parameters.Activation_Log_Reader_Operation;
-         --  Task_Metrics.End_Tracking;
          Deadline_Miss.Cancel_Deadline_handler (Deadline_Miss.ALR);
+         --  Task_Metrics.End_Tracking;
       end loop;
    exception
       when Error : others =>

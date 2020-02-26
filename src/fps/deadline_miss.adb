@@ -5,7 +5,7 @@ package body Deadline_Miss is
    Deadline_Events : Deadline_Events_Array;
 
    protected body Handler is
-      procedure Notify_Deadline_Miss (Event : in out Timing_Event) is   
+      procedure Notify_Deadline_Miss (Event : in out Timing_Event) is
       begin
          --raise Program_Error with "Detected deadline miss";
          for I in Task_Name loop

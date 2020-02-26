@@ -1125,7 +1125,7 @@ By removing the resource lock on Request\_Buffer, we obtain the results in table
 
 \begin{table}[!htbp]
    \centering
-   \begin{tabular}{lllll}
+   \begin{tabular}{llll}
     \toprule
     Task & WCET \\
     \midrule
@@ -1134,17 +1134,16 @@ By removing the resource lock on Request\_Buffer, we obtain the results in table
     activation\_log\_reader & 0.198645 \\
     \toprule
     \toprule
-    Transaction & $R_{min}$ & Slack & Worst blocking time & Jitter \\
+    Transaction & $R_{min}$ & Worst blocking time & Jitter \\
     \midrule
-    rp\_transaction & 0.482597 & -66.02\% &  \textbf{1.000E-06} & 0.971820 \\
-    ocp\_transaction RP & 1.483 & -66.02\% & \textbf{1.000E-06} & 0.971820 \\
-    ocp\_transaction OCP & 1.795 & -66.02\% & 1.000E-06 & \textbf{0.973028} \\
-    alr\_transaction RP & 2.483 & -66.02\% & \textbf{1.000E-06} & 0.971820 \\
-    alr\_transaction ALR & 2.681 & -66.02\% & 0.00 & \textbf{1.286} \\
-    interrupt\_transaction & 1.000E-05 & -100.0\% & 1.000E-06 & 1.102E-05 \\
+    rp\_transaction & 0.482597 &  \textbf{1.000E-06} & 0.971820 \\
+    ocp\_transaction RP & 1.483 & \textbf{1.000E-06} & 0.971820 \\
+    ocp\_transaction OCP & 1.795 & 1.000E-06 & \textbf{0.973028} \\
+    alr\_transaction RP & 2.483 & \textbf{1.000E-06} & 0.971820 \\
+    alr\_transaction ALR & 2.681 & 0.00 & \textbf{1.286} \\
+    interrupt\_transaction & 1.000E-05 & 1.000E-06 & 1.102E-05 \\
     \toprule
     \toprule
-    System slack & -65.55\% \\
     Total utilisation & 65.68\% \\
    \end{tabular}
    \caption{Offset-based analysis without \texttt{request\_buffer}}
@@ -1155,7 +1154,47 @@ The IPCP ensures the each task can be blocked at most once, at its beginning, by
 
 \subsubsection{Maximum utilisation}
 
-0.5 - 0.002889 = 0.497111
+Leveraging the newly defined offset-based model, we can try to achieve maximum system utilisation. By having a look at the unfolded timeline in Figure \ref{timeline-offsets}, it is evident that RP has already reached its maximum workload, but OCP can still increase up to approximately 0.5s and likewise ALR. Bearing in mind the possible jitter caused by the system ticker ($0.5 / 0.001 * 3.844E-06 = 0.001922$), both tasks can raise their execution time way to $0.5 - 0.001922 = 0.498078$.
+
+Actually, compared to the Rate Monotonic Analysis, RP can be increased by a tiny amount to get the WCET up to 0.5s as well. The final offset-based FPS analysis with maximum utilisation is displayed in Table \ref{tab:off-approx-w-pr-max-utilisation}.
+
+\begin{table}[!htbp]
+   \centering
+   \begin{tabular}{llll}
+    \toprule
+    Task & WCET \\
+    \midrule
+    regular\_producer & 0.496961 \\
+    on\_call\_producer & 0.497936 \\
+    activation\_log\_reader & 0.497844 \\
+    \toprule
+    \toprule
+    Transaction & $R_{min}$ & Worst blocking time \\
+    \midrule
+    rp\_transaction & 0.497003 &  1.000E-06 \\
+    ocp\_transaction RP & 1.497 & 1.000E-06 \\
+    ocp\_transaction OCP & 1.995 & 1.000E-06 \\
+    alr\_transaction RP & 2.497 & 1.000E-06 \\
+    alr\_transaction ALR & 2.995 & 0.00 \\
+    interrupt\_transaction & 1.000E-05 & 1.000E-06 \\
+    \toprule
+    \toprule
+    Total utilisation & 83.28\% \\
+   \end{tabular}
+   \caption{Offset-based analysis with max utilisation}
+   \label{tab:off-approx-w-pr-max-utilisation}
+ \end{table}
+
+The concluding maximum utilisation, with proven runtime feasibility, of the FPS system is approximately 83.28\%. If we flatten the final transactions onto a single timeline, we obtain Figure \ref{timeline-flatten}. Within the hyperperiod of 3 seconds, or equivalently 6 blocks of 0.5seconds, there is only a single block of 0.5s of task idleness. The theoretical utilisation is then $5 / 6 = 0.8\bar{3}\%$, very close to the value provided by the MAST analysis.
+
+\begin{figure}[!htbp]
+   \centering
+   \includegraphics[width=3in]{images/timeline-flatten}
+   \caption{Unfolded timeline}
+   \label{timeline-flatten}
+   \end{figure}
+
+Analytically the system utilisation is approximately $\sum_{i \in \{RP, OCP, ALR\}}{C_i \over T_i} = {0.5 \over 1} + {0.5 \over 3} + {0.5 \over 3} = {5 \over 6}$. Runtime overhead, such as system ticker or context switch, and also blocking times have been left out the formula given that they are negligible in the approximation.
 
 \section{EDF Analysis}
 
