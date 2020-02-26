@@ -857,7 +857,7 @@ Table \ref{tab:holistic-fps} first shows the WCET of the tasks as defined in the
    \item \textit{regular\_producer}: suffers additional jitter due to the system clock with granularity 1ms and the possible execution of the interrupt handler. Its blocking time is caused by the On\_Call\_Producer and the Activation\_Log\_Reader which have lower priorities but can access resources with higher ceiling priority than Regular\_Producer;
    \item \textit{ocp\_transaction}: suffers additional jitter due to interference by Regular\_Producer and the ISR. Its blocking time is caused the Activation\_Log\_Reader.;
    \item \textit{alr\_transaction}: suffers additional jitter due to interference by On\_Call\_Producer, Regular\_Producer and the ISR. It has no blocking time since it's the task with lowest priority;
-   \item \textit{interrupt\_transaction}: it's the software level handler of the interrupt. It suffers no additional jitter other than the aforementioned overheads. Its blocking time is caused by the External\_Event\_Server;
+   \item \textit{interrupt\_transaction}: it's the software level handler of the interrupt. It suffers no additional jitter other than the aforementioned overheads. Its blocking time is caused by the Activation\_Log\_Reader;
 \end{itemize}
 
 We shall now increase the Whetstone workload of factor 24 in the first three transactions, since 2477.0\% is the smallest slack of the three of them. The factor correponds to how much the execution time of all event responses can be increased while preserving system schedulability \cite{practitioner-growth}. We leave the Event\_Queue transaction intact because it doesn't contain any Whetstone operation. The new results are as shown in table \ref{tab:holistic-fps-24}.
@@ -1083,20 +1083,20 @@ EDF, in contrast to FPS, is an optimal scheduler and can handle a total utilizat
 
 Before we go any further, there are two issues to be addressed.
 
-First, as mentioned in chapter 7, MAST demands further restrictions for EDF analysis tools. 
-To keep consistency between Gee model and application, we had to discard Offset_Based_Approx and Holistic tools:
+First, as mentioned in chapter 7, MAST demands further restrictions for EDF analysis tools.
+To keep consistency between Gee model and application, we had to discard Offset\_Based\_Approx and Holistic tools:
 The former rollback to the latter, the latter lacks shared resources support.
-The last standing option was EDF_monoprocessor tool which implements the exact response time analysis for single-processor EDF systems.
-We are restricted to Simple_Transaction_Only and to be compliant, only an independent task set can be modeled.
-In addition, EDF_monoprocessor doesn't allow to take into account jitter related to system ticker.
+The last standing option was EDF\_monoprocessor tool which implements the exact response time analysis for single-processor EDF systems.
+We are restricted to Simple\_Transaction\_Only and to be compliant, only an independent task set can be modeled.
+In addition, EDF\_monoprocessor doesn't allow to take into account jitter related to system ticker.
 %We believe this is due to the inability to handle an interrupt without the notion of priority, stranger to EDF scheduling.
 
-The synchronization protocol required by EDF_monoprocessor is the well known Stack Resource Policy, while the runtime implementation uses the Deadline Floor Protocol (DFP).
+The synchronization protocol required by EDF\_monoprocessor is the well known Stack Resource Policy, while the runtime implementation uses the Deadline Floor Protocol (DFP).
 DFP is an EDF counterpart of IPCP, as outlined in section 1.1.
-Indeed, rather than assigning a ceiling priority to each shared resource, a deadline ﬂoor is computed and rather than raising the priority of a task to the resource's ceiling,
-the task reduces its current deadline to reﬂect the ﬂoor value of the resource.
+Indeed, rather than assigning a ceiling priority to each shared resource, a deadline floor is computed and rather than raising the priority of a task to the resource's ceiling,
+the task reduces its current deadline to reflect the floor value of the resource.
 The deadline floor of a resource is computed as the minimum relative deadline of any task accessing such resource.
-Nevertheless, the above disparity in resource access control can be ignored because of the worst-case behavior equivalence among SRP and DFP. 
+Nevertheless, the above disparity in resource access control can be ignored because of the worst-case behavior equivalence among SRP and DFP.
 Indeed they lead to the same blocking time in the scheduling analysis.
 
 To write down an EDF MAST model, the preemption level for each Task must be defined according to SRP.
