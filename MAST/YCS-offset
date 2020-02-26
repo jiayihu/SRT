@@ -60,12 +60,6 @@ Scheduling_Server (
 
 Shared_Resource (
    Type        => Immediate_Ceiling_Resource,
-   Name        => request_buffer,
-   Ceiling     => 7,
-   Preassigned => YES);
-
-Shared_Resource (
-   Type        => Immediate_Ceiling_Resource,
    Name        => activation_log,
    Ceiling     => 11,
    Preassigned => YES);
@@ -76,29 +70,29 @@ Shared_Resource (
    Ceiling     => 241,
    Preassigned => YES);
 
--- 1: 0.019291; 25: 0.482555; 25.77: 0.497414
+-- 1: 0.019291; 25: 0.482555; 25.68: 0.496961
 Operation (
    Type                       => Simple,
    Name                       => rp_small_whetstone,
-   Worst_Case_Execution_Time  => 0.482555,
-   Avg_Case_Execution_Time  => 0.482555,
-   Best_Case_Execution_Time  => 0.482555);
+   Worst_Case_Execution_Time  => 0.496961,
+   Avg_Case_Execution_Time  => 0.496961,
+   Best_Case_Execution_Time  => 0.496961);
 
--- 1: 0.007096; 25: 0.177452; 44: 0.312311
+-- 1: 0.007096; 25: 0.177452; 44: 0.312311, 69.97: 0.497936
 Operation (
    Type                       => Simple,
    Name                       => ocp_small_whetstone,
-   Worst_Case_Execution_Time  => 0.312311,
-   Avg_Case_Execution_Time  => 0.312311,
-   Best_Case_Execution_Time  => 0.312311);
+   Worst_Case_Execution_Time  => 0.497936,
+   Avg_Case_Execution_Time  => 0.497936,
+   Best_Case_Execution_Time  => 0.497936);
 
--- 1: 0.003549; 25: 0.088669; 44: 0.156053, 56: 0.198612
+-- 1: 0.003549; 25: 0.088669; 44: 0.156053, 56: 0.198612, 139.25: 0.497844
 Operation (
    Type                       => Simple,
    Name                       => alr_small_whetstone,
-   Worst_Case_Execution_Time  => 0.198612,
-   Avg_Case_Execution_Time  => 0.198612,
-   Best_Case_Execution_Time  => 0.198612);
+   Worst_Case_Execution_Time  => 0.497844,
+   Avg_Case_Execution_Time  => 0.497844,
+   Best_Case_Execution_Time  => 0.497844);
 
 Operation (
    Type                       => Simple,
@@ -119,22 +113,14 @@ Operation (
    Name                       => rb_deposit,
    Worst_Case_Execution_Time  => 2.000E-06,
    Avg_Case_Execution_Time  => 2.000E-06,
-   Best_Case_Execution_Time  => 2.000E-06,
-   Shared_Resources_To_Lock   =>
-      ( request_buffer),
-   Shared_Resources_To_Unlock =>
-      ( request_buffer));
+   Best_Case_Execution_Time  => 2.000E-06);
 
 Operation (
    Type                       => Simple,
    Name                       => rb_extract,
    Worst_Case_Execution_Time  => 2.000E-06,
    Avg_Case_Execution_Time  => 2.000E-06,
-   Best_Case_Execution_Time  => 2.000E-06,
-   Shared_Resources_To_Lock   =>
-      ( request_buffer),
-   Shared_Resources_To_Unlock =>
-      ( request_buffer));
+   Best_Case_Execution_Time  => 2.000E-06);
 
 Operation (
    Type                     => Enclosing,
