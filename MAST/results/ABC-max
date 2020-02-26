@@ -1,0 +1,127 @@
+MAST Version: 1.5.1.0
+Parsing input file: MAST/YCS-offset
+Calculating Transaction Slacks...
+Calculating Processing Resource Slacks...
+Calculating System Slack...
+Final invocation of the analysis tool...
+Results:
+Real_Time_Situation (
+   Generation_Tool    => "MAST Schedulability Analysis, version 1.5.1.0",
+   Generation_Profile => "mast_analysis offset_based_approx_w_pr -s MAST/YCS-offset",
+   Generation_Date    => 2020-02-26T17:33:34,
+   Results            => 
+       ((Type   => Slack,
+         Value  => -66.80%)));
+
+Transaction (
+   Name     => rp_transaction,
+   Results  => 
+       ((Type   => Slack,
+         Value  => -66.80%),
+        (Type                          => Timing_Result,
+         Event_Name                    => rpo1,
+         Num_Of_Suspensions            => 0,
+         Worst_Blocking_Time           => 1.000E-06,
+         Worst_Global_Response_Times   => 
+            ((Referenced_Event => e1,
+              Time_Value       => 1.498)),
+         Best_Global_Response_Times    => 
+            ((Referenced_Event => e1,
+              Time_Value       => 0.497003)),
+         Jitters                       => 
+            ((Referenced_Event => e1,
+              Time_Value       => 1.001)))));
+
+Transaction (
+   Name     => ocp_transaction,
+   Results  => 
+       ((Type   => Slack,
+         Value  => -66.80%),
+        (Type                          => Timing_Result,
+         Event_Name                    => rpo2,
+         Num_Of_Suspensions            => 0,
+         Worst_Blocking_Time           => 1.000E-06,
+         Worst_Global_Response_Times   => 
+            ((Referenced_Event => e2,
+              Time_Value       => 2.498)),
+         Best_Global_Response_Times    => 
+            ((Referenced_Event => e2,
+              Time_Value       => 1.497)),
+         Jitters                       => 
+            ((Referenced_Event => e2,
+              Time_Value       => 1.001))),
+        (Type                          => Timing_Result,
+         Event_Name                    => ocpo1,
+         Num_Of_Suspensions            => 0,
+         Worst_Blocking_Time           => 1.000E-06,
+         Worst_Global_Response_Times   => 
+            ((Referenced_Event => e2,
+              Time_Value       => 2.998)),
+         Best_Global_Response_Times    => 
+            ((Referenced_Event => e2,
+              Time_Value       => 1.995)),
+         Jitters                       => 
+            ((Referenced_Event => e2,
+              Time_Value       => 1.003)))));
+
+Transaction (
+   Name     => alr_transaction,
+   Results  => 
+       ((Type   => Slack,
+         Value  => -66.80%),
+        (Type                          => Timing_Result,
+         Event_Name                    => rpo3,
+         Num_Of_Suspensions            => 0,
+         Worst_Blocking_Time           => 1.000E-06,
+         Worst_Global_Response_Times   => 
+            ((Referenced_Event => e3,
+              Time_Value       => 3.498)),
+         Best_Global_Response_Times    => 
+            ((Referenced_Event => e3,
+              Time_Value       => 2.497)),
+         Jitters                       => 
+            ((Referenced_Event => e3,
+              Time_Value       => 1.001))),
+        (Type                          => Timing_Result,
+         Event_Name                    => alro1,
+         Num_Of_Suspensions            => 0,
+         Worst_Blocking_Time           => 0.000,
+         Worst_Global_Response_Times   => 
+            ((Referenced_Event => e3,
+              Time_Value       => 4.497)),
+         Best_Global_Response_Times    => 
+            ((Referenced_Event => e3,
+              Time_Value       => 2.995)),
+         Jitters                       => 
+            ((Referenced_Event => e3,
+              Time_Value       => 1.503)))));
+
+Transaction (
+   Name     => interrupt_transaction,
+   Results  => 
+       ((Type   => Slack,
+         Value  => -100.00%),
+        (Type                          => Timing_Result,
+         Event_Name                    => eqo1,
+         Num_Of_Suspensions            => 0,
+         Worst_Blocking_Time           => 1.000E-06,
+         Worst_Global_Response_Times   => 
+            ((Referenced_Event => button_click,
+              Time_Value       => 2.102E-05)),
+         Best_Global_Response_Times    => 
+            ((Referenced_Event => button_click,
+              Time_Value       => 1.000E-05)),
+         Jitters                       => 
+            ((Referenced_Event => button_click,
+              Time_Value       => 1.102E-05)))));
+
+Processing_Resource (
+   Name     => cpu,
+   Results  => 
+       ((Type   => Slack,
+         Value  => -66.54%),
+        (Type   => Utilization,
+         Total  => 83.28%)));
+
+Timing requirements not met
+Final analysis status: NOT-SCHEDULABLE
