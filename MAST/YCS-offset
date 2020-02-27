@@ -298,7 +298,7 @@ Operation (
 
 Transaction (
    Type            => regular,
-   Name            => rp_transaction,
+   Name            => transaction_A,
    External_Events =>
       ( ( Type       => Periodic,
           Name       => e1,
@@ -321,7 +321,7 @@ Transaction (
 
 Transaction (
    Type            => regular,
-   Name            => ocp_transaction,
+   Name            => transaction_B,
    External_Events =>
       ( ( Type       => Periodic,
           Name       => e2,
@@ -363,7 +363,7 @@ Transaction (
 
 Transaction (
    Type            => regular,
-   Name            => alr_transaction,
+   Name            => transaction_C,
    External_Events =>
       ( ( Type       => Periodic,
           Name       => e3,
