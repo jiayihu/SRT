@@ -9,6 +9,7 @@ with Task_Metrics;
 package body Activation_Log_Reader is
    use Ada.Real_Time;
 
+   Local_Deadline : Deadline_Miss.Deadline_Handler;
    Local_Suspension_Object : Ada.Synchronous_Task_Control.Suspension_Object;
    procedure Signal is
    begin
@@ -29,11 +30,11 @@ package body Activation_Log_Reader is
          --  Task_Metrics.Start_Tracking;
          --  suspending parameterless request of activation event
          Wait;
-         Deadline_Miss.Set_Deadline_Handler (Deadline_Miss.ALR, Ada.Real_Time.Clock +
+         Deadline_Miss.Set_Deadline_Handler (Local_Deadline, "ALR", Ada.Real_Time.Clock +
             Ada.Real_Time.Milliseconds (Activation_Log_Reader_Parameters.Activation_Log_Reader_Deadline));
          --  non-suspending operation code
          Activation_Log_Reader_Parameters.Activation_Log_Reader_Operation;
-         Deadline_Miss.Cancel_Deadline_handler (Deadline_Miss.ALR);
+         Deadline_Miss.Cancel_Deadline_handler (Local_Deadline);
          --  Task_Metrics.End_Tracking;
       end loop;
    exception

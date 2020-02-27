@@ -3,17 +3,23 @@ with Ada.Real_Time; use Ada.Real_Time;
 with Ada.Real_Time.Timing_Events; use Ada.Real_Time.Timing_Events;
 
 package Deadline_Miss is
-   type Task_Name is (RP, OCP, ALR);
-   type Deadline_Events_Array is array (Task_Name) of Timing_Event;
+   type Deadline_Handler is limited private;
 
-   protected Handler
+   procedure Set_Deadline_Handler (H: in out Deadline_Handler; Name : String; At_Time : in Time);
+   procedure Cancel_Deadline_Handler (H: in out Deadline_Handler);
+
+private
+   protected type Deadline_Handler
      with Priority =>
        System.Interrupt_Priority'Last
    is
       procedure Notify_Deadline_Miss (Event : in out Timing_Event);
-   end Handler;
 
-   procedure Set_Deadline_Handler (Name : Task_Name; At_Time : in Time);
+      procedure Set_Deadline_Handler (Name : String; At_Time : in Time);
+      procedure Cancel_Deadline_Handler;
 
-   procedure Cancel_Deadline_Handler (Name : Task_Name);
+      private
+         Tag : String(1..3) := "N/A";
+         Event : Timing_Event;
+   end Deadline_Handler;
 end Deadline_Miss;

@@ -9,6 +9,8 @@ with Task_Metrics;
 package body On_Call_Producer is
    use Ada.Real_Time;
 
+   Local_Deadline : Deadline_Miss.Deadline_Handler;
+
    --  to hide the implementation of the event buffer
    function Start (Activation_Parameter : Positive) return Boolean is
    begin
@@ -23,12 +25,12 @@ package body On_Call_Producer is
          --  Task_Metrics.Start_Tracking;
          --  suspending request for activation event with data exchange
          Current_Workload := Request_Buffer.Extract;
-         Deadline_Miss.Set_Deadline_Handler (Deadline_Miss.OCP, Ada.Real_Time.Clock +
+         Deadline_Miss.Set_Deadline_Handler (Local_Deadline, "OCP", Ada.Real_Time.Clock +
             Ada.Real_Time.Milliseconds (On_Call_Producer_Parameters.On_Call_Producer_Deadline));
          --  non-suspending operation code
          On_Call_Producer_Parameters.On_Call_Producer_Operation
            (Current_Workload);
-         Deadline_Miss.Cancel_Deadline_Handler (Deadline_Miss.OCP);
+         Deadline_Miss.Cancel_Deadline_Handler (Local_Deadline);
          --  Task_Metrics.End_Tracking;
       end loop;
    exception
