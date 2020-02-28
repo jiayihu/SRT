@@ -1,6 +1,12 @@
 with Ada.Real_Time;
+with Deadline_Miss;
+
 package Activation_Manager is
    use Ada.Real_Time;
+
+   OCP_Deadline : Deadline_Miss.Deadline_Handler;
+   ALR_Deadline : Deadline_Miss.Deadline_Handler;
+
    function Clock return Ada.Real_Time.Time renames Ada.Real_Time.Clock;
    --  global start time relative to which all periodic events
    --  in system will be scheduled
