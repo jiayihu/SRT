@@ -899,7 +899,7 @@ A first analysis suggests that smaller values can be used as ceilings for the pr
 \label{tab:rm-fps}
 \end{longtable}
 
-Table \ref{tab:rm-fps} first shows the WCET of the tasks as defined in the MAST model and which are controlled by the Whetstone workloads. Then the results of the analysis are displayed, containing the worst-case response time $R_{max}$, the slack, the blocking time and the jitter for each transaction. The MAST analysis tool provides also best-case response times $R_{min}$, but Rate Monotonic is a pessimistic analysis which assumes worst-case scenario at the critical istant, therefore only worst-case response time matters.
+Table \ref{tab:rm-fps} first shows the WCET of the tasks as defined in the MAST model and which are controlled by the Whetstone workloads. Then the results of the analysis are displayed, containing the worst-case response time $R_{max}$, the slack, the blocking time and the jitter for each transaction. The MAST analysis tool provides also best-case response times $R_{min}$, but Rate Monotonic is a pessimistic analysis which assumes worst-case scenario at the critical instant, therefore only worst-case response time matters.
 
 All transactions suffer jitter due to the system ticker interrupt running at the highest interrupt priority and the context switch overhead.
 
@@ -1261,9 +1261,9 @@ Based on the previous step, Figure \ref{tab:ceiling-preemption-level} show a sou
 \subsection{Edf\_monoprocessor analysis}
 
 EDF\_monoprocessor analysis is based on the technique developed by Spuri \cite{spuri}.\newline
-As depicted in Figure \ref{fig:spuri}, the worst case response time of a task $i$ is found in a busy period in which all other tasks are released 
-synchronously at $t=0$ and then at their maximum rate. Such busy period is characterized by $i$'s instance 
-released at time $t=a$, $a>=0$, possibly preceded by other instances of task $i$.
+As depicted in Figure \ref{fig:spuri}, the worst case response time of a task $i$ is found in a busy period in which all other tasks are released
+synchronously at $t=0$ and then at their maximum rate. Such busy period is characterized by $i$'s instance
+released at time $t=a$, $a \ge 0$, possibly preceded by other instances of task $i$.
 
 \begin{figure}[!htbp]
    \centering
@@ -1274,7 +1274,7 @@ released at time $t=a$, $a>=0$, possibly preceded by other instances of task $i$
 
 With this being said, the transactions of this model are exactly those outlined in §\ref{independent-tasks}.\newline
 Hence, four transaction each one composed of a single activity.\newline
-Feding EDF\_monoprocessor tool with a model entailing the highest small\_whetstone values established by offset-based analysis, 
+Feding EDF\_monoprocessor tool with a model entailing the highest small\_whetstone values established by offset-based analysis,
 lead to the result in figure \ref{tab:edf-monoprocessor}.
 
 \begin{table}[!htbp]
@@ -1303,11 +1303,11 @@ lead to the result in figure \ref{tab:edf-monoprocessor}.
    \label{tab:edf-monoprocessor}
  \end{table}
 
-As expected, this is an unfair comparison because a busy period in wich all tasks but one are released 
+As expected, this is an unfair comparison because a busy period in wich all tasks but one are released
 synchronously lead to a great pessimism in worst case response time.
 Figure \ref{fig:timeline-WCRT-RP} approximate the worst arrival pattern causing Regular\_Producer's WCRT.
-A glance at \ref{timeline-offsets} makes it clear: 
-Taking advantege of dependency, RP will never compete for the cpu with ALR because 
+A glance at \ref{timeline-offsets} makes it clear:
+Taking advantege of dependency, RP will never compete for the cpu with ALR because
 it's completion itself causes the release event of latter.
 
 \begin{figure}[!htbp]
@@ -1321,7 +1321,7 @@ Let's do a step back, what are the maximum Whetstone values that preserve a
 feasible scheduling?\newline
 Since classic\_rm is the fps counterpart between exact response time analysis
 for single-processor, it seems reasonable to take it into account.
-Indeed, edf\_monoprocessor results depected in figure \ref{tab:edf-mono-rate-mono} 
+Indeed, edf\_monoprocessor results depected in figure \ref{tab:edf-mono-rate-mono}
 are close to the one obtained with classic\_rm, under identical load.\newline
 We believe that the ephemeral slack surplus is due to the absence of the system ticker in edf analysis.
 That is, it doesn't take into account possible release jitters and interferences suffered by each task.
@@ -1364,13 +1364,13 @@ A job is said to overrun when it executes for more than its guaranteed execution
 
 Any algorithm for scheduling jobs with a potential for overrun should meet two criteria if it is to perform well. First, it should guarantee that jobs which do not overrun meet their deadlines and, second, the algorithm try to maximize the number of deadlines met.
 
-In this section, we compare the behaviour of our application under FPS and EDF during permanent overload situations, which occurr in literature when the system utilisation $U > 1$. In our case, our limit is not the theoretical full CPU utilisation 1, we have seen we should consider 0.83 and 0.65 as limits for FPS and EDF respectively.
+In this section, we compare the behaviour of our application under FPS and EDF during permanent overload situations, which occurr in literature when the system utilisation $U > 1$. In our case, our limit is not the theoretical full CPU utilisation 1, we have seen we should consider 0.83 as limits for both FPS and EDF.
+
+\subsection{FPS overloading}
 
 When tasks have fixed priorities, overruns of jobs in a task can never affect higher-priority tasks and it is possible to predict which tasks will miss their deadlines during an overload. Likewise, another equivalent point of view is that a permanent overload may cause a complete blocking of the lower priority tasks.
 
-We have observed this behaviour in our tests by increasing the RP worload of a small amount $\epsilon = 0.02$, reaching a WCET of approximately 0.52s. The hyperperiod $H$ considered must also be rescaled considering the ration between the overload utilisation $H^*$ and the previous utilisation $U$:
-
-$H^* = H * U*/U = 3 * ({0.52 \over 1} + {0.5 \over 3} + {0.5 \over 3})*{5 \over 6} \approx 3.07s$.
+We have observed this behaviour in our tests by increasing the RP workload of a small amount $\epsilon = 0.02s$, reaching a WCET of approximately 0.52s.
 
 \begin{lstlisting}
 Interrupt generated
@@ -1419,9 +1419,74 @@ End of parameterless sporadic activation.         1
 
 Runtime log and Figure \ref{timeline-overload-fps-ocp} show that an overload of OCP never impacts the higher-priority task RP which can meet all its deadlines. ALR will instead miss its deadline once again.
 
+\subsection{EDF overloading}
+
+In literature, the EDF exhibits an unstable behaviour during an overload: a late EDF job which has already missed its deadline has a higher-priority than a job whose deadline is still in the future. Consequently, if the execution of a late job is allowed to continue, it may cause the other jobs to be late.
+
+\begin{lstlisting}
+Interrupt generated
+Deadline Miss Detected -  RP
+End of cyclic activation.
+Deadline Miss Detected -  RP
+End of cyclic activation.
+End of sporadic activation.
+Deadline Miss Detected -  RP
+End of cyclic activation.
+Deadline Miss Detected -  RP
+End of cyclic activation.
+Deadline Miss Detected - ALR
+End of parameterless sporadic activation.         1
+\end{lstlisting}
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=6.5in]{images/timeline-overload-edf-rp}
+\caption{Timeline with overruning RP in EDF}
+\label{timeline-overload-edf-rp}
+\end{figure}
+
+A RP overload of $\epsilon = 0.02s$ causes the deadline miss of the ALR, as shown in the runtime log and Figure \ref{timeline-overload-edf-rp}, but OCP seems to meet its deadline nevertheless. This behaviour is apparently in contrast with the FPS overload with the same overruning task. However, if we consider a more significant overrun of $\epsilon = 0.25$ and expand the timeline beyond the hyperperiod, an interesting pattern emerges.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=6.5in]{images/timeline-overload-edf-extended}
+\caption{Extended timeline with overruning RP in EDF}
+\label{timeline-overload-edf-extended}
+\end{figure}
+
+All OCP jobs, except for the first instance, fail to meet the deadline and a regular pattern comprising the three tasks emerges as soon as the timeline goes beyond time instant 4. This peculiar EDF behaviour where there is an initial period of irregularity followed by regular executions and events is not exhibited by the analogous FPS algorithm with RP overruning of the same amount. In fixed-priority scheduling, all jobs miss their deadline and the regularity emerges from the first instant of execution.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=6.5in]{images/timeline-overload-fps-extended}
+\caption{Extended timeline with overruning RP in FPS}
+\label{timeline-overload-fps-extended}
+\end{figure}
+
+When the first task that misses its deadline causes all subsequent tasks to miss their deadlines, the effect is called \textit{the domino effect} \cite{value-deadline}. EDF is prone to the domino effect and it rapidly degrades its performance during overload intervals. This is due to the fact that EDF gives the highest priority to those processes that are close to missing their deadlines. Even worse, we note that a late job which has already missed its deadline has a higher-priority than a job whose deadline is still in the future \cite{fps-vs-edf}.
+
+The application under consideration doesn't seem to provoke domino effect. Although a permanent overload of RP causes all subsequent tasks to miss their deadline, it's trivial to show with a timeline that a transient overload of it causes a finite amount of following deadline misses then the system recovers. The same property holds for an overruning OCP, as made clear by Figure \ref{timeline-overload-edf-ocp}. We believe this is again because of the precedence relationships. Even if RP misses a deadline, the later OCP and ALR are not activated indipendently. They wait for RP completion and are more difficult subject to domino effect. Nevertheless, a difference between FPS and EDF is that, under the former, a transient overrun in task cannot cause tasks with higher priority to miss their deadlines, whereas under EDF any other task could miss its deadline.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=6.5in]{images/timeline-overload-edf-ocp}
+\caption{Timeline with overruning OCP in EDF}
+\label{timeline-overload-edf-ocp}
+\end{figure}
+
+In literature, an additional interesting property of EDF during permanent overloads is that it automatically performs a period rescaling, and tasks start behaving as they were executing at a lower rate \cite{buttazzo-rm-edf}. The following theorem has been proven by Celvin et al. (2002) \cite{cervin}:
+
+\textit{Assume a set of $n$ periodic tasks, where each task is described by a fixed period $T_i$, a fixed execution time $C_i$, a relative deadline $D_i$, and a release offset $\Phi_i$. If U > 1 and tasks are scheduled by EDF, then, in stationarity, the average period $\tilde{T}_i$ of each task $\tau_i$ is given by $\tilde{T}_i = T_iU$.}
+
+With our previous overruning case, the rescaling factor would be $(0.75 / 1 + 1/3) / 0.8333 \approx 1.3$. For instance RP should have period $\tilde{T}_{RP} = 1 \cdot 1.3 = 1.3s$, but actually its average period is still 1s. We believe this is because the theorem considers a set of indipendent tasks, whereas our application has OCP and ALR released by RP. The former two tasks have also larger relative deadline and therefore tend to cause less interference to RP. OCP and ALR do suffer a different period however, i.e. with an average period of 3.25s instead of $\tilde{T}_{OCP} = 3 * 1.3 = 3.9s$ for akin reasons. The average period seems to be dependent on the increase of utilisation $\tilde{T} = T + \epsilon$ rather than the final utilisation itself.
+
 \section{Conclusions}
 
 Non funziona mai un cazzo.
+
+In this paper we compared the behavior of the two most famous policies: the FPS and the EDF algorithm. EDF allows a theoretic full processor utilization, which implies a more efficient exploitation of computational resources but the statement doesn't hold in general with applications composed of dependant tasks.
+
+Predictability during overload conditions only apply for the highest priority task, and do not hold in general. However, such a property of FPS can be of little use if we do not know a priori which other task is going to overrun \cite{buttazzo-rm-edf}. Under instead permanent overload conditions, both the behaviors of FPS and EDF are predictable except for an initial interval, but deciding which one is better is highly application conditional.
 
 \bibliographystyle{unsrt}
 %\bibliography{references}  %%% Remove comment to use the external .bib file (using bibtex).
@@ -1515,6 +1580,11 @@ Jane W. S. W. Liu.
 Jane W. S. W. Liu.
 \newblock "Schedulability Test of Hierarchically Scheduled Periodic Tasks".
 \newblock In {\em Real-Time Systems}. pp 177-179. 2001.
+
+\bibitem{fps-vs-edf}
+Jane W. S. W. Liu.
+\newblock "Fixed-Priority versus Dynamic-Priority Algorithms".
+\newblock In {\em Real-Time Systems}. pp 117-124. 2001.
 
 \bibitem{debug-trace}
 Joseph Yiu.
@@ -1619,6 +1689,21 @@ M. Spuri.
 M. K. Gardner, J. W.S. Liu.
 \newblock "Performance of Algorithms for Scheduling Real-Time Systems with Overrun and Overload".
 \newblock In {\em Proceedings of 11th Euromicro Conference on Real-Time Systems. Euromicro RTS'99}. 9-11 June 1999.
+
+\bibitem{buttazzo-rm-edf}
+G.C. Buttazzo.
+\newblock "Rate Monotonic vs. EDF: Judgment Day".
+\newblock In {\em Real-Time Systems, 2005 - Springer}. 2005.
+
+\bibitem{cervin}
+A. Cervin, J. Eker, B. Bernhardsson, K.E. Arzén.
+\newblock "Feedback-Feedforward Scheduling of Control Tasks".
+\newblock In {\em Real-Time Systems, 2002 - Springer}. 2002.
+
+\bibitem{value-deadline}
+G. Buttazzo, M. Spuri, F. Sensini .
+\newblock "Value vs. Deadline Scheduling in Overload Conditions".
+\newblock In {\em Real-Time Systems, 2002 - Springer}. 2002.
 
 \end{thebibliography}
 
