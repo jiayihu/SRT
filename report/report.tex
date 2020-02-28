@@ -91,6 +91,8 @@ We have preferred the usage of a bare-board instead of the GNAT ARM emulator as 
 
 We shall start the paper assuming Fixed Priority Scheduling (FPS) since its behaviour is more predictable and easier to reason about, and then introduce the Earliest Deadline First (EDF) scheduling by means of their differences.
 
+The rest of the paper is organized as follows...
+
 \subsection{The application}
 
 \begin{figure}[!htbp]
@@ -1038,7 +1040,7 @@ The transaction A has a period of 3, representing the stand-alone RP instance.
 
 The transactions B and C have also a period of 3 and include the RP job which activates the OCP and ALR jobs respectively. Both transactions have an initial offset from the external periodic event to differentiate each RP instance from the others.
 
-The unfolding the of three transactions reproduces the timeline in Figure \ref{timeline-offsets}, assuming the Whetstone values reached by the previous analysis. It is clear from the timeline that there is possibility for the OCP and ALR jobs to further expand their executions without provoking any deadline miss. Nevertheless, the pessimistic Rate Monotonic analysis returns zero slack because of the possible interference between stand-alone tasks.
+The unfolding of the three transactions reproduces the timeline in Figure \ref{timeline-offsets}, assuming the Whetstone values reached by the previous analysis. It is clear from the timeline that there is possibility for the OCP and ALR jobs to further expand their executions without provoking any deadline miss. Nevertheless, the pessimistic Rate Monotonic analysis returns zero slack because of the possible interference between stand-alone tasks.
 
 \begin{figure}[!htbp]
 \centering
@@ -1253,6 +1255,67 @@ The next step is to define a ceiling preemption level for each resource as the h
 
 
 
+\section{Overloading}
+
+A job is said to overrun when it executes for more than its guaranteed execution time. We say that a system is overloaded when it is not schedulable on the basis of the maximum execution times of its tasks and hence it is likely that some jobs will miss their deadlines \cite{liu-overload}.
+
+Any algorithm for scheduling jobs with a potential for overrun should meet two criteria if it is to perform well. First, it should guarantee that jobs which do not overrun meet their deadlines and, second, the algorithm try to maximize the number of deadlines met.
+
+In this section, we compare the behaviour of our application under FPS and EDF during permanent overload situations, which occurr in literature when the system utilisation $U > 1$. In our case, our limit is not the theoretical full CPU utilisation 1, we have seen we should consider 0.83 and 0.65 as limits for FPS and EDF respectively.
+
+When tasks have fixed priorities, overruns of jobs in a task can never affect higher-priority tasks and it is possible to predict which tasks will miss their deadlines during an overload. Likewise, another equivalent point of view is that a permanent overload may cause a complete blocking of the lower priority tasks.
+
+We have observed this behaviour in our tests by increasing the RP worload of a small amount $\epsilon = 0.02$, reaching a WCET of approximately 0.52s. The hyperperiod $H$ considered must also be rescaled considering the ration between the overload utilisation $H^*$ and the previous utilisation $U$:
+
+$H^* = H * U*/U = 3 * ({0.52 \over 1} + {0.5 \over 3} + {0.5 \over 3})*{5 \over 6} \approx 3.07s$.
+
+\begin{lstlisting}
+Interrupt generated
+Deadline Miss Detected -  RP
+End of cyclic activation.
+Deadline Miss Detected -  RP
+End of cyclic activation.
+Deadline Miss Detected - OCP
+Deadline Miss Detected -  RP
+End of cyclic activation.
+End of sporadic activation.
+Deadline Miss Detected -  RP
+End of cyclic activation.
+Deadline Miss Detected - ALR
+End of parameterless sporadic activation.         1
+\end{lstlisting}
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=6.5in]{images/timeline-overload-fps-rp}
+\caption{Timeline with overruning RP}
+\label{timeline-overload-fps-rp}
+\end{figure}
+
+As proved by the runtime log and shown in the timeline in Figure \ref{timeline-overload-fps-rp}, an overruning RP affects all the lower-priority tasks and causes their deadline miss as well.
+
+\begin{lstlisting}
+Interrupt generated
+End of cyclic activation.
+End of cyclic activation.
+Deadline Miss Detected - OCP
+End of cyclic activation.
+Elapsed time: 0.530376517
+End of sporadic activation.
+End of cyclic activation.
+Deadline Miss Detected - ALR
+End of parameterless sporadic activation.         1
+\end{lstlisting}
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=6.5in]{images/timeline-overload-fps-ocp}
+\caption{Timeline with overruning OCP}
+\label{timeline-overload-fps-ocp}
+\end{figure}
+
+Runtime log and Figure \ref{timeline-overload-fps-ocp} show that an overload of OCP never impacts the higher-priority task RP which can meet all its deadlines. ALR will instead miss its deadline once again.
+
 \section{Conclusions}
 
 Non funziona mai un cazzo.
@@ -1448,6 +1511,11 @@ R. Wilhelm et al..
 M. Spuri.
 \newblock "Analysis of Deadline Scheduled Real-Time Systems".
 \newblock In {\em [Research Report] RR-2772, INRIA}. 1996.
+
+\bibitem{liu-overload}
+M. K. Gardner, J. W.S. Liu.
+\newblock "Performance of Algorithms for Scheduling Real-Time Systems with Overrun and Overload".
+\newblock In {\em Proceedings of 11th Euromicro Conference on Real-Time Systems. Euromicro RTS'99}. 9-11 June 1999.
 
 \end{thebibliography}
 
