@@ -33,11 +33,9 @@ package body On_Call_Producer is
          --  Task_Metrics.Start_Tracking;
          --  suspending request for activation event with data exchange
          Current_Workload := Request_Buffer.Extract;
-         Deadline_Miss.Set_Deadline_Handler (Local_Deadline, "OCP", Ada.Real_Time.Clock +
-            Ada.Real_Time.Milliseconds (On_Call_Producer_Deadline));
          --  non-suspending operation code
          On_Call_Producer_Operation (Current_Workload);
-         Deadline_Miss.Cancel_Deadline_Handler (Local_Deadline);
+         Deadline_Miss.Cancel_Deadline_Handler (Activation_Manager.OCP_Deadline);
          --  Task_Metrics.End_Tracking;
       end loop;
    exception
