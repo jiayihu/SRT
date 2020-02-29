@@ -128,7 +128,7 @@ Time-demand analysis can be usually depicted plotting the time-demand functions 
 \label{time-demand}
 \end{figure}
 
-\subsection{The application}
+\subsection{The application}\label{the-application}
 
 \begin{figure}[!htbp]
 \centering
@@ -940,8 +940,8 @@ All transactions suffer jitter due to the system ticker interrupt running at the
 
 \begin{itemize}
    \item \textit{regular\_producer}: suffers additional jitter due to the system clock with granularity 1ms and the possible execution of the interrupt handler. Its blocking time is caused by the On\_Call\_Producer and the Activation\_Log\_Reader which have lower priorities but can access resources with higher ceiling priority than Regular\_Producer;
-   \item \textit{ocp\_transaction}: suffers additional jitter due to interference by Regular\_Producer and the ISR. Its blocking time is caused the Activation\_Log\_Reader.;
-   \item \textit{alr\_transaction}: suffers additional jitter due to interference by On\_Call\_Producer, Regular\_Producer and the ISR. It has no blocking time since it's the task with lowest priority;
+   \item \textit{ocp\_transaction}: suffers additional jitter due to interference by Regular\_Producer. Its blocking time is caused the Activation\_Log\_Reader.;
+   \item \textit{alr\_transaction}: suffers additional jitter due to interference by On\_Call\_Producer and Regular\_Producer. It has no blocking time since it's the task with lowest priority;
    \item \textit{interrupt\_transaction}: it's the software level handler of the interrupt. It suffers no additional jitter other than the aforementioned overheads. Its blocking time is caused by the Activation\_Log\_Reader;
 \end{itemize}
 
@@ -1225,7 +1225,7 @@ All the best-case response times are within the deadlines and the concluding max
 \begin{figure}[!htbp]
    \centering
    \includegraphics[width=3in]{images/timeline-flatten}
-   \caption{Unfolded timeline}
+   \caption{Flattened timeline}
    \label{timeline-flatten}
    \end{figure}
 
@@ -1233,46 +1233,37 @@ Analytically the system utilisation is approximately $\sum_{i \in \{RP, OCP, ALR
 
 \section{EDF Analysis}
 
-The EDF scheduling is dynamic-priority algorithm that assigns priorities to individual jobs of a task based on its absolute deadline.
+The Earliest Deadline First (EDF) \cite{fps-vs-edf} scheduling is dynamic-priority algorithm that assigns priorities to individual jobs of a task based on its absolute deadline.
 In particular, the earlier the deadline, the higher the priority.
-An absolute deadline of a job is computed as its release event plus its relative deadline.
-Such relative deadline is a static attribute, missing in FPS algorithm, and corresponding to the maximum response time allowed to each job's task.
-%A job release causes the ready queue's re-ordering in which the job's position is inversely proportional to it's absolute deadline.
-%EDF is a dynamic-priority algorithm, indeed it assigns different priorities to the individual jobs.
+The absolute deadline of a job is computed as the sum of its release event plus its relative deadline. Such relative deadline is a static attribute, missing in FPS algorithm and corresponding to the maximum response time allowed to each task instance.
 
-The runtime adopted is an Ada Ravenscar runtime variant implementing an EDF scheduling coupled with Deadline Floor Protocol (DFP) locking.
-DFP \cite{resource-sharing} is the EDF counterpart of IPCP, outlined in section 1.1.
-Indeed, rather than assigning a ceiling priority to each shared resource, a deadline floor is computed and rather than raising the priority of a task
-to the resource's ceiling, the task reduces its current deadline to reflect the floor value of the resource.
-The deadline floor of a resource is computed as the minimum relative deadline of any task accessing such resource.
+The runtime we have adopted is an Ada Ravenscar runtime variant implementing an EDF scheduling coupled with the Deadline Floor Protocol (DFP) \cite{resource-sharing} as resource locking polocy.
 
-%Before we go any further, there are two issues to be addressed.
+DFP is the EDF counterpart of the Immediate Priority Ceiling Protocol (IPCP), outlined in Section \ref{the-application}. Indeed, rather than assigning a ceiling priority to each shared resource $r_i$, a deadline floor value $D^i$ is computed as the minimum relative deadline of any task accessing such resource.
 
-\subsection{MAST Restrictions}
+Besides, instead of raising the priority of a task to the resource's ceiling, when a task $\tau_i$ released at time $s$ accesses resource $r_i$ at time $t$ (so $s < t$) its relative deadline is immediately reduced to $D^i$. As a result, its active absolute deadline $d_i$ is also (potentially) reduced to $d_i \leftarrow min\{t + D^i, s + D_i\}$. Finally, when the task frees the resource its deadline immediately returns to its original value.
 
-First, as mentioned in §\ref{mast-analysis}, MAST demands further restrictions for EDF analysis tools.\newline
-To keep consistency between our application and its model, we had to discard Offset-based and Holistic analisys tools:
-the former rollback to the latter, the latter lacks shared resources support.\newline
-The last standing option was EDF Monoprocessor tool which implements the exact response time analysis for single-processor EDF systems.
-Unfortunately, Simple\_Transaction\_Only restriction (§\ref{mast-analysis}) forbids a sequence of activities executed by different servers.
-Hence, dependency between scheduling servers cannot be expressed.
+Clearly, the IPCP for fixed-priority systems and DFP for dynamic-priority systems are structurally equivalent. FPS uses a ceiling value as dispatching urgency, whereas a floor value is expected as earlier deadline under EDF.
 
-%\subsection{Resource Access Control}
-%cos'è SRP
-Stack Resource Policy (SRP) \cite{resource-sharing} is the synchronization protocol required by the EDF Monoprocessor tool.
-Under SRP each job is assigned a preemption level inversely proportional to the task relative deadline.
-In turn, each resource is assigned a ceiling preemption level defined as the maximum preemption level of any job that may access it.
-Defining the system ceiling as the highest ceiling of all the resources which are held by some job at any time t, allow the definition of SRP locking policy:
-a job can acquire a given resource if and only if its preemption level is higher than the system ceiling.
+\subsection{A MAST model for EDF}
 
-%è comparabile?
-Nevertheless the disparity in resource access control protocols between runtime implementation and MAST can be ignored because of
-the worst-case behavior equivalence among SRP and DFP.
-Indeed they lead to the same blocking time in the scheduling analysis \cite{resource-sharing}.
+Unfortunately, as mentioned in Section \ref{mast-analysis}, MAST requires even stricter restrictions for EDF analysis tools than FPS. The Offset-based analysis is not yet available for EDF at the time of writing, and rollbacks to the Holistic analysis, which in turn does not yet support shared resources. Therefore, we had to discard both Offset-based and Holistic analisys tools.
 
-%MAST
-To write down a suitable MAST model, the preemption level for each Task must be set according to SRP.
-An available assignment is the one in Figure \ref{tab:preemption-levels}.
+The last standing option was the EDF Monoprocessor tool, which implements the exact response time analysis for single-processor in EDF systems. Unfortunately, the \textit{Simple\_Transaction\_Only} restriction (§\ref{mast-analysis}) forbids definining a transaction comprising a sequence of activities executed by different Execution Servers. Hence, dependency contraints between the task releases could not be expressed.
+
+In addition, the EDF Monoprocessor analysis is able to support only Stack Resource Policy (SRP) \cite{resource-sharing} as resource access protocol. Under SRP, each job is assigned a preemption level $\pi(\tau_i)$ inversely proportional to the task relative deadline $D_i$, e.g. $\pi(\tau_i) < \pi(\tau_j) \Leftrightarrow D_i > D_j$.
+
+In turn, each resource is assigned a ceiling preemption level $\Pi(r_i)$ defined as the maximum preemption level of any job that may access it. After defining the system ceiling $\hat{pi}$ as the highest ceiling of all the resources which are held by some job at any time $t$, the following definition of the SRP locking policy is provided. A job $j_i$ released at time $t$ can start execution only if:
+
+\begin{itemize}
+   \item the absolute deadline of this job ($t + D_i$) is the earliest deadline of the active requests in the task set;
+   \item its preemption level is higher than the system ceiling $\pi(r_i) > \hat{\pi}$.
+\end{itemize}
+
+Nevertheless, the disparity in resource access control protocols between runtime implementation and MAST can be ignored because of
+the worst-case bound equivalence between SRP and DFP \cite{resource-sharing}. Indeed they lead to even the same worst blocking time analysis.
+
+As a result, within the MAST model, we must provide the preemption level for each task according to the SRP. An available assignment is displayed in Table \ref{tab:preemption-levels}.
 
 \begin{table}[!htbp]
    \centering
@@ -1286,11 +1277,11 @@ An available assignment is the one in Figure \ref{tab:preemption-levels}.
      Activation\_Log\_Reader & 1000 & 10 \\
      \bottomrule
    \end{tabular}
-   \caption{Task set Preemption Levels}
+   \caption{Preemption Levels for the task set}
    \label{tab:preemption-levels}
 \end{table}
 
-Based on the previous step, Figure \ref{tab:ceiling-preemption-level} show a sound definition of resource ceilings.
+According to the newly defined preemption levels, Table \ref{tab:ceiling-preemption-level} shows a correct definition of the resource ceilings.
 
 \begin{table}[!htbp]
    \centering
@@ -1300,33 +1291,27 @@ Based on the previous step, Figure \ref{tab:ceiling-preemption-level} show a sou
      \midrule
      Request\_Buffer & 30 \\
      Activation\_Log & 40 \\
+     Event\_Queue & 50 \\
      \bottomrule
    \end{tabular}
-   \caption{Resource set Ceiling Preemption Levels}
+   \caption{Ceiling Preemption Levels for the resource set}
    \label{tab:ceiling-preemption-level}
 \end{table}
 
-\subsection{Edf Monoprocessor analysis}
+\subsection{EDF Monoprocessor analysis}
 
-EDF Monoprocessor tool is based on the analysis developed by Spuri \cite{spuri}.\newline
-As depicted in Figure \ref{fig:spuri}, the worst case response time (WCRT) of a task $i$ is found in a busy period $[t_{1},t_{2}]$
-in which all other tasks are released synchronously at $t=0$ and then at their maximum rate.
-Such busy period is characterized by $i$'s instance released at time $t=a$, $a>=0$, possibly preceded by other instances of
-task $i$.
-Note: $t_{2}$ it's the completion time of $i$.
+The EDF Monoprocessor tool is based on the formal analysis developed by Spuri \cite{spuri}, which considers the busy period to study the feasibility of the schedule. As depicted in Figure \ref{fig:spuri}, the worst case response time (WCRT) of a task $\tau_i$ is found in a busy period $[t_{1},t_{2}]$ in which all other tasks are released synchronously at $t=0$ and then at their maximum rate. Such busy period is characterized by the job $j_i$ released at time $t=a$, $a \ge 0$, preceded by other jobs of any task which do not let the CPU idle, possible by other instances of task $\tau_i$ itself. $t_1$ is the the first instant preceding the release of $j_i$ without CPU idleness, whereas $t_{2}$ is the completion time of the job $i$ under consideration.
 
 \begin{figure}[!htbp]
    \centering
    \includegraphics[width=5in]{images/spuri}
-   \caption{Busy period (a) possibly leading to i's WCRT (b) \cite{spuri}}
+   \caption{Busy period (a) leading to the job $j_i$ WCRT (b) \cite{spuri}}
    \label{fig:spuri}
 \end{figure}
 
-With this being said, the transactions of this model are exactly those in the FPS model with independent task set as
-outlined in §\ref{independent-tasks}.\newline
-Hence, four transaction each one composed of a single activity.\newline
-Feeding EDF Monoprocessor tool with a model entailing the highest small\_Whetstone values reached by Offset-based analysis,
-lead to the result in figure \ref{tab:EDF-monoprocessor}.
+With this being said, the transactions of this model are exactly those in the FPS model with independent task set as outlined in §\ref{independent-tasks}. Thus we still have four transaction, each one composed of a single activity.
+
+As workload values, we have set the best values reached by the Offset-based analysis and fed the model to the EDF Monoprocessor analysis to compare the two tools. The results for the latter are pasted in Table \ref{tab:EDF-monoprocessor}.
 
 \begin{table}[!htbp]
    \centering
@@ -1342,9 +1327,9 @@ lead to the result in figure \ref{tab:EDF-monoprocessor}.
     Transaction & $R_{max}$ & Slack & Worst blocking time & Jitter \\
     \midrule
     rp\_transaction        & 0.992883  & -99.22\%   & 2.000E-06  & 0.495880 \\
-    ocp\_transaction       & 1.293     & -99.22\%   & 2.000E-06  & 0.794917  \\
-    alr\_transaction       & 1.493     & -100.00\%  & 2.000E-06  & 0.995006   \\
-    interrupt\_transaction & 0.592882  & -100.00\%  & 1.000E-06  & 0.592872    \\
+    ocp\_transaction       & 1.293     & -99.22\%   & 2.000E-06  & 0.794917 \\
+    alr\_transaction       & 1.493     & -100.00\%  & 2.000E-06  & 0.995006 \\
+    interrupt\_transaction & 0.592882  & -100.00\%  & 1.000E-06  & 0.592872 \\
     \toprule
     \toprule
     System slack & -32.98\% \\
@@ -1354,11 +1339,7 @@ lead to the result in figure \ref{tab:EDF-monoprocessor}.
    \label{tab:EDF-monoprocessor}
  \end{table}
 
-As expected, this is an unfair comparison because a busy period in wich all tasks but one are released
-synchronously leads to a great pessimism in worst case response time.
-Figure \ref{fig:timeline-WCRT-RP} approximate the worst arrival pattern causing Regular\_Producer's WCRT.
-Taking advantage of dependency, RP will never compete for the cpu with ALR because the completion of the former
-causes the release event of latter.
+As expected, this is an unfair comparison because a busy period in which all tasks but one are released synchronously leads to a great pessimism in the worst case response time. Figure \ref{fig:timeline-WCRT-RP} presents the worst arrival pattern considered by MAST to cause the WCRT of Regular\_Producer. However, because of the dependencies between release events, RP will never compete for the CPU with ALR because it is completion of the former with provokes the release event of latter and without overloading the two tasks are never active simultaneous.
 
 \begin{figure}[!htbp]
    \centering
@@ -1367,18 +1348,9 @@ causes the release event of latter.
    \label{fig:timeline-WCRT-RP}
 \end{figure}
 
-%Let's do a step back, what are the maximum Whetstone values that preserve a
-%feasible scheduling?\newline
-Since Rate Monotonic is the FPS counterpart between exact response time analysis
-for single-processor, it seems reasonable to take it as a touchstone.
-Indeed, EDF Monoprocessor results depected in figure \ref{tab:EDF-mono-rate-mono}
-are close to the one obtained with Rate Monotonic, under identical load.\newline
-%why?
-%Although the specific critical instant differs between Rate Monotonic and EDF Monoprocessor analisys, both are
+A more fair comparison would pick Rate Monotonic analysis as the FPS counterpart as response time analysis tool for single-processor, since both assume tasks to be standalone. Indeed, providing the best workloads achieved previously via Rate Monotonic, EDF Monoprocessor prints the results in Table \ref{tab:EDF-mono-rate-mono}. The slack values are close to the previous FPS results and the reason can be found again in Figure \ref{fig:timeline-WCRT-RP}. Assuming this pessimistic case, no further significant improvement can be made to any task workload without missing a deadline.
 
-%side note
-We believe that the ephemeral slack surplus experienced is due to the absence of the system ticker in EDF analysis.
-That is, it doesn't take into account possible release jitters and interferences suffered by each task.
+We believe instead that the slight slack improvement is due to the absence of the system ticker in EDF analysis, that is it doesn't take into account the possible release jitters and interferences suffered by each task.
 
 \begin{table}[!htbp]
    \centering
@@ -1410,23 +1382,18 @@ To sum up, MAST can ensure a relatively poor utilisation under EDF scheduling be
 aren't allowed to maintain consistency between model and application.
 We may question what is the real performance granted by such dynamic-scheduling.
 
-\subsection{Board}
+\subsection{Runtime behaviour}
 
-EDF is an optimal scheduler and can handle a total utilization up to 1.
-In advance, any feasible pre-emptive schedule can be easily transformed into an EDF pre-emptive schedule
-without affecting its feasibility. % \cite{}.
-Hence, we expect the EDF runtime to perform at least as well as the FPS counterpart in terms of utilisation handled.
+Despite the pessimistic MAST analysis results, EDF is an optimal scheduler and can handle a theoretic total utilization up to 1. In addition, any feasible preemptive FPS schedule can be transformed into an EDF schedule without affecting its feasibility \cite{spuri}. Hence, we expect the EDF runtime to perform at least as well as the FPS counterpart under the maximum workload reached with Offset-based analysis §\ref{maximum-utilisation}.
 
 \begin{figure}[!htbp]
    \centering
    \includegraphics[width=6in]{images/timeline-edf-offsets}
-   \caption{GEE execution under EDF scheduling with maximum utilisation}
+   \caption{Application execution under EDF scheduling with maximum utilisation}
    \label{fig:timeline-edf-offsets}
 \end{figure}
 
-Figure \ref{fig:timeline-edf-offsets} exhibits the schedule produced by EDF up to
-the hyperperiod $H=3$. Total utilisation of 83.28\%, tested against FPS scheduling
-in §\ref{maximum-utilisation}, is given by Whetstone values in Table \ref{tab:Whet-max-util}
+Figure \ref{fig:timeline-edf-offsets} exhibits the schedule produced by EDF up to the hyperperiod $H=3$. The total utilisation of 83.28\% is given by the Whetstone values in Table \ref{tab:Whet-max-util}.
 
 \begin{table}[!htbp]
    \centering
@@ -1439,19 +1406,17 @@ in §\ref{maximum-utilisation}, is given by Whetstone values in Table \ref{tab:W
     activation\_log\_reader & 0.497844 \\
     \toprule
    \end{tabular}
-   \caption{Whetstone values leading to maximum utilisation}
+   \caption{Whetstone values leading to maximum FPS and EDF utilisation}
    \label{tab:Whet-max-util}
  \end{table}
 
-Despite EDF optimality, observing the aforementioned timeline,
-there is no room for utilisation increasing:
-RP already runs at zero laxity, OCP and ALR cannot exceed an execution time of 0.5 seconds
-without causing a fatal release jitter to RP itself.\newline
-As a side consideration, both EDF and FPS algorithm under those timing constraints lead to the
-same schedule. Since FPS's priorities comply a deadline monotonic assignment and no job with
-a longer relative deadline is released before a job subject to a shorter one, consistency
-between those schedules is guaranteed.
-%Note that the above observation applys only for a not overload system.
+\newpage
+
+Despite the EDF optimality, by observing the aforementioned timeline, there is unfortunately no room for utilisation increase. RP already runs at zero laxity, whereas OCP and ALR cannot exceed an execution time of 0.5 seconds without causing a fatal release jitter to RP itself.
+
+This is further proved by noting that both EDF and FPS algorithms lead to same schedule of our application, under the condition that no tasks misses its deadline. FPS assigns priorities inversely proportional to the relative deadline $D_i$, whereas EDF calculates them inversely proportional to the absolute deadline $d_i$. In general, the relation $D_i < D_j \Leftrightarrow d_i < d_j$ does not hold, but in our specific case we can demonstrate it's valid.
+
+Given a pair of task $\tau_i$ and $\tau_j$, for the task $\tau_i$ with relative deadline $D_i > D_j$ to have absolute deadline $d_i < d_j$ it must be released at time $t_i < t_j$, i.e. for OCP to have a lower absolute deadline than RP. But under the condition that no task overruns, this situation is clearly not possible. Both OCP and ALR are always activated by the RP and they complete before the next release of RP. This proves that, within our application with precedence relations, $D_i < D_j \Leftrightarrow d_i < d_j$ and therefore both algorithms assign the same priority.
 
 \subsection{Blocking Time}
 Reasoning with the timeline \ref{fig:timeline-edf-offsets}, explain why the blocking time
@@ -1802,6 +1767,11 @@ M. Spuri.
 M. K. Gardner, J. W.S. Liu.
 \newblock "Performance of Algorithms for Scheduling Real-Time Systems with Overrun and Overload".
 \newblock In {\em Proceedings of 11th Euromicro Conference on Real-Time Systems. Euromicro RTS'99}. 9-11 June 1999.
+
+\bibitem{carletto-edf}
+P. Carletto, T. Vardanega.
+\newblock "Ravenscar-EDF: Comparative Benchmarking of an EDF Variant of a Ravenscar Runtime".
+\newblock In {\em Ada-Europe 2017: Reliable Software Technologies – Ada-Europe 2017}. pp 18-33. 2017.
 
 \bibitem{resource-sharing}
 A. Burns
