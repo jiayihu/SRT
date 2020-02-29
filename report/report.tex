@@ -91,7 +91,42 @@ We have preferred the usage of a bare-board instead of the GNAT ARM emulator as 
 
 We shall start the paper assuming Fixed Priority Scheduling (FPS) since its behaviour is more predictable and easier to reason about, and then introduce the Earliest Deadline First (EDF) scheduling by means of their differences.
 
-The rest of the paper is organized as follows...
+The rest of the paper is organized as follows. The remaining Section 1 will provide an introduction to the fixed-priority scheduling and analysis, the application under consideration and some general notions of the Ada tasking model. A more formal description of our system is then presented in Section 2, followed by considerations about measuring the execution times and detecting deadline misses in Section 3 and 4 respectively. \\
+Section 5 offers and in-depth description of the MAST model and its available analysis tools. Later, Sections 6 provides the insight of our FPS analysis with both stand-alone tasks and precedence relations, followed by a comparative EDF analysis in Section 7. Lastly, Section 8 includes some considerations of both systems under overload, whereas conclusions are contained in Section 8.
+
+\subsection{Fixed-priority scheduling and analysis}
+
+In the fixed priority system under analysis, each task is assigned a static priority and the schedule is generated based on the current priority value. According to the Rate Monotonic analysis \cite{rm-dm}, the fixed priorities are ordered based on the rates, so the task with the smallest period receives the highest priority. The rate (of job releases) of a task is the inverse of its period.
+
+Another well-known fixed-priority algorithm is the Deadline Monotonic algorithm \cite{rm-dm}. This algorithm assigns priorities to tasks according their relative deadlines: the shorter the relative deadline, the higher the priority.
+
+Clearly, when the relative deadline of every task is proportional to its period, the two algorithms are identical. When the relative deadlines are arbitrary, the Deadline Monotonic algorithm performs better in the sense that it can sometimes produce a feasible schedule when the Rate Monotonic algorithm fails, while the RM algorithm always fails when the DM algorithm fails.
+
+The schedulability analysis uses as inputs the given tasks of periods $T_i$ and execution times $C_i$  and checks one task $\tau_i$ at a time to determine whether the response times of all its jobs are equal to or less than its relative deadline $D_i$.
+
+FPS analysis do not count on any relationship among the release times to hold, and identifies the worst-case combination of release times of any job  of task $\tau_i$, and all the jobs in the other tasks that have higher priorities. This combination is the worst because the response time of a job released under this condition is the largest possible for all combinations of release times.
+
+This worst-case time instant is called the critical instant and corresponds to when the job is released at the same time with a job in every higher-priority task, that is all of the latter tasks are in phase. This is the case where the response time of the task is the largest and the analysis checks that it's still equal to or less than its relative deadline $D_i$.
+
+To determine whether a task can meet all its deadlines, an analysis called time-demand analysis computes the total demand for processor time by a job released at a critical instant of the task and by all the higher-priority tasks as a function of time from the critical instant. It then checks whether this demand can be met before the deadline of the job.
+
+To carry out the time-demand analysis on the taskset, we consider one task at a time, starting from the task $\tau_1$ with the highest priority in order of decreasing priority.
+Assuming $t_0$ as the release time of the job from task $\tau_i$ at the critical instant, at time $t_0 + t$, for $t \ge 0$, the total (processor) time demand $w_i(t)$ of this job and all the higher-priority jobs released in $[t_0, t]$ is given by the following formula for $0 < t \le T_i$
+
+$$
+w_i(t) = C_i + \sum_{k=1}^{i-1} \lceil {t \over p_k} \rceil C_k
+$$
+
+If $w_i(t) > t$ for all $0 < t \le D_i$, this job cannot complete by its deadline; $\tau_i$, and hence the given system of tasks, cannot be feasibly scheduled by the fixed-priority algorithm.
+
+Time-demand analysis can be usually depicted plotting the time-demand functions as in Figure \ref{time-demand}.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=4in]{images/time-demand}
+\caption{Time-demand analysis example of four tasks $(T, C_i)$: (3,1), (5, 1.5), (7, 1.25), and (9, 0.5)}
+\label{time-demand}
+\end{figure}
 
 \subsection{The application}
 
@@ -158,7 +193,7 @@ This protocol effectively prevents any task from starting to execute until all t
    \label{tab:po-attributes}
 \end{table}
 
-\section{Ada tasking model}
+\subsection{Ada tasking model}
 
 In the Ada Ravenscar, a periodic task has an infinite loop within which there is a self-suspension statement that ensures that the task executes regularly \cite{ada-tasks}:
 
@@ -824,7 +859,7 @@ Transaction (
 
 The push-button interrupt event stream is modeled as triggered by a sporadic event of 5s as minimum interarrival time and it's handled by the \texttt{external\_event\_server} job at software priority. The interrupt handler at hardware interrupt priority has not been modeled since it's execution time is negligible.
 
-\section{MAST analysis}\label{mast-analysis}
+\subsection{MAST analysis}\label{mast-analysis}
 
 As of the time of writing, MAST is at version 1.5.1 and supports the analysis tools \cite{mast-analysis} in Figure \ref{mast-analysis-tools}. The techniques relevant for this paper are:
 
@@ -1150,6 +1185,8 @@ By removing the resource lock on Request\_Buffer, we obtain the results in table
 
 The IPCP ensures the each task can be blocked at most once, at its beginning, by a single lower-priority task \cite{ada-pcp}. Then the removal of the lock on Request\_Buffer reduces the maximum blocking time suffered the tasks to a value equal to the execution time of the lowest priority Activation\_Log\_Reader within the shared resource Activation\_Log.
 
+Parlare di push-through blocking
+
 \subsubsection{Maximum utilisation}
 
 Leveraging the newly defined offset-based model, we can try to achieve maximum system utilisation. By having a look at the unfolded timeline in Figure \ref{timeline-offsets}, it is evident that RP has already reached its maximum workload, but OCP can still increase up to approximately 0.5s and likewise ALR. Bearing in mind the possible jitter caused by the system ticker ($0.5 / 0.001 * 3.844E-06 = 0.001922$), both tasks can raise their execution time way to $0.5 - 0.001922 = 0.498078$.
@@ -1465,7 +1502,9 @@ All OCP jobs, except for the first instance, fail to meet the deadline and a reg
 
 When the first task that misses its deadline causes all subsequent tasks to miss their deadlines, the effect is called \textit{the domino effect} \cite{value-deadline}. EDF is prone to the domino effect and it rapidly degrades its performance during overload intervals. This is due to the fact that EDF gives the highest priority to those processes that are close to missing their deadlines. Even worse, we note that a late job which has already missed its deadline has a higher-priority than a job whose deadline is still in the future \cite{fps-vs-edf}.
 
-The application under consideration doesn't seem to provoke domino effect. Although a permanent overload of RP causes all subsequent tasks to miss their deadline, it's trivial to show with a timeline that a transient overload of it causes a finite amount of following deadline misses then the system recovers. The same property holds for an overruning OCP, as made clear by Figure \ref{timeline-overload-edf-ocp}. We believe this is again because of the precedence relationships. Even if RP misses a deadline, the later OCP and ALR are not activated indipendently. They wait for RP completion and are more difficult subject to domino effect. Nevertheless, a difference between FPS and EDF is that, under the former, a transient overrun in task cannot cause tasks with higher priority to miss their deadlines, whereas under EDF any other task could miss its deadline.
+The application under consideration doesn't seem to provoke domino effect. Although a permanent overload of RP causes all subsequent tasks to miss their deadline, it's trivial to show with a timeline that a transient overload of it causes a finite amount of following deadline misses then the system recovers. The same property holds for an overruning OCP, as made clear by Figure \ref{timeline-overload-edf-ocp}. We believe this is again because of the precedence relationships. Even if RP misses a deadline, the later OCP and ALR are not activated indipendently. They wait for RP completion and are more difficult subject to domino effect.
+
+Nevertheless, a difference between FPS and EDF is that, under the former, a transient overrun in task cannot cause tasks with higher priority to miss their deadlines, whereas under EDF any other task could miss its deadline. That is, the latter does not provide any type of guarantee on which tasks will meet their timing constraints.
 
 \begin{figure}[!htbp]
 \centering
@@ -1487,6 +1526,8 @@ Non funziona mai un cazzo.
 In this paper we compared the behavior of the two most famous policies: the FPS and the EDF algorithm. EDF allows a theoretic full processor utilization, which implies a more efficient exploitation of computational resources but the statement doesn't hold in general with applications composed of dependant tasks.
 
 Predictability during overload conditions only apply for the highest priority task, and do not hold in general. However, such a property of FPS can be of little use if we do not know a priori which other task is going to overrun \cite{buttazzo-rm-edf}. Under instead permanent overload conditions, both the behaviors of FPS and EDF are predictable except for an initial interval, but deciding which one is better is highly application conditional.
+
+Nevertheless, what we have presented in this paper is just a shallow insight. Further work is surely needed to better explore the implications of relation dependencies in FPS and EDF overload.
 
 \bibliographystyle{unsrt}
 %\bibliography{references}  %%% Remove comment to use the external .bib file (using bibtex).
