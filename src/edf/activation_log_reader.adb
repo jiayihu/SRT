@@ -39,13 +39,11 @@ package body Activation_Log_Reader is
       loop
          --  suspending parameterless request of activation event
          Wait;
-         Deadline_Miss.Set_Deadline_Handler (Local_Deadline, "ALR", Ada.Real_Time.Clock +
-            Ada.Real_Time.Milliseconds (Activation_Log_Reader_Deadline));
          --  Task_Metrics.Start_Tracking;
          --  non-suspending operation code
          Activation_Log_Reader_Operation;
          --  Task_Metrics.End_Tracking;
-         Deadline_Miss.Cancel_Deadline_handler (Local_Deadline);
+         Deadline_Miss.Cancel_Deadline_handler (Activation_Manager.ALR_Deadline);
       end loop;
    exception
       when Error : others =>

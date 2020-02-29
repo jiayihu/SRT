@@ -4,22 +4,29 @@ with Activation_Log_Reader;
 with Auxiliary;
 with Ada.Text_IO;
 with Task_Metrics;
+with Activation_Manager;
+with Deadline_Miss;
+with Ada.Real_Time;
+with On_Call_Producer_Parameters;
+with Activation_Log_Reader_Parameters;
 
 package body Regular_Producer_Parameters is
+   use Ada.Real_Time;
+
    --  approximately 5,001,000 processor cycles of Whetstone load
    --  on an ERC32 (a radiation-hardened SPARC for space use) at 10 Hz
-   Regular_Producer_Workload : constant Positive := Positive (756 * 25);
+   Regular_Producer_Workload : constant Positive := Positive (756 * 27);
    --  approximately 2,500,500 processor cycles
-   On_Call_Producer_Workload : constant Positive := Positive (278 * 44);
+   On_Call_Producer_Workload : constant Positive := Positive (278 * 69.97);
    --  the parameter used to query the condition
    --  for the activation of On_Call_Producer
    Activation_Condition : constant Auxiliary.Range_Counter := 2;
    procedure Regular_Producer_Operation is
    begin
-      --  Task_Metrics.Start_Tracking;
+      Task_Metrics.Start_Tracking;
       --  we execute the guaranteed level of workload
       Production_Workload.Small_Whetstone (Regular_Producer_Workload);
-      --  Task_Metrics.End_Tracking;
+      Task_Metrics.End_Tracking;
       --  then we check whether we need to farm excess load out to
       --  On_Call_Producer
       if Auxiliary.Due_Activation (Activation_Condition) then
@@ -29,10 +36,14 @@ package body Regular_Producer_Parameters is
             --  we capture and report failed activation
             Ada.Text_IO.Put_Line ("Failed sporadic activation.");
          end if;
+         Deadline_Miss.Set_Deadline_Handler (Activation_Manager.OCP_Deadline, "OCP", Ada.Real_Time.Clock +
+            Ada.Real_Time.Milliseconds (On_Call_Producer_Parameters.On_Call_Producer_Deadline));
       end if;
       --  we check whether we need to release Activation_Log
       if Auxiliary.Check_Due then
          Activation_Log_Reader.Signal;
+         Deadline_Miss.Set_Deadline_Handler (Activation_Manager.ALR_Deadline, "ALR", Ada.Real_Time.Clock +
+            Ada.Real_Time.Milliseconds (Activation_Log_Reader_Parameters.Activation_Log_Reader_Deadline));
       end if;
       --  finally we report nominal completion of the current activation
       Ada.Text_IO.Put_Line ("End of cyclic activation.                         ");
