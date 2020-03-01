@@ -85,7 +85,8 @@ Notably, the Ravenscar profile \cite{ycs} is a subset of the tasking model, rest
 
 Along with the Ravenscar profile, we have used a model for representing the temporal and logical elements of real-time applications, called MAST \cite{mast}. This model allows a very rich description of the system, including the effects of event or message-based synchronization, multiprocessor and distributed architectures as well as shared resource synchronization.
 
-The bare-board used throughout our analysis is the STM32F429I-Discovery, along with the \texttt{ravenscar-full-stm32f429disco} runtime environment for supporting the Ravenscar restricted tasking model. The runtime implementation is provided GNAT, a free-software compiler for the Ada language, is based upon the Open Ravenscar Real-Time Kernel \cite{ork}, whose design document can help the reader to understand the runtime source code.
+The bare-board used throughout our analysis is the STM32F429I-Discovery, a low-cost and easy-to-use development kit to start a development with an STM32F4 microcontroller and equipped with an Arm Cortex-M4 core.
+The board has been used along with the \texttt{ravenscar-full-stm32f429disco} runtime environment for supporting the Ravenscar restricted tasking model. The runtime implementation is provided GNAT, a free-software compiler for the Ada language, is based upon the Open Ravenscar Real-Time Kernel \cite{ork}, whose design document can help the reader to understand the runtime source code.
 
 We have preferred the usage of a bare-board instead of the GNAT ARM emulator as we have noticed significant variance with the execution times measured on the latter. The board also includes an ST-LINK/V2 embedded debug tool, which can halt the processor, insert/remove breakpoints and execute instructions line by line \cite{debug-trace}.
 
@@ -193,25 +194,6 @@ This protocol effectively prevents any task from starting to execute until all t
    \label{tab:po-attributes}
 \end{table}
 
-\subsection{Software interrupts}
-As mentioned in §\ref{the-application}, the system may receive interrupt requests (IR) from an external manual push-button.\newline
-Such IR is handled by NVIC Interrupt Controller, causing the execution of the specific Interrupt Service Routine (ISR)
-whose memory address is stored in the Vector Table.\newline %citare ARM Manual
-To achieve automation, it's possible to trigger an IR via software.\newline
-Through system package ST.EXTI we gain access to the STM32F4 Interrupts and Events registers (EXTI).
-Hence, writing the interrupt line in Software\_Interrupt\_Event\_Register sets the 
-pending bit of the interrupt.
-
-\begin{lstlisting}[language=Ada]
-   EXTI.Software_Interrupt_Event_Register.Line :=
-           (Button_Line => True, others => False);
-   Ada.Text_IO.Put_Line ("Interrupt generated");
-\end{lstlisting}
-
-Adding a new periodic task to the system whose loop body execute the code in the listing,
-allows the worst case sporadic behaviour of External\_Event\_Server task with a minimum
-interarrival time equal to the IR generating task period.
-
 \subsection{Ada tasking model}
 
 In the Ada Ravenscar, a periodic task has an infinite loop within which there is a self-suspension statement that ensures that the task executes regularly \cite{ada-tasks}:
@@ -270,6 +252,44 @@ end Sporadic_Controller;
 \end{lstlisting}
 
 The task body for an event-triggered task that conforms to the Ravenscar Profile typically has, as its last statement, an outermost infinite loop whose first statement is either a call to a protected entry or a call to a Suspension Object \cite{ycs}. The Suspension Object is used when no other effect is required in the signalling operation; for example, no data is to be transferred from signaller to waiter. In contrast, the protected entry is used for more elaborate event signalling, when additional operations must accompany the resumption of the event-triggered task.
+
+\subsection{Software interrupts}
+As mentioned above, the system may receive interrupt requests (IR) from an external manual push-button. Such IR is handled by the NVIC Interrupt Controller, which a part of the Cortex-M processor that handles the exceptions and the interrupt configurations, prioritization and masking \cite{arm}.
+
+To automate the arrival of interrupts throughout our following analysis, we periodically trigger an IR via software by using a Software Trigger Interrupt Register (STIR). We first define a system package \texttt{ST.EXTI} where we gain access to the STM32F4 Interrupts and Events registers. Then, setting a pending bit (1) to the appropriate interrupt line in the STIR triggers the IR for the external push-button.
+
+Lastly, the whole process is executed within a new periodic task Force\_Interrupt whose loop body simulates the worst-case sporadic behaviour of the interrupt. The worst-case happens when the subsequent interrupts arrive at the minimum interarrival time, used as period of the task.
+
+\begin{lstlisting}[language=Ada]
+with Ada.Real_Time; use Ada.Real_Time;
+with Ada.Text_IO;
+with ST; use ST;
+with ST.EXTI; use ST.EXTI;
+
+package body Force_Interrupt is
+   Period : constant Ada.Real_Time.Time_Span :=
+      Ada.Real_Time.Milliseconds (5000);
+   Button_Line : constant Interrupt_Line := 0;
+   --  The User Button is connected to EXTI0 (aka Line 0)
+
+   task body Force_Interrupt is
+      --  for periodic suspension
+      Next_Time : Ada.Real_Time.Time;
+   begin
+      loop
+         Next_Time := Next_Time + Period;
+
+         EXTI.Software_Trigger_Interrupt_Register.Line :=
+            (Button_Line => True, others => False);
+         Ada.Text_IO.Put_Line ("Interrupt generated");
+
+         delay until Next_Time; --  delay statement at end of loop
+      end loop;
+   end Force_Interrupt;
+end Force_Interrupt;
+\end{lstlisting}
+
+The overhead introduced by the newly defined task is negligible and thus will not be considered during the different analysis of the paper.
 
 \section{System model and notation}\label{model-notation}
 
@@ -1204,7 +1224,7 @@ By removing the resource lock on Request\_Buffer, we obtain the results in table
 
 The IPCP ensures the each task can be blocked at most once, at its beginning, by a single lower-priority task \cite{ada-pcp}. Then the removal of the lock on Request\_Buffer reduces the maximum blocking time suffered the tasks to a value equal to the execution time of the lowest priority Activation\_Log\_Reader within the shared resource Activation\_Log.
 
-Parlare di push-through blocking
+A further in-depth analysis is presented later in Section \ref{edf-blocking-time}, which gathers the observations for both FPS and EDF blocking times actually suffered by our application..
 
 \subsubsection{Maximum utilisation} \label{maximum-utilisation}
 
@@ -1437,19 +1457,18 @@ This is further proved by noting that both EDF and FPS algorithms lead to same s
 
 Given a pair of task $\tau_i$ and $\tau_j$, for the task $\tau_i$ with relative deadline $D_i > D_j$ to have absolute deadline $d_i < d_j$ it must be released at time $t_i < t_j$, i.e. for OCP to have a lower absolute deadline than RP. But under the condition that no task overruns, this situation is clearly not possible. Both OCP and ALR are always activated by the RP and they complete before the next release of RP. This proves that, within our application with precedence relations, $D_i < D_j \Leftrightarrow d_i < d_j$ and therefore both algorithms assign the same priority.
 
-\subsection{Blocking Time}
-Reasoning with the timeline \ref{fig:timeline-edf-offsets}, explain why the blocking time
-suffered by each job equals zero.
-%As pointed out in §\ref{}, with a precedence relation between RP and OCP a concurrent
-%access to request\_buffer resource it's not reasonable.
-That is, a high-priority job won't be suspended waiting for a lower-priority job to complete its
-use of a (non-preemptable) resource.\newline
-A high priority task $\tau_{h}$, under DFP locking protocol, can be blocked by a lower priority task
-$\tau_{l}$ when its dynamic priority is temporaly raised above or at $\tau_{h}$ one.
-This form of blocking, termed Push-through Blocking, it's alien to the current task set because
-each task never releases a job without completing before the release event of
-an higher priority job.
+\subsection{Blocking Time}\label{edf-blocking-time}
+A further consideration can be made about the blocking time by reasoning with the timeline in Figure \ref{fig:timeline-edf-offsets}. The blocking time suffered by each job is equal to zero, except for one case, for that no higher-priority job will be suspended waiting for a lower-priority job to complete its use of a (non-preemptable) resource.
 
+Since DFP is structurally equivalent to PCP, there are three kinds of possible blocking \cite{ada-pcp}.
+
+\begin{enumerate}
+   \item Direct blocking, a situation in which a higher priority task attempts to lock a locked semaphore. In our application, this may happen only between ALR and External\_Event\_Server (EES), which have indipendent release events. Direct blocking cannot happen between RP and OCP, again because they are never simultaneously active;
+   \item Push-through blocking happens when a medium priority task can be blocked by a lower priority task, which inherits the priority of a high priority task. In our analysis, the only plausible case would be RP being push-blocked by ALR, which receives the priority of EES. However, since ALR is activated when RP terminates and vice versa, this situation cannot happen between the two tasks;
+   \item Ceiling blocking, which is when a task of higher priority attempts to lock a resource free from utilization, but it is prevented since its priority is not greater than the priority ceilings of all semaphores that are currently locked by other tasks. Clearly, this situation doesn't happen in our application, where each task has at most a single shared resource.
+\end{enumerate}
+
+Because of the comparability between PCP and DFP and the schedule correspondence between FPS and EDF with our taskset, the aforementioned observations about the blocking time can be made also for the fixed-priority application.
 
 \section{Overloading}
 
@@ -1597,6 +1616,11 @@ Nevertheless, what we have presented in this paper is just a shallow insight. Fu
 A Burns, B Dobbing, T Vardanega.
 \newblock "Guide for the use of the Ada Ravenscar Profile in high integrity systems".
 \newblock In {\em University of York Technical Report YCS-2003-348}. January 2003.
+
+\bibitem{arm}
+J. Yiu.
+\newblock "The Definitive Guide to ARM Cortex-M3 and Cortex-M4 Processors".
+\newblock October 2013.
 
 \bibitem{ork}
 Juan A. de la Puente, José F. Ruiz, Juan Zamorano.
