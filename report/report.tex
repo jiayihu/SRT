@@ -22,7 +22,7 @@
    basicstyle=\ttfamily\footnotesize
 }
 
-\title{MAST analysis of a Ravenscar application with FPS and EDF scheduling}
+\title{MAST analysis of a Ravenscar precedence-constrained application with FPS and EDF scheduling}
 
 %\date{September 9, 1985}	% Here you can change the date presented in the paper title
 %\date{} 					% Or removing it
@@ -66,7 +66,7 @@
 \maketitle
 
 \begin{abstract}
-\lipsum[1]
+This paper describes a hard real-time application built with the Ravenscar profile of the Ada programming language and running on a real-time kernel of reduced size and complexity. The application is comprised by several tasks whose activation events present dependency relationships and this characteristic allow interesting considerations during the different analysis we provide. We consider the same tasks under both Fixed-Priority Scheduling (FPS) and Earliest Deadline First (EDF) and evaluate different metrics like response time, jitters and blocking times. Throughout the sections, we also test the ability of the MAST analysis tools to describe a formal model of dependent tasks and to check their deadline satisfaction. Lastly, we offer some insight on the behaviour of both FPS and EDF systems under permanent and transient overload as showcase of how classic real-time considerations may be revaluated to consider dependent tasks.
 \end{abstract}
 
 
@@ -86,7 +86,7 @@ Notably, the Ravenscar profile \cite{ycs} is a subset of the tasking model, rest
 Along with the Ravenscar profile, we have used a model for representing the temporal and logical elements of real-time applications, called MAST \cite{mast}. This model allows a very rich description of the system, including the effects of event or message-based synchronization, multiprocessor and distributed architectures as well as shared resource synchronization.
 
 The bare-board used throughout our analysis is the STM32F429I-Discovery, a low-cost and easy-to-use development kit to start a development with an STM32F4 microcontroller and equipped with an Arm Cortex-M4 core.
-The board has been used along with the \texttt{ravenscar-full-stm32f429disco} runtime environment for supporting the Ravenscar restricted tasking model. The runtime implementation is provided GNAT, a free-software compiler for the Ada language, is based upon the Open Ravenscar Real-Time Kernel \cite{ork}, whose design document can help the reader to understand the runtime source code.
+The board has been used along with the \texttt{ravenscar-full-stm32f429disco} runtime environment for supporting the Ravenscar restricted tasking model. The runtime implementation is provided GNAT, a free-software compiler for the Ada language, is based upon the Open Ravenscar Real-Time Kernel \cite{ork}, hich provides full conformance with the Ravenscar profile.
 
 We have preferred the usage of a bare-board instead of the GNAT ARM emulator as we have noticed significant variance with the execution times measured on the latter. The board also includes an ST-LINK/V2 embedded debug tool, which can halt the processor, insert/remove breakpoints and execute instructions line by line \cite{debug-trace}.
 
@@ -1596,13 +1596,17 @@ With our previous overruning case, the rescaling factor would be $(0.75 / 1 + 1/
 
 \section{Conclusions}
 
-Non funziona mai un cazzo.
+We have started off the analysis by seeing the uses of offsets as a mechanism to improve the consistency between a formal model and the runtime execution of a real-time application subject to precedence relations. In turn, this has helped to reduce the pessimism in the fixed-priority analysis and offsets have proved to be extremely useful in increasing the schedulability of a given task set.
 
-In this paper we compared the behavior of the two most famous policies: the FPS and the EDF algorithm. EDF allows a theoretic full processor utilization, which implies a more efficient exploitation of computational resources but the statement doesn't hold in general with applications composed of dependant tasks.
+Throughout this paper, we have used MAST as model for describing real-time applications and representing not only the characteristics of the architecture of the application, but also the hard real-time requirements that are imposed. However, we believe there is still some scheduling theory needed to eliminate some of the restrictions. The combination of all the restrictions have posed a serious blocking issue in our ability to describe a consistent model which could lead to a sound analysis of maximum utilisation. From our experience, the most important missing pieces the enhancement of the offset-based event analysis between transactions, to make it less pessimist, and the support for EDF offset-based analysis of linear transactions.
 
-Predictability during overload conditions only apply for the highest priority task, and do not hold in general. However, such a property of FPS can be of little use if we do not know a priori which other task is going to overrun \cite{buttazzo-rm-edf}. Under instead permanent overload conditions, both the behaviors of FPS and EDF are predictable except for an initial interval, but deciding which one is better is highly application conditional.
+Besides, in this paper we compared the behavior of the two most famous policies: the FPS and the EDF algorithm. EDF allows a theoretic full processor utilization, which implies a more efficient exploitation of computational resources but the statement doesn't hold in general with applications composed of dependant tasks.
 
-Nevertheless, what we have presented in this paper is just a shallow insight. Further work is surely needed to better explore the implications of relation dependencies in FPS and EDF overload.
+At the same time, predictability during overload conditions only apply for the highest priority task, and it is not valid in general for the other tasks. Such a property of FPS can be of little use if we do not know a priori which other task is going to overrun \cite{buttazzo-rm-edf}. Under permanent overload conditions, both the behaviors of FPS and EDF are predictable except for an initial interval, but deciding which one is better is highly application conditional. Nevertheless, what we have presented in this paper is just a shallow insight. Further work is surely needed to better explore the implications of relation dependencies in FPS and EDF overload.
+
+In this paper, we have also introduced the Deadline-Floor Protocol for controlling access to shared resources within the EDF scheduling framework. This protocol has already been proved to equivalent to the Stack Resource Protocol, the defacto protocol to use with EDF, by A. Burns (2005) \cite{resource-sharing}. We have instead shown that the combination EDF+DFP can exhibit the same schedule and blocking times of FPS+IPCP in system where job releases are not stand-alone but rather form a chain.
+
+Indeed, we believe that the implications of precedence constraints are worth to be the subject of further research.
 
 \bibliographystyle{unsrt}
 %\bibliography{references}  %%% Remove comment to use the external .bib file (using bibtex).
@@ -1619,8 +1623,8 @@ A Burns, B Dobbing, T Vardanega.
 
 \bibitem{arm}
 J. Yiu.
-\newblock "The Definitive Guide to ARM Cortex-M3 and Cortex-M4 Processors".
-\newblock October 2013.
+\newblock "Exceptions and Interrupts".
+\newblock In {\em The Definitive Guide to ARM Cortex-M3 and Cortex-M4 Processors}. October 2013.
 
 \bibitem{ork}
 Juan A. de la Puente, José F. Ruiz, Juan Zamorano.
@@ -1817,7 +1821,7 @@ P. Carletto, T. Vardanega.
 \newblock In {\em Ada-Europe 2017: Reliable Software Technologies – Ada-Europe 2017}. pp 18-33. 2017.
 
 \bibitem{resource-sharing}
-A. Burns
+A. Burns.
 \newblock "A Deadline-Floor Inheritance Protocol for EDF Scheduled Embedded Real-Time Systems with Resource Sharing"
 \newblock Technical Report YCS-2012-476, Department of Computer Science, University of York, UK.
 
