@@ -193,6 +193,25 @@ This protocol effectively prevents any task from starting to execute until all t
    \label{tab:po-attributes}
 \end{table}
 
+\subsection{Software interrupts}
+As mentioned in §\ref{the-application}, the system may receive interrupt requests (IR) from an external manual push-button.\newline
+Such IR is handled by NVIC Interrupt Controller, causing the execution of the specific Interrupt Service Routine (ISR)
+whose memory address is stored in the Vector Table.\newline %citare ARM Manual
+To achieve automation, it's possible to trigger an IR via software.\newline
+Through system package ST.EXTI we gain access to the STM32F4 Interrupts and Events registers (EXTI).
+Hence, writing the interrupt line in Software\_Interrupt\_Event\_Register sets the 
+pending bit of the interrupt.
+
+\begin{lstlisting}[language=Ada]
+   EXTI.Software_Interrupt_Event_Register.Line :=
+           (Button_Line => True, others => False);
+   Ada.Text_IO.Put_Line ("Interrupt generated");
+\end{lstlisting}
+
+Adding a new periodic task to the system whose loop body execute the code in the listing,
+allows the worst case sporadic behaviour of External\_Event\_Server task with a minimum
+interarrival time equal to the IR generating task period.
+
 \subsection{Ada tasking model}
 
 In the Ada Ravenscar, a periodic task has an infinite loop within which there is a self-suspension statement that ensures that the task executes regularly \cite{ada-tasks}:
