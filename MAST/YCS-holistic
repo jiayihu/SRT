@@ -339,8 +339,6 @@ Transaction (
    External_Events =>
       ( ( Type             => Sporadic,
           Name             => ocp_activation,
-          Avg_Interarrival => 0.000,
-          Distribution     => UNIFORM,
           Min_Interarrival => 3.000)),
    Internal_Events =>
       ( ( Type => Regular,

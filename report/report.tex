@@ -316,9 +316,9 @@ If tasks synchronize using shared resources in a mutually exclusive way, they wi
 
 \subsection{Offset-based analysis}
 
-Rate monotonic analysis (RMA) \cite{rm-dm} allows an exact calculation of the worst-case response time of tasks in single-processor real time systems, including the effects of task synchronization, the presence of aperiodic tasks, the effects of deadlines before, at or after the periods of the tasks, tasks with varying priorities, overhead analysis, etc. However, classic RMA \cite{practitioner-common-data} cannot provide exact solutions in systems in which tasks suspend themselves. Classic techniques for these systems are based on the assumption that all tasks are independent, and thus they lead to pessimistic results \cite{pessimistic-rma}.
+Rate monotonic analysis (RMA) \cite{rm-dm} allows an approximate calculation of the worst-case response time of tasks in single-processor real time systems, including the effects of task synchronization, the presence of aperiodic tasks, the effects of deadlines before, at or after the periods of the tasks, tasks with varying priorities, overhead analysis, etc. However, classic RMA \cite{practitioner-common-data} cannot provide exact solutions in systems in which tasks with precedence relations. Classic techniques for these systems are based on the assumption that all tasks are independent, and thus they lead to pessimistic results \cite{pessimistic-rma}.
 
-For building the worst-case scenario for a task $\tau_{ab}$ under analysis, the analysis must consider the critical instant that leads to the worst-case busy period. A task $\tau_{ab}$ busy period is an interval of time during which the CPU is busy processing task $\tau_{ab}$ or higher priority tasks. For tasks with offsets, it must take into account that the critical instant may not include the simultaneous activation of all higher priority tasks, as it was the case when all tasks were independent. The existence of offsets makes it impossible for some sets of tasks to become active simultaneously.
+For building the worst-case scenario for a task $\tau_{ab}$ under analysis, the analysis must consider the critical instant that leads to the worst-case busy period. A task $\tau_{ab}$ busy period is an interval of time during which the CPU is busy processing task $\tau_{ab}$ or higher priority tasks. For tasks with offsets, it must take into account that the critical instant may not include the simultaneous arrival of all higher priority jobs, as it was the case when all tasks were independent. The existence of offsets makes it impossible for some sets of tasks to become active simultaneously.
 
 Works on such problem have been the base of offset-based analysis, first proposed by Tindell and Clark \cite{tindell-offsets} and later improved by Palencia and Gonzàlez \cite{pessimistic-rma} who called it Worst-Case Analysis of Dynamic Offsets. In such analysis, the best and worst-case response times of each task are used to set the offset and the jitter of the successive task in the same transaction.
 
@@ -868,8 +868,6 @@ Transaction (
    External_Events =>
       ( ( Type             => Sporadic,
           Name             => ocp_activation,
-          Avg_Interarrival => 0.000,
-          Distribution     => UNIFORM,
           Min_Interarrival => 3.000)),
    Internal_Events =>
       ( ( Type => Regular,
@@ -886,7 +884,7 @@ Transaction (
          Activity_Server    => on_call_producer)));
 \end{lstlisting}
 
-The sporadic On\_Call\_Producer event stream is modelled as activated by a bounded aperiodic event, with a minimum interarrival time of 3s and uniform distribution. Similar modelling has been done for the Activation\_Log\_Reader sporadic task.
+The sporadic On\_Call\_Producer event stream is modelled as activated by a bounded aperiodic event, with a minimum interarrival time of 3s. Similar modelling has been done for the Activation\_Log\_Reader sporadic task.
 
 \begin{figure}[!htbp]
 \centering
@@ -1107,11 +1105,11 @@ Offsets can be used to express precedence constraints: the existence of offsets 
 
 In our system, the task On\_Call\_Producer (OCP) is actually not truly sporadic given that it's activated by the Regular\_Producer (RP) every 3 jobs. The two tasks are not thus independent and both the RP job which activates OCP and the latter should belong to the same transaction. The equivalent argument holds true for the RP job that awakens Activation\_Log\_Reader (ALR). The remaining instances of the RP tasks should belong to another transaction again.
 
-Formally, for the two tasks RP and OCP that are members of the same transaction, task RP must complete before task OCP is run. We have in theory two possible priority situations: task RP is of higher priority, or task OCP is of higher priority. Fortunately, in our system, RP is the one of higher priority, which means that task OCP (of lower priority) will simply not execute if task RP has been released before task OCP and has remaining computation. It can be seen that the condition for the precedence constraint to be met is \cite{tindell-offsets}:
+Formally, with a precedence constraint, for two tasks $\tau_C$ and $\tau_D$ that are members of the same transaction, $\tau_C$ must complete before task $\tau_D$ is run. We have in theory two possible priority situations: task $\tau_C$ is of higher priority, or task $\tau_D$ is of higher priority. Fortunately, in our system, $\tau_C = RP, \tau_D = OCP$ and RP is the one of higher priority, which means that task OCP (of lower priority) will simply not execute if task RP has been released before task OCP and has remaining computation. It can be seen that the condition for the precedence constraint to be met is \cite{tindell-offsets}:
 
-$\Phi_{RP}\ +\ J_{RP}\ \le\ \Phi_{OCP}$
+$\Phi_{C}\ +\ J_{C}\ \le\ \Phi_{D} \Leftrightarrow \Phi_{RP}\ +\ J_{RP}\ \le\ \Phi_{OCP}$
 
-Otherwise, where task D is of higher priority, we cannot use the priority mechanism to ensure precedence and must rely on offsets. Therefore, for the precedence relation to hold, the latest finish time of task C must be before the earliest release time of task D, i.e.:
+Otherwise, if task $\tau_D$ were of higher priority, we could not use the priority mechanism to ensure precedence and would rely on offsets. Therefore, for the precedence relation to hold, the latest finish time of $\tau_C$ must be before the earliest release time of $\tau_D$, i.e.:
 
 $O_C + r_c < O_D$, where $r_c$ is the response time of C
 
@@ -1478,7 +1476,7 @@ Figure \ref{fig:timeline-edf-offsets} exhibits the schedule produced by EDF up t
 
 Despite the EDF optimality, by observing the aforementioned timeline, there is, unfortunately, no room for utilisation increase. RP already runs at zero laxity, whereas OCP and ALR cannot exceed an execution time of 0.5 seconds without causing a fatal release jitter to RP itself.
 
-This is further proved by noting that both EDF and FPS algorithms lead to the same schedule of our application, under the condition that no tasks miss its deadline. FPS assigns priorities inversely proportional to the relative deadline $D_i$, whereas EDF calculates them inversely proportional to the absolute deadline $d_i$. In general, the relation $D_i < D_j \Leftrightarrow d_i < d_j$ does not hold, but in our specific case we can demonstrate it's valid.
+This is further proved by noting that both EDF and FPS algorithms lead to the same schedule of our application, under the condition that no task misses its deadline. FPS assigns priorities inversely proportional to the relative deadline $D_i$, whereas EDF calculates them inversely proportional to the absolute deadline $d_i$. In general, the relation $D_i < D_j \Leftrightarrow d_i < d_j$ does not hold, but in our specific case we can demonstrate it's valid.
 
 Given a pair of task $\tau_i$ and $\tau_j$, for the task $\tau_i$ with relative deadline $D_i > D_j$ to have absolute deadline $d_i < d_j$ it must be released at time $t_i < t_j$, i.e. for OCP to have a lower absolute deadline than RP. But under the condition that no task overruns, this situation is clearly not possible. Both OCP and ALR are always activated by the RP, and they complete before the next release of RP. This proves that, within our application with precedence relations, $D_i < D_j \Leftrightarrow d_i < d_j$ and therefore both algorithms assign the same priority.
 
@@ -1590,7 +1588,7 @@ A RP overload of $\epsilon = 0.02s$ causes the deadline miss of the ALR, as show
 \label{timeline-overload-edf-extended}
 \end{figure}
 
-All OCP jobs, except for the first instance, fail to meet the deadline and a regular pattern comprising the three tasks emerges as soon as the timeline goes beyond time instant 4. This peculiar EDF behaviour where there is an initial period of irregularity followed by regular executions and events is not exhibited by the analogous FPS algorithm with RP overruning of the same amount. In fixed-priority scheduling, all jobs miss their deadline, and the regularity emerges from the first instant of execution.
+All OCP jobs, except for the first instance, fail to meet the deadline and a regular pattern comprising the three tasks emerges as soon as the timeline goes beyond time instant 10. As time elapses from the first activation, OCP and ALR suffer an increasing interference from the overruning RP until time 10, beyond which the jitter is regular. This peculiar EDF behaviour, where there is an initial interval of irregularity followed by regular executions and events, is not exhibited by the analogous FPS algorithm with RP overruning of the same amount. In fixed-priority scheduling, all jobs miss their deadline, and the regularity emerges from the first instant of execution.
 
 \begin{figure}[!htbp]
 \centering
@@ -1601,7 +1599,7 @@ All OCP jobs, except for the first instance, fail to meet the deadline and a reg
 
 When the first task that misses its deadline causes all subsequent tasks to miss their deadlines, the effect is called \textit{the domino effect} \cite{value-deadline}. EDF is prone to the domino effect, and it rapidly degrades its performance during overload intervals. This is due to the fact that EDF gives the highest priority to those processes that are close to missing their deadlines. Even worse, we note that a late job which has already missed its deadline has a higher priority than a job whose deadline is still in the future \cite{fps-vs-edf}.
 
-The application under consideration doesn't seem to provoke domino effect. Although a permanent overload of RP causes all subsequent tasks to miss their deadline, it's trivial to show with a timeline that a transient overload of it causes a finite amount of following deadline misses then the system recovers. The same property holds for an overruning OCP, as made evident by Figure \ref{timeline-overload-edf-ocp}. We believe this is again because of the precedence relationships. Even if RP misses a deadline, the later OCP and ALR are not activated independently. They wait for RP completion and are more difficult subject to domino effect.
+The application under consideration doesn't seem to provoke domino effect. Although a permanent overload of RP causes all subsequent tasks to miss their deadline, it's trivial to show with a timeline that a transient overload of it causes a finite amount of subsequent deadline misses. Eventually, the system is able to recover as long as the system utilisation is below 1. The same property holds for an overruning OCP, as made evident by Figure \ref{timeline-overload-edf-ocp}. We believe this is again because of the precedence relationships. Even if RP misses a deadline, the later OCP and ALR are not activated independently. They wait for RP completion and are less subject to domino effect.
 
 Nevertheless, a difference between FPS and EDF is that, under the former, a transient overrun in a task cannot cause tasks with higher priority to miss their deadlines, whereas under EDF any other task could miss its deadline. That is, the latter does not provide any type of guarantee on which tasks will meet their timing constraints.
 
@@ -1612,19 +1610,32 @@ Nevertheless, a difference between FPS and EDF is that, under the former, a tran
 \label{timeline-overload-edf-ocp}
 \end{figure}
 
+Lastly, an additional interesting property of EDF during permanent overloads is that it automatically performs a period rescaling, and tasks start behaving as they were executing at a lower rate \cite{buttazzo-rm-edf}. The following theorem has been proven by Celvin et al. (2002) \cite{cervin}:
+
+\textit{Assume a set of $n$ periodic tasks, where each task is described by a fixed period $T_i$, a fixed execution time $C_i$, a relative deadline $D_i$, and a release offset $\Phi_i$. If U > 1 and tasks are scheduled by EDF, then the average period $\tilde{T}_i$ of each task $\tau_i$ is given by $\tilde{T}_i = T_iU$.}
+
+With our previous overruning case, the rescaling factor would be $U = (0.7/1 + 0.5/3 + 0.5/3) \approx 1.0\bar{3}$. According the to theorem, the tasks are executing with average periods $\tilde{T}_{RP} = T_{RP}*U = 1.0\bar{3} * 1 = 1.0\bar{3}$ and $\tilde{T}_{OCP} = \tilde{T}_{ALR} = 1.0\bar{3} * 3 = 3.1$. Indeed, it can be verified with the help of Figure \ref{timeline-overload-edf-pattern} that in the repeated interval of 3.1 seconds, RP executes 3 times ($3.1/1.0\bar{3} = 3$), whereas OCP and ALR execute once respectively ($3.1/3.1 = 1$).
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=3in]{images/timeline-overload-edf-pattern}
+\caption{Timeline of the repeated interval in EDF overloading}
+\label{timeline-overload-edf-pattern}
+\end{figure}
+
 \section{Conclusions}
 
 We have started off the analysis by seeing the uses of offsets as a mechanism to improve the consistency between a formal model and the runtime execution of a real-time application subject to precedence relations. In turn, this has helped to reduce the pessimism in the fixed-priority analysis and offsets have proved to be extremely useful in increasing the schedulability of a given task set.
 
-Throughout this paper, we have used MAST as model for describing real-time applications and representing not only the characteristics of the architecture of the application but also the hard real-time requirements that are imposed. However, we believe there is still some scheduling theory needed to eliminate some of the restrictions. The combination of all the restrictions has posed a severe blocking issue in our ability to describe a consistent model which could lead to a sound analysis of maximum utilisation. From our experience, the most critical missing pieces the enhancement of the offset-based event analysis between transactions, to make it less pessimist, and the support for EDF offset-based analysis of linear transactions.
+Throughout this paper, we have used MAST as model for describing real-time applications and representing not only the characteristics of the architecture of the application but also the hard real-time requirements that are imposed. However, we believe there is still some scheduling theory needed to eliminate some of the restrictions. The combination of all the restrictions has posed a severe blocking issue in our ability to describe a consistent model which could lead to a sound analysis of maximum utilisation. From our experience, the most critical missing pieces are the enhancement of the FPS offset-based analysis between transactions, to make it less pessimist, and the support for EDF offset-based analysis of linear transactions.
 
 Besides, in this paper, we compared the behaviour of the two most famous policies: the FPS and the EDF algorithm. EDF allows a theoretic full processor utilization, which implies a more efficient exploitation of computational resources, but the statement doesn't hold in general with applications composed of dependant tasks.
 
 At the same time, predictability during overload conditions only apply for the highest priority task, and it is not valid in general for the other tasks. Such a property of FPS can be of little use if we do not know a priori which other task is going to overrun \cite{buttazzo-rm-edf}. Under permanent overload conditions, both the behaviours of FPS and EDF are predictable except for an initial interval, but deciding which one is better is highly application conditional. Nevertheless, what we have presented in this paper is just a shallow insight. Further work is undoubtedly needed to explore better the implications of relation dependencies in FPS and EDF overload.
 
-In this paper, we have also introduced the Deadline-Floor Protocol for controlling access to shared resources within the EDF scheduling framework. This protocol has already been proved to equivalent to the Stack Resource Protocol, the defacto protocol to use with EDF, by A. Burns (2005) \cite{resource-sharing}. We have instead shown that the combination EDF+DFP can exhibit the same schedule and blocking times of FPS+IPCP in a system where job releases are not stand-alone but instead form a chain.
+In this paper, we have also introduced the Deadline-Floor Protocol for controlling access to shared resources within the EDF scheduling framework. This protocol has already been proved to be equivalent to the Stack Resource Protocol, the defacto protocol to use with EDF, by A. Burns (2005) \cite{resource-sharing}. We have instead shown that the combination EDF+DFP can exhibit the same schedule and blocking times of FPS+IPCP in a system where job releases are not stand-alone but instead form a chain.
 
-Indeed, we believe that the implications of precedence constraints are worth to be the subject of further research.
+Therefore, as shown by the aforementioned cases, we believe that the implications of precedence constraints are worth to be the subject of further research.
 
 \bibliographystyle{unsrt}
 %\bibliography{references}  %%% Remove comment to use the external .bib file (using bibtex).
