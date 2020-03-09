@@ -5,14 +5,17 @@ with External_Event_Server;
 with On_Call_Producer;
 with Regular_Producer;
 with Force_Interrupt;
-with System.Task_Primitives.Operations;
+with Print_Metrics;
 with System.BB.Time;
+with System.BB.Threads; use System.BB.Threads;
 
 procedure Gee is
+   pragma Priority (1);
 begin
-   System.Task_Primitives.Operations.Set_Relative_Deadline
-       (System.Task_Primitives.Operations.Self,
-        System.BB.Time.Time_Span_Last);
+   --  Setting artificial deadline
+   Set_Period (System.BB.Time.Time_Span_Last);
+   Set_Relative_Deadline (System.BB.Time.Time_Span_Last);
+
    loop
       null;
    end loop;
