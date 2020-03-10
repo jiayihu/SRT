@@ -428,6 +428,7 @@ package body System.BB.Threads.Queues is
             Now := Clock;
             if Running_Thread.Active_Absolute_Deadline < Now then
                Task_Table (Running_Thread.Fake_Number_ID).Check := True;
+               System.IO.Put_Line ("Context_Switch DM");
                Task_Table (Running_Thread.Fake_Number_ID).DM :=
                  Task_Table (Running_Thread.Fake_Number_ID).DM + 1;
             end if;
@@ -697,6 +698,7 @@ package body System.BB.Threads.Queues is
                --  Now := System.BB.Time.Clock;
                if Wakeup_Thread.Active_Absolute_Deadline < Now then
                   Task_Table (Wakeup_Thread.Fake_Number_ID).Check := True;
+                  System.IO.Put_Line ("Wakeup DM");
                   Task_Table (Wakeup_Thread.Fake_Number_ID).DM :=
                     Task_Table (Wakeup_Thread.Fake_Number_ID).DM + 1;
                end if;
@@ -746,6 +748,7 @@ package body System.BB.Threads.Queues is
             Now := System.BB.Time.Clock;
             if Thread.Active_Absolute_Deadline < Now then
                Task_Table (Thread.Fake_Number_ID).Check := True;
+               System.IO.Put_Line ("Yield DM");
                Task_Table (Thread.Fake_Number_ID).DM :=
                  Task_Table (Thread.Fake_Number_ID).DM + 1;
             end if;
