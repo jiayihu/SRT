@@ -3,7 +3,6 @@ with Activation_Manager;
 with Ada.Text_IO;
 with Ada.Exceptions; use Ada.Exceptions;
 with Ada.Real_Time;
-with Deadline_Miss;
 with Task_Metrics;
 with System.BB.Time;
 with System.BB.Threads; use System.BB.Threads;
@@ -26,9 +25,9 @@ package body On_Call_Producer is
       Set_Starting_Time (Activation_Manager.Time_Conversion (Next_Time));
       Set_Relative_Deadline (System.BB.Time.Milliseconds (On_Call_Producer_Deadline));
       Set_Fake_Number_ID (2);
-      System.BB.Threads.Queues.Initialize_Task_Table (2);
 
       delay until Next_Time;
+      System.BB.Threads.Queues.Initialize_Task_Table (2, True);
       loop
          --  Task_Metrics.Start_Tracking;
          --  suspending request for activation event with data exchange

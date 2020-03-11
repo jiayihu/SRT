@@ -3,17 +3,16 @@ with Activation_Manager;
 with Ada.Text_IO;
 with Ada.Exceptions; use Ada.Exceptions;
 with Ada.Real_Time;
-with Deadline_Miss;
 with Task_Metrics;
 with System.BB.Time;
 with System.BB.Threads; use System.BB.Threads;
+with System.BB.Threads.Queues;
 with Activation_Log_Reader_Parameters; use Activation_Log_Reader_Parameters;
 with System.Tasking.Protected_Objects;
 
 package body Activation_Log_Reader is
    use Ada.Real_Time;
 
-   Local_Deadline : Deadline_Miss.Deadline_Handler;
    Local_Suspension_Object : Ada.Synchronous_Task_Control.Suspension_Object;
    procedure Signal is
    begin
@@ -33,9 +32,10 @@ package body Activation_Log_Reader is
       --  Setting artificial deadline
       Set_Starting_Time (Activation_Manager.Time_Conversion (Next_Time));
       Set_Relative_Deadline (System.BB.Time.Milliseconds (Activation_Log_Reader_Deadline));
-
+      Set_Fake_Number_ID (3);
 
       delay until Next_Time;
+      System.BB.Threads.Queues.Initialize_Task_Table (3, True);
       loop
          --  suspending parameterless request of activation event
          Wait;
@@ -43,7 +43,6 @@ package body Activation_Log_Reader is
          --  non-suspending operation code
          Activation_Log_Reader_Operation;
          --  Task_Metrics.End_Tracking;
-         Deadline_Miss.Cancel_Deadline_handler (Activation_Manager.ALR_Deadline);
       end loop;
    exception
       when Error : others =>

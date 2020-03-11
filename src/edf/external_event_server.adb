@@ -5,6 +5,7 @@ with Ada.Exceptions; use Ada.Exceptions;
 with Ada.Real_Time;
 with System.BB.Time;
 with System.BB.Threads; use System.BB.Threads;
+with System.BB.Threads.Queues;
 with External_Event_Server_Parameters; use External_Event_Server_Parameters;
 
 package body External_Event_Server is
@@ -16,8 +17,10 @@ package body External_Event_Server is
       --  Setting artificial deadline
       Set_Starting_Time (Activation_Manager.Time_Conversion (Next_Time));
       Set_Relative_Deadline (System.BB.Time.Milliseconds (External_Event_Server_Deadline));
+      Set_Fake_Number_ID (4);
 
       delay until Next_Time;
+      System.BB.Threads.Queues.Initialize_Task_Table (4, True);
       loop
          --  suspending request for external activation event
          Wait;

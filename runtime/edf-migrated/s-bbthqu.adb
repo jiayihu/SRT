@@ -73,7 +73,7 @@ package body System.BB.Threads.Queues is
          Max_Work_Jitter :  System.BB.Time.Time_Span;
          Min_Release_Jitter :  System.BB.Time.Time_Span;
          Max_Release_Jitter :  System.BB.Time.Time_Span;
-         Avarage_Work_Jitter : System.BB.Time.Time_Span;
+         Average_Work_Jitter : System.BB.Time.Time_Span;
       end record;
 
    type Array_Table_Record is array (1 .. 90) of Table_Record;
@@ -81,10 +81,18 @@ package body System.BB.Threads.Queues is
    Task_Table : Array_Table_Record;
    Max_ID_Table : Integer := 0;
 
-   procedure Initialize_Task_Table (ID : Integer) is
+   procedure Initialize_Task_Table (ID : Integer; Is_Sporadic : Boolean) is
+      Initial_DM : constant Integer := 0;
+      Initial_Execution : Integer := 0;
    begin
+      if Is_Sporadic then
+         --  Account for initial Execution count due to first Entry Call
+         Initial_Execution := -1;
+      end if;
+
       if ID /= 0 then
-         Task_Table (ID) := (ID, False, 0, -1, 0,
+         System.IO.Put_Line ("Initialize_Task_Table" & ID'Image);
+         Task_Table (ID) := (ID, False, Initial_DM, Initial_Execution, 0,
                              System.BB.Time.Time_Span_Last,
                              System.BB.Time.Time_Span_First,
                              System.BB.Time.Time_Span_Last,
@@ -137,13 +145,11 @@ package body System.BB.Threads.Queues is
       i : Integer := First_Index;
    begin
       while i <= Max_ID_Table loop
-
-         System.IO.Put ("Tab;");
-         System.IO.Put (Integer'Image (i));
-         System.IO.Put (Integer'Image (Task_Table (i).DM));
-         System.IO.Put (Integer'Image (Task_Table (i).Execution));
-         System.IO.Put (Integer'Image (Task_Table (i).Preemption));
-         System.IO.Put_Line ("");
+         System.IO.Put_Line ("Task "
+            & Integer'Image (i)
+            & " - DM " & Integer'Image (Task_Table (i).DM)
+            & ", Executions " & Integer'Image (Task_Table (i).Execution)
+            & ", Preemptions " & Integer'Image (Task_Table (i).Preemption));
          i := i + 1;
       end loop;
 
@@ -342,15 +348,15 @@ package body System.BB.Threads.Queues is
             Now + Thread.Active_Relative_Deadline,
             Thread.Active_Absolute_Deadline));
       else
-         if Thread.Active_Relative_Deadline <= Thread.Active_Period then
+         if Thread.Active_Relative_Deadline <= Thread.Period then
             Change_Absolute_Deadline (Thread, System.BB.Time.Time_First +
-               Thread.Active_Starting_Time -
-               (Thread.Active_Period - Thread.Active_Relative_Deadline)
+               Thread.Starting_Time -
+               (Thread.Period - Thread.Active_Relative_Deadline)
                   + Global_Interrupt_Delay);
          else
             Change_Absolute_Deadline (Thread, System.BB.Time.Time_First +
-               Thread.Active_Starting_Time +
-               (Thread.Active_Relative_Deadline - Thread.Active_Period)
+               Thread.Starting_Time +
+               (Thread.Active_Relative_Deadline - Thread.Period)
                   + Global_Interrupt_Delay);
          end if;
       end if;
@@ -460,7 +466,7 @@ package body System.BB.Threads.Queues is
    begin
       pragma Assert (CPU_Id = Current_CPU);
       pragma Assert (Thread = Running_Thread_Table (CPU_Id));
-      Thread.Active_Period := Period;
+      Thread.Period := Period;
    end Change_Period;
 
    --------------------------
@@ -475,7 +481,7 @@ package body System.BB.Threads.Queues is
    begin
       pragma Assert (CPU_Id = Current_CPU);
       pragma Assert (Thread = Running_Thread_Table (CPU_Id));
-      Thread.Active_Starting_Time := Starting_Time;
+      Thread.Starting_Time := Starting_Time;
    end Change_Starting_Time;
 
    --------------------
@@ -492,13 +498,13 @@ package body System.BB.Threads.Queues is
       pragma Assert (CPU_Id = Current_CPU);
       pragma Assert (Thread = Running_Thread_Table (CPU_Id));
 
-      if Task_Table (Thread.Fake_Number_ID).Avarage_Work_Jitter
+      if Task_Table (Thread.Fake_Number_ID).Average_Work_Jitter
         = System.BB.Time.Time_Span_Zero
       then
-         Task_Table (Thread.Fake_Number_ID).Avarage_Work_Jitter := Work_Jitter;
+         Task_Table (Thread.Fake_Number_ID).Average_Work_Jitter := Work_Jitter;
       else
-         Task_Table (Thread.Fake_Number_ID).Avarage_Work_Jitter :=
-           ((Task_Table (Thread.Fake_Number_ID).Avarage_Work_Jitter *
+         Task_Table (Thread.Fake_Number_ID).Average_Work_Jitter :=
+           ((Task_Table (Thread.Fake_Number_ID).Average_Work_Jitter *
               Task_Table (Thread.Fake_Number_ID).Execution) + Work_Jitter)
            / (Task_Table (Thread.Fake_Number_ID).Execution + 1);
       end if;
@@ -544,16 +550,24 @@ package body System.BB.Threads.Queues is
          if First_Thread /= Running_Thread and
            Running_Thread.Preemption_Needed
          then
+            System.IO.Put_Line ("Running_Thread "
+            & Running_Thread.State'Image & " "
+            & Running_Thread.Fake_Number_ID'Image
+            & ", First_Thread "
+            & First_Thread.State'Image
+            & First_Thread.Fake_Number_ID'Image);
             Add_Preemption (Running_Thread.Fake_Number_ID);
          end if;
+
          if Running_Thread.Fake_Number_ID /= 0 then
             if Task_Table (Running_Thread.Fake_Number_ID).Check = False then
                Now := Clock;
                if Running_Thread.Active_Absolute_Deadline < Now
                then
                   Task_Table (Running_Thread.Fake_Number_ID).Check := True;
-                  Task_Table (Running_Thread.Fake_Number_ID).DM :=
-                    Task_Table (Running_Thread.Fake_Number_ID).DM + 1;
+                  System.IO.Put_Line ("Context_Switch DM, ID"
+                     & Running_Thread.Fake_Number_ID'Image);
+                  Add_DM (Running_Thread.Fake_Number_ID);
                end if;
             end if;
          end if;
@@ -848,7 +862,7 @@ package body System.BB.Threads.Queues is
          Wakeup_Thread.Preemption_Needed := True;
 
          Change_Absolute_Deadline (Wakeup_Thread,
-            (Wakeup_Thread.Active_Period +
+            (Wakeup_Thread.Period +
                Wakeup_Thread.Active_Absolute_Deadline));
 
          Insert (Wakeup_Thread);
@@ -858,8 +872,9 @@ package body System.BB.Threads.Queues is
                if Wakeup_Thread.Active_Absolute_Deadline < Now
                then
                   Task_Table (Wakeup_Thread.Fake_Number_ID).Check := True;
-                  Task_Table (Wakeup_Thread.Fake_Number_ID).DM :=
-                    Task_Table (Wakeup_Thread.Fake_Number_ID).DM + 1;
+                  System.IO.Put_Line ("Wakeup DM"
+                     & Wakeup_Thread.Fake_Number_ID'Image);
+                  Add_DM (Wakeup_Thread.Fake_Number_ID);
                end if;
             end if;
          end if;
@@ -912,8 +927,9 @@ package body System.BB.Threads.Queues is
                if Thread.Active_Absolute_Deadline < Now
                then
                   Task_Table (Thread.Fake_Number_ID).Check := True;
-                  Task_Table (Thread.Fake_Number_ID).DM :=
-                    Task_Table (Thread.Fake_Number_ID).DM + 1;
+                  System.IO.Put_Line ("Yield DM"
+                     & Thread.Fake_Number_ID'Image);
+                  Add_DM (Thread.Fake_Number_ID);
                end if;
             end if;
          end if;

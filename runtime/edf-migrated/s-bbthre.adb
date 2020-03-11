@@ -622,6 +622,8 @@ package body System.BB.Threads is
 
          Id.State := Runnable;
 
+         Id.Preemption_Needed := True;
+
          Queues.Change_Absolute_Deadline
            (Id, Id.Active_Relative_Deadline + Now);
          --  Insert the thread at the tail of its active priority so that the

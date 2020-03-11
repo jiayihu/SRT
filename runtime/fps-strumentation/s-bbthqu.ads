@@ -48,7 +48,7 @@ package System.BB.Threads.Queues is
    -- Ready list --
    ----------------
 
-   procedure Initialize_Task_Table (ID : Integer);
+   procedure Initialize_Task_Table (ID : Integer; Is_Sporadic : Boolean);
    procedure Add_DM (ID : Integer);
    procedure Add_Execution (ID : Integer);
    procedure Add_Preemption (ID : Integer);

@@ -1,0 +1,17 @@
+RP: 0.49
+Task  1 - DM  0, Executions  19, Preemptions  0
+Task  2 - DM  0, Executions  6, Preemptions  0
+Task  3 - DM  0, Executions  6, Preemptions  0
+Task  4 - DM  0, Executions  4, Preemptions  0
+
+RP: 0.52
+Task  1 - DM  20, Executions  19, Preemptions  0
+Task  2 - DM  7, Executions  6, Preemptions  6
+Task  3 - DM  7, Executions  6, Preemptions  6
+Task  4 - DM  0, Executions  4, Preemptions  0
+
+RP 0.73
+Task  1 - DM  20, Executions  19, Preemptions  0
+Task  2 - DM  7, Executions  6, Preemptions  6
+Task  3 - DM  4, Executions  3, Preemptions  12
+Task  4 - DM  0, Executions  4, Preemptions  0

@@ -4,8 +4,10 @@ with Ada.Text_IO;
 with Ada.Exceptions; use Ada.Exceptions;
 with ST;              use ST;
 with ST.EXTI; use ST.EXTI;
+with Task_Metrics;
 with System.BB.Time;
 with System.BB.Threads; use System.BB.Threads;
+with System.BB.Threads.Queues;
 
 package body Force_Interrupt is
    Period : constant Ada.Real_Time.Time_Span :=
@@ -21,9 +23,12 @@ package body Force_Interrupt is
       Set_Period (System.BB.Time.Milliseconds (5000));
       Set_Starting_Time (Activation_Manager.Time_Conversion (Next_Time));
       Set_Relative_Deadline (System.BB.Time.Milliseconds (100));
+      Set_Fake_Number_ID (-1);
 
       delay until Next_Time;
+      System.BB.Threads.Queues.Initialize_Task_Table (-1, False);
       loop
+         --  Task_Metrics.Start_Tracking;
          Next_Time := Next_Time + Period;
 
          EXTI.Software_Interrupt_Event_Register.Line :=
@@ -31,6 +36,7 @@ package body Force_Interrupt is
          Ada.Text_IO.Put_Line ("Interrupt generated");
 
          delay until Next_Time; --  delay statement at end of loop
+         --  Task_Metrics.End_Tracking;
       end loop;
    exception
       when Error : others =>

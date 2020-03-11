@@ -5,7 +5,6 @@ with External_Event_Server;
 with On_Call_Producer;
 with Regular_Producer;
 with Force_Interrupt;
-with Print_Metrics;
 with System.BB.Time;
 with System.BB.Threads; use System.BB.Threads;
 
@@ -13,7 +12,6 @@ procedure Gee is
    pragma Priority (1);
 begin
    --  Setting artificial deadline
-   Set_Period (System.BB.Time.Time_Span_Last);
    Set_Relative_Deadline (System.BB.Time.Time_Span_Last);
 
    loop

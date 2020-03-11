@@ -45,6 +45,8 @@ with System.BB.Timing_Events;
 with System.Multiprocessors.Fair_Locks;
 with Ada.Unchecked_Conversion;
 with System.OS_Interface;
+with System.IO;
+
 -------------------------------------------------------------
 package body System.BB.Time is
 
@@ -348,6 +350,8 @@ package body System.BB.Time is
          if System.BB.Threads.Queues.Get_Check (Self.Fake_Number_ID) = False
          then
             System.BB.Threads.Queues.Set_Check (Self.Fake_Number_ID, True);
+            System.IO.Put_Line ("Delay_Until DM, ID"
+               & Self.Fake_Number_ID'Image);
             System.BB.Threads.Queues.Add_DM (Self.Fake_Number_ID);
          end if;
       end if;
@@ -377,7 +381,7 @@ package body System.BB.Time is
       else
          --  If alarm time is not in the future, the thread must yield the CPU
          Threads.Queues.Change_Absolute_Deadline
-           (Self, Self.Active_Absolute_Deadline + Self.Active_Period);
+           (Self, Self.Active_Absolute_Deadline + Self.Period);
          System.BB.Threads.Queues.Set_Check (Self.Fake_Number_ID, False);
          Yield (Self);
       end if;

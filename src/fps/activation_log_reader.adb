@@ -3,7 +3,6 @@ with Activation_Manager;
 with Ada.Text_IO;
 with Ada.Exceptions; use Ada.Exceptions;
 with Ada.Real_Time;
-with Deadline_Miss;
 with Task_Metrics;
 with System.BB.Time;
 with System.BB.Threads; use System.BB.Threads;
@@ -32,9 +31,9 @@ package body Activation_Log_Reader is
       Set_Starting_Time (Activation_Manager.Time_Conversion (Next_Time));
       Set_Relative_Deadline (System.BB.Time.Milliseconds (Activation_Log_Reader_Deadline));
       Set_Fake_Number_ID (3);
-      System.BB.Threads.Queues.Initialize_Task_Table (3);
 
       delay until Next_Time;
+      System.BB.Threads.Queues.Initialize_Task_Table (3, True);
       loop
          --  Task_Metrics.Start_Tracking;
          --  suspending parameterless request of activation event

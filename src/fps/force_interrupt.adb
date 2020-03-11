@@ -24,9 +24,9 @@ package body Force_Interrupt is
       Set_Starting_Time (Activation_Manager.Time_Conversion (Next_Time));
       Set_Relative_Deadline (System.BB.Time.Milliseconds (100));
       Set_Fake_Number_ID (-1);
-      System.BB.Threads.Queues.Initialize_Task_Table (-1);
 
       delay until Next_Time;
+      System.BB.Threads.Queues.Initialize_Task_Table (-1, False);
       loop
          --  Task_Metrics.Start_Tracking;
          Next_Time := Next_Time + Period;

@@ -163,9 +163,9 @@ package System.BB.Threads is
       --  Boolean that indicates whether an urgent task after a wakeup needs to
       --  preempt the running task before its natural suspension.
 
-      Active_Period : System.BB.Time.Time_Span;
+      Period : System.BB.Time.Time_Span;
 
-      Active_Starting_Time :  System.BB.Time.Time_Span;
+      Starting_Time :  System.BB.Time.Time_Span;
 
       Fake_Number_ID : Integer := 0;
    end record;

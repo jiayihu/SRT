@@ -1,15 +1,14 @@
-with Ada.Real_Time; use Ada.Real_Time;
-with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Text_IO;
 
 package body Deadline_Miss is
    protected body Deadline_Handler is
       procedure Notify_Deadline_Miss (Event : in out Timing_Event) is
+         pragma Unreferenced (Event);
       begin
-         --raise Program_Error with "Detected deadline miss";
-         Ada.Text_IO.Put_Line ("Deadline Miss Detected - " & Tag );
+         Ada.Text_IO.Put_Line ("Deadline Miss Detected - " & Tag);
       end Notify_Deadline_Miss;
 
-      procedure Set_Deadline_Handler (Name : String; At_Time : in Time) is
+      procedure Set_Deadline_Handler (Name : String; At_Time : Time) is
       begin
          Tag := Name;
 
@@ -24,7 +23,10 @@ package body Deadline_Miss is
       end Cancel_Deadline_Handler;
    end Deadline_Handler;
 
-   procedure Set_Deadline_Handler (H: in out Deadline_Handler; Name : String; At_Time : in Time) is
+   procedure Set_Deadline_Handler (
+      H : in out Deadline_Handler;
+      Name : String;
+      At_Time : Time) is
    begin
       H.Set_Deadline_Handler (Name, At_Time);
    end Set_Deadline_Handler;

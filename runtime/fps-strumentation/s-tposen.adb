@@ -6,7 +6,7 @@
 --                                                                          --
 --                                B o d y                                   --
 --                                                                          --
---                     Copyright (C) 1998-2018, AdaCore                     --
+--                     Copyright (C) 1998-2019, AdaCore                     --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -65,11 +65,10 @@ pragma Suppress (All_Checks);
 with System.Multiprocessors;
 
 with System.Task_Primitives.Operations;
-
-with System.Tasking.Protected_Objects.Multiprocessors;
 with System.BB.Time; use System.BB.Time;
 with System.BB.Threads.Queues; use System.BB.Threads.Queues;
 with System.IO;
+with System.Tasking.Protected_Objects.Multiprocessors;
 
 package body System.Tasking.Protected_Objects.Single_Entry is
 
@@ -99,13 +98,11 @@ package body System.Tasking.Protected_Objects.Single_Entry is
    procedure Initialize_Protection_Entry
      (Object           : Protection_Entry_Access;
       Ceiling_Priority : Integer;
-      --  Floor_Deadline   : System.BB.Deadlines.Relative_Deadline;
       Compiler_Info    : System.Address;
       Entry_Body       : Entry_Body_Access)
    is
    begin
       Initialize_Protection (Object.Common'Access, Ceiling_Priority);
-      --  Initialize_Protection (Object.Common'Access, Floor_Deadline);
 
       Object.Compiler_Info := Compiler_Info;
       Object.Call_In_Progress := null;
@@ -122,9 +119,9 @@ package body System.Tasking.Protected_Objects.Single_Entry is
       Lock (Object.Common'Access);
    end Lock_Entry;
 
-   ----------------------------
-   -- Protected_Single_Count --
-   ----------------------------
+   ---------------------------
+   -- Protected_Count_Entry --
+   ---------------------------
 
    function Protected_Count_Entry (Object : Protection_Entry) return Natural is
    begin
@@ -152,6 +149,7 @@ package body System.Tasking.Protected_Objects.Single_Entry is
       if Self_Id.Common.Protected_Action_Nesting > 0 then
          raise Program_Error;
       end if;
+
       Now := System.BB.Time.Clock;
 
       System.BB.Threads.Queues.Add_Execution (Running_Thread.Fake_Number_ID);

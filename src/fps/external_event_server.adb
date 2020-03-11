@@ -18,9 +18,9 @@ package body External_Event_Server is
       Set_Starting_Time (Activation_Manager.Time_Conversion (Next_Time));
       Set_Relative_Deadline (System.BB.Time.Milliseconds (External_Event_Server_Deadline));
       Set_Fake_Number_ID (4);
-      System.BB.Threads.Queues.Initialize_Task_Table (4);
 
       delay until Next_Time;
+      System.BB.Threads.Queues.Initialize_Task_Table (4, True);
       loop
          --  suspending request for external activation event
          Wait;
