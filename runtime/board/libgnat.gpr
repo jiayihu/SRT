@@ -23,7 +23,7 @@ library project Libgnat is
 
    case Scheduling is
       when "fps"  =>
-         CUSTOM := CUSTOM & (Project'Project_Dir & "../fps-strumentation");
+         CUSTOM := CUSTOM & (Project'Project_Dir & "../fps-instrumentation");
       when "edf"  =>
          CUSTOM := CUSTOM & (Project'Project_Dir & "../edf-migrated");
       when others =>
