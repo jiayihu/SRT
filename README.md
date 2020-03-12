@@ -1,11 +1,14 @@
 # Real-time systems 
 
-## Building like a true man
+## Building like a true man with CLI
 
 ```bash
 $ gprbuild --target=arm-eabi -f -d -P gee.gpr -largs -Wl,-Map=map.txt
+```
 
-# Only to run the application without debugging
+If you just wish to run the application without debugging and logs:
+
+```
 $ arm-eabi-objcopy -O binary obj/gee obj/gee.bin
 $ st-flash --reset write obj/gee.bin 0x08000000
 ```

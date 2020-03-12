@@ -54,7 +54,6 @@ package body System.BB.Threads.Queues is
    type Table_Record is
       record
          ID : Integer;
-         Check : Boolean;
          DM : Integer;
          Execution : Integer;
          Preemption : Integer;
@@ -81,7 +80,7 @@ package body System.BB.Threads.Queues is
 
       if ID /= 0 then
          System.IO.Put_Line ("Initialize_Task_Table" & ID'Image);
-         Task_Table (ID) := (ID, False, Initial_DM, Initial_Execution, 0,
+         Task_Table (ID) := (ID, Initial_DM, Initial_Execution, 0,
                              System.BB.Time.Time_Span_Last,
                              System.BB.Time.Time_Span_First,
                              System.BB.Time.Time_Span_Last,
@@ -92,22 +91,6 @@ package body System.BB.Threads.Queues is
          end if;
       end if;
    end Initialize_Task_Table;
-
-   function Get_Check (ID : Integer) return Boolean is
-   begin
-      if ID /= 0 then
-         return Task_Table (ID).Check;
-      end if;
-      return True;
-   end Get_Check;
-
-   procedure Set_Check (ID : Integer;
-                        Check : Boolean) is
-   begin
-      if ID /= 0 then
-         Task_Table (ID).Check := Check;
-      end if;
-   end Set_Check;
 
    procedure Add_DM (ID : Integer) is
    begin
@@ -425,23 +408,10 @@ package body System.BB.Threads.Queues is
    ---------------------------
 
    function Context_Switch_Needed return Boolean is
-      Now : System.BB.Time.Time;
    begin
       --  A context switch is needed when there is a higher priority task ready
       --  to execute. It means that First_Thread is not null and it is not
       --  equal to the task currently executing (Running_Thread).
-
-      if Running_Thread.Fake_Number_ID /= 0 then
-         if Task_Table (Running_Thread.Fake_Number_ID).Check = False then
-            Now := Clock;
-            if Running_Thread.Active_Absolute_Deadline < Now then
-               Task_Table (Running_Thread.Fake_Number_ID).Check := True;
-               System.IO.Put_Line ("Context_Switch DM, ID"
-                  & Running_Thread.Fake_Number_ID'Image);
-               Add_DM (Running_Thread.Fake_Number_ID);
-            end if;
-         end if;
-      end if;
 
       if First_Thread /= Running_Thread and Running_Thread.Preemption_Needed
       then
@@ -707,17 +677,6 @@ package body System.BB.Threads.Queues is
                                       Wakeup_Thread.Active_Absolute_Deadline));
 
          Insert (Wakeup_Thread);
-         if Wakeup_Thread.Fake_Number_ID /= 0 then
-            if Task_Table (Wakeup_Thread.Fake_Number_ID).Check = False then
-               --  Now := System.BB.Time.Clock;
-               if Wakeup_Thread.Active_Absolute_Deadline < Now then
-                  Task_Table (Wakeup_Thread.Fake_Number_ID).Check := True;
-                  System.IO.Put_Line ("Wakeup DM"
-                     & Wakeup_Thread.Fake_Number_ID'Image);
-                  Add_DM (Wakeup_Thread.Fake_Number_ID);
-               end if;
-            end if;
-         end if;
       end loop;
 
       --  Note: the caller (BB.Time.Alarm_Handler) must set the next alarm
@@ -731,7 +690,6 @@ package body System.BB.Threads.Queues is
       CPU_Id      : constant CPU     := Get_CPU (Thread);
       Prio        : constant Integer := Thread.Active_Priority;
       Aux_Pointer : Thread_Id;
-      Now         : System.BB.Time.Time;
    begin
       --  A CPU can only modify its own tasks queues
 
@@ -755,18 +713,6 @@ package body System.BB.Threads.Queues is
 
          Thread.Next := Aux_Pointer.Next;
          Aux_Pointer.Next := Thread;
-      end if;
-
-      if Thread.Fake_Number_ID /= 0 then
-         if Task_Table (Thread.Fake_Number_ID).Check = False then
-            Now := System.BB.Time.Clock;
-            if Thread.Active_Absolute_Deadline < Now then
-               Task_Table (Thread.Fake_Number_ID).Check := True;
-               System.IO.Put_Line ("Yield DM"
-                  & Thread.Fake_Number_ID'Image);
-               Add_DM (Thread.Fake_Number_ID);
-            end if;
-         end if;
       end if;
 
    end Yield;

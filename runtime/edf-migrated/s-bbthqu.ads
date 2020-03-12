@@ -59,9 +59,6 @@ package System.BB.Threads.Queues is
    procedure Add_DM (ID : Integer);
    procedure Add_Execution (ID : Integer);
    procedure Add_Preemption (ID : Integer);
-   function Get_Check (ID : Integer) return Boolean;
-   procedure Set_Check (ID : Integer;
-                        Check : Boolean);
    procedure Print_Table (First_Index : Integer);
    procedure Set_Priority_For_Print (Thread : Thread_Id;
                                     Priority : System.Any_Priority);

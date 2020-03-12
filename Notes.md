@@ -48,43 +48,53 @@ System.BB.Time.Time_First + Thread.Active_Starting_Time -
                   + Global_Interrupt_Delay
 ```
 
-Tale valore porta ad una deadline assoluta corretta dal primo risveglio in poi in quanto la deadline assoluta viene calcolata al risveglio e come baseline + $(n+1)T$, ove $n$ è il numero di esecuzioni del task. Tuttavia tale codice provoca la registrazione di 2 deadline miss ancor prima che parta il primo job (1 di `Delay_Until` e 1 di `Context_Switch_Needed`). Questo perché l'istruzione `delay until Next_Time` per la sincronizzazione a tempo logico 0, non è differenziabile dall'identica istruzione a termine di un job.
+Tale valore porta ad una deadline assoluta corretta dal primo risveglio in poi in quanto la deadline assoluta viene calcolata al risveglio e come baseline + $(n+1)T$, ove $n$ è il numero di esecuzioni del task e $T$ è il periodo. Tuttavia tale codice provoca la registrazione di 2 Deadline Miss (DM) ancor prima che parta il primo job (1 di `Delay_Until` e 1 di `Context_Switch_Needed`). Questo perché l'istruzione `delay until Next_Time` per la sincronizzazione a tempo logico 0, non è differenziabile dall'identica istruzione a termine di un job e in entrambi `Delay_Until` e `Context_Switch_Needed` avviene il controllo di DM.
 
 La soluzione è stata spostare l'inizializzazione della tabelle delle metriche ad un istante successivo al tempo zero logico e antecedente l'inizio del primo job. Questo ha anche portato ad una modifica del valore iniziale di Execution da -1 a 0 in `Initialize_Task_Table` in `s-bbthqu.adb`, un valore difatti più corretto e meno "ad hoc".
 
+```Ada
+delay until Next_Time;
+System.BB.Threads.Queues.Initialize_Task_Table (1);
+loop
+```
+
 ### Alcuni controlli di Deadline Miss sembrano eccessivi
 
-Ci sembra eccessivo controllare potenziale Deadline Miss durante un controllo di Context Switch o al risveglio dal `Delay_Until`, in quanto ci sembra sufficiente prima di entrare in sospensione. Questo sembra provocare anche un eccessivo conteggio di Deadline Miss qualora la presenza di questi sia rilevata.
+Il controllo di deadline miss avviene in 4 punti diversi: `Delay_Until` in `s-bbtime.adb`, `Context_Switch_Needed`, `Wakeup_Expired_Alarms`, `Yield` in `s-bbthqu.adb`.
 
-Ad esempio, prima di andare in stato `Delayed` in `Delay_Until`, viene giustamente fatto un controllo di Deadline Miss. In caso positivo viene aumentato il contatore e messo a `True` la flag `Check` per la task che è andata in Deadline Miss. Questo supponiamo dovrebbe evitare gli ulteriori controlli nei punti menzionati, secondo noi ridondanti. Tuttavia appena il thread è messo in stato `Delayed`, tale flag viene resettato a `False`. Immaginiamo questo sia per indicare che normalmente la task, al suo successivo risveglio, sarà nuovamente pronta per essere sottoposta a controlli di Deadline Miss. Però, una volta in stato `Delayed`, il runtime esegue `Context_Switch_Needed` per verificare se c'è un task `Runnable` in coda ready. Poiché c'è un controllo ridondante di Deadline Miss e la flag `Check` è stata resettata erroneamente a `False`, verrà rilevato una ulteriore Deadline Miss, già contata.
+Ci sembra eccessivo controllare una potenziale DM durante un controllo di Context Switch o al risveglio dal `Delay_Until`, in quanto ci sembra sufficiente farlo solo prima di entrare in sospensione `Delay_Until`. Questo sembra provocare anche un eccessivo conteggio di DM qualora la presenza di questi sia rilevata.
 
-Questa situazione spiega anche i due Deadline Miss (invece che uno solo) che vi sono all'inizio di una task periodica, come menzionato nella sezione precedente.
+Ad esempio, prima di andare in stato `Delayed` in `Delay_Until`, viene giustamente fatto un controllo di DM. In caso positivo viene aumentato il contatore e messo a `True` la flag `Check` per la task che è andata in DM. Questo supponiamo dovrebbe evitare gli ulteriori controlli nei punti menzionati, secondo noi ridondanti. Tuttavia appena il thread è messo in stato `Delayed`, tale flag viene resettato a `False`. Immaginiamo questo sia invece per indicare che normalmente la task, al suo successivo risveglio, sarà nuovamente pronta per essere sottoposta a controlli di DM. Però, una volta in stato `Delayed`, il runtime esegue `Context_Switch_Needed` per verificare se c'è un task `Runnable` in coda ready. Poiché c'è un controllo ridondante di DM e la flag `Check` è stata resettata erroneamente a `False`, verrà rilevata una ulteriore DM, già contata in `Delay_Until`.
 
-Questa ridonanza dei controlli non è solo non necessaria, ma anche dannosa. Abbiamo rilevato infatti che con un workload prossimo al limite, la task riesce a completare sempre in tempo prima di passare allo stato `Delayed` in `Delay_Until` ma ciò provoca comunque in una falsa Deadline Miss da parte del controllo in `Context_Switch_Needed`. Questo perché quest'ultima funzione viene invocata al prossimo Interrupt/SysTick, che avviene almeno 1ms più tardi. Quel ms potrebbe provocare ad un falso positivo.
+Questa situazione spiega anche i due DM (invece che uno solo) che vi sono all'inizio di una task periodica, come menzionato nella sezione precedente.
+
+Questa ridonanza dei controlli non è solo non necessaria, ma anche dannosa. Abbiamo rilevato infatti che con un workload prossimo al limite, la task riesce a completare sempre in tempo prima di passare allo stato `Delayed` in `Delay_Until` ma ciò provoca comunque una falsa DM da parte del controllo in `Context_Switch_Needed`. Questo perché quest'ultima funzione viene invocata al prossimo Interrupt/SysTick, che avviene 1ms più tardi nel caso peggiore. Quel ms potrebbe provocare un falso positivo.
+
+Per tali motivi, la nostra decisione è stata di rimuovere i controlli di DM e lasciare solo in `Delay_Until`. Questo rimuove la necessità di avere un corretto valore del flag `Check`, un approccio facilmente prono ad errori e la cui correttezza d'uso è difficile da valutare in quanto fortemente dipendente dall'ordine di esecuzione dei vari punti. È sicuramente possibile valutare di rimettere i controlli nei vari punti laddove si voglia rilevare una DM tempestivamente, in tal caso ragionando su un approccio migliore per evitare conteggi multipli.
 
 ### Task sporadiche
 
-La strumentazione non gestisce le metriche per task sporadici, quindi non ci sono controlli all'inizio di un'entry.
+La strumentazione non gestisce le metriche per task sporadiche, poiché non ci sono controlli all'inizio di un'entry.
 
 Innanzitutto le task sporadiche non hanno periodo, per cui non vi è l'invocazione del metodo `Set_Period` e `Change_Relative_Deadline` setterà una deadline assoluta pari al valore baseline seguente.
 
 ```Ada
 Thread, System.BB.Time.Time_First + Thread.Active_Starting_Time +
    (Thread.Active_Relative_Deadline - Thread.Active_Period)
-                  + Global_Interrupt_Delay)
+                  + Global_Interrupt_Delay
 ```
 
-Il calcolo della deadline assoluta utilizzando il meccanismo della baseline è sbagliato per task sporadiche che non hanno periodo. Per un "caso fortuito", il valore iniziale di `Active_Period` in assenza di inizializzazione, sembra essere zero in Ada. Per cui in realtà la Deadline Assoluta iniziale settata è già quella del primo job, non una baseline.
+Il calcolo della deadline assoluta utilizzando il meccanismo della baseline è sbagliato per task sporadiche che non hanno periodo. Per quest'ultime, la Deadline Assoluta è pari al tempo di rilascio della barriera associata alla entry (`Now`) + Deadline Relativa.
 
-In seguito al risveglio dopo il `Delay_Until`, la task sporadica si vedrà aumentata la Deadline Assoluta di un valore pari a `Active_Period`, pari "fortuitamente" sempre a zero quindi senza conseguenze. Tuttavia è evidente che questi meccanismi di Deadline Assoluta sono ideati per task periodiche e siano fragili per task sporadiche. 
+In seguito al risveglio dopo il `Delay_Until` di sincronizzazione a tempo logico zero, la task sporadica si vedrà anche aumentata la Deadline Assoluta di un valore pari a `Active_Period`, che essendo indefinito è pari a zero. Il risultato di questi calcoli non provoca danni di DM, in quanto le nostre successive modifiche permettono un calcolo corretto della Deadline Assoluta per task sporadiche. Tuttavia è evidente che questi meccanismi di Deadline Assoluta sono ideati per task periodiche e siano fragili/error-prone per task sporadiche. 
 
-Abbiamo per cominciare aggiunto il controllo di Deadline Miss in `Protected_Single_Entry_Call` in `s-tposen.adb`, per controllare se vi è una deadline miss all'entrata di una Entry Call. In caso positivo viene incrementato il contatore. Nel metodo viene anche incrementato di 1 l'esecuzione della task sporadica.
+Abbiamo per cominciare invece aggiunto il controllo di DM in `Protected_Single_Entry_Call` in `s-tposen.adb`, per controllare se vi è una deadline miss all'entrata di una Entry Call. In caso positivo viene incrementato il contatore. Nel metodo viene anche incrementato di 1 l'esecuzione della task sporadica.
 
-Il metodo `Initialize_Task_Table` è stato modificato per aggiungere il parametro `Is_Sporadic` per differenziare il caso di task sporadico da quello periodico. Il primo avrà nelle tabella delle metriche valori iniziali di Deadline Miss ed Executions diversi da quelli di una task periodica. Tale soluzione non è ingegneristicamente pulita, ma visti i ristretti tempi non abbiamo trovato soluzioni migliori.
+Il metodo `Initialize_Task_Table` in `s-bbthqu.adb` è stato modificato per aggiungere il parametro `Is_Sporadic` per differenziare il caso di task sporadico da quello periodico. Il primo avrà nelle tabella delle metriche valori iniziali di DM ed Executions diversi da quelli di una task periodica. Tale soluzione non è ingegneristicamente pulita, ma è stata adottata per evitare di stravolgere i lavori di Dilan.
 
-In seguito abbiamo modificato il metodo `Wakeup` in `s-bbthre.adb`, modificando l'aggiornamento della Deadline Assoluta da `Active_Period + Active_Absolute_Deadline` a `Active_Relative_Deadline + Now`. Questo è stato necessario perché il metodo `Wakeup` è invocato per il risveglio di una task sospesa in una Entry. Al risveglio di tale task sporadica, essa deve avere la Deadline Assoluta aggiornata a `Active_Relative_Deadline + Now`.
+In seguito abbiamo modificato il metodo `Wakeup` in `s-bbthre.adb`, modificando l'aggiornamento della Deadline Assoluta da `Active_Period + Active_Absolute_Deadline` a `Active_Relative_Deadline + Now`. Questo è stato necessario perché il metodo `Wakeup` è invocato per il risveglio di una task sospesa su una Entry. Al risveglio di tale task sporadica, essa deve avere la Deadline Assoluta aggiornata a `Active_Relative_Deadline + Now`.
 
-Ci chiediamo tuttavia se tale modifica sia corretta per le task periodiche, la cui deadline assoluta dovrebbe giustamente essere `Active_Period + Active_Absolute_Deadline`. Queste al momento sono risvegliate dal metodo `Wakeup_Expired_Alarms` in `s-bbthqu.adb`, che non fa uso del metodo `Wakeup` e già setta la Deadline Assolute usando il periodo. Il metodo `Wakeup` invece risveglia solo thread in stato `Suspended`, ovvero sospesi per una entry, ma immaginiano che in altre applicazioni sia possibile che anche task periodiche facciano chiamate di entry e quindi possano essere sospese.
+Ci chiediamo tuttavia se tale modifica sia corretta per le task periodiche, la cui deadline assoluta dovrebbe giustamente essere `Active_Period + Active_Absolute_Deadline`. Queste al momento sono risvegliate dallo stato `Delayed` dal metodo `Wakeup_Expired_Alarms` in `s-bbthqu.adb`, che non fa uso del metodo `Wakeup` e già setta la Deadline Assolute usando il periodo. Il metodo `Wakeup` invece risveglia solo thread in stato `Suspended`, ovvero sospesi per una entry, ma in altre applicazioni real-time è possibile che anche task periodiche facciano chiamate di entry e quindi possano essere sospese. Per quest'ultime non ci dovrebbe essere alcun aggiornamento della Deadline Assoluta al risveglio da una entry, in quanto tale vale per loro è calcolato al risveglio del `Delay_Until`. 
 
 ### Preemptions
 
@@ -114,7 +124,7 @@ Il metodo `Change_Relative_Deadline` in `s-bbthqu.adb` non differenzia tra cambi
 
 Attenzione inoltre che la task rilasciata a tempo $s$ con deadline relativa $d$ e che accede alla risorsa protetta con deadline floor $D$ a tempo $t$ ($s \lt t$), dovrebbe vedersi la deadline relativa cambiata in $D$ e la deadline assoluta calcolata come $min\{t + D, s + d\}$.
 
-La nuova implementazione seguente, aggiunge un parametro formale `Is_Floor` per differenziare dalla chiamata `Change_Relative_Deadline` utilizzata, sotto alias `Set_Relative_Deadline`, durante l'inizializzazione di una task dalla chiamata effettuata nella procedura `Lock` in `s-taprob.adb`. Inoltre calcola correttamente il valore di Deadline Assoluta con la formula sopra menzionata.
+La nuova implementazione seguente, aggiunge un parametro formale `Is_Floor` per differenziare dalla chiamata `Change_Relative_Deadline` utilizzata, sotto alias `Set_Relative_Deadline`, durante l'inizializzazione di una task rispetto alla chiamata effettuata nella procedura `Lock` in `s-taprob.adb`. Inoltre calcola correttamente il valore di Deadline Assoluta con la formula sopra menzionata.
 
 ```Ada
 procedure Change_Relative_Deadline
@@ -144,15 +154,15 @@ begin
          Now + Thread.Active_Relative_Deadline,
          Thread.Active_Absolute_Deadline));
    else
-      if Thread.Active_Relative_Deadline <= Thread.Active_Period then
+      if Thread.Active_Relative_Deadline <= Thread.Period then
          Change_Absolute_Deadline (Thread, System.BB.Time.Time_First +
-            Thread.Active_Starting_Time -
-            (Thread.Active_Period - Thread.Active_Relative_Deadline)
+            Thread.Starting_Time -
+            (Thread.Period - Thread.Active_Relative_Deadline)
                + Global_Interrupt_Delay);
       else
          Change_Absolute_Deadline (Thread, System.BB.Time.Time_First +
-            Thread.Active_Starting_Time +
-            (Thread.Active_Relative_Deadline - Thread.Active_Period)
+            Thread.Starting_Time +
+            (Thread.Active_Relative_Deadline - Thread.Period)
                + Global_Interrupt_Delay);
       end if;
    end if;
@@ -166,6 +176,6 @@ Spesso ci possono essere altri costrutti che per loro natura hanno bisogno di un
 
 ## Conclusioni
 
-Riteniamo che il rilevamento delle metriche Deadline Miss ed Executions sia idealmente interessante da rilevare in punti del runtime, sfruttando pattern delle task periodiche e sporadiche come l'utilizzo di `Delay_Until` e Entry Call rispettivamente. Questo permetterebbe di rilevare metriche senza "inquinare" il corpo dei jobs. Tuttavia troviamo che una tale soluzione non possa essere generalizzata a tutti i possibili casi di applicazioni real-time, pur rimanendo nei vincoli del profilo Ravenscar. 
+Riteniamo che il rilevamento delle metriche DM ed Executions sia idealmente interessante da rilevare in alcuni punti precisi del runtime, sfruttando pattern delle task periodiche e sporadiche come l'utilizzo di `Delay_Until` e Entry Call rispettivamente. Questo permetterebbe di rilevare metriche senza "inquinare" il corpo dei jobs. Tuttavia troviamo che la soluzione corrente non sia generalizzata bene a tutti i possibili casi di applicazioni real-time, pur rimanendo nei vincoli del profilo Ravenscar. 
 
-Come è stato fatto per attributi delle task, quali Periodo, Deadline Relativa e tempo logico zero, e per la rilevazione del jitter, riteniamo che la definizione di procedure specifiche per segnalare l'inizio e la fine di un job sia una soluzione più robusta.
+Rimaniamo convinti che farlo nel runtime sia l'approccio corretto, in quanto il corpo di un job può subire jitter, tuttavia è necessario pensare ad un approccio più robusto. Un compito che abbiamo anche noi compreso non essere per nulla banale.

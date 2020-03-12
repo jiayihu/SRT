@@ -343,14 +343,9 @@ package body System.BB.Time is
       System.BB.Threads.Queues.Add_Execution (Self.Fake_Number_ID);
 
       if Self.Active_Absolute_Deadline < Now then
-         --  Se necessario si aumentano le deadline miss
-         if System.BB.Threads.Queues.Get_Check (Self.Fake_Number_ID) = False
-         then
-            System.BB.Threads.Queues.Set_Check (Self.Fake_Number_ID, True);
-            System.IO.Put_Line ("Delay_Until DM, ID"
-               & Self.Fake_Number_ID'Image);
-            System.BB.Threads.Queues.Add_DM (Self.Fake_Number_ID);
-         end if;
+         System.IO.Put_Line ("Delay_Until DM, ID"
+            & Self.Fake_Number_ID'Image);
+         System.BB.Threads.Queues.Add_DM (Self.Fake_Number_ID);
       end if;
 
       if T + System.BB.Threads.Queues.Global_Interrupt_Delay > Now then
@@ -372,12 +367,10 @@ package body System.BB.Time is
          if Inserted_As_First then
             Update_Alarm (Get_Next_Timeout (Current_CPU));
          end if;
-         System.BB.Threads.Queues.Set_Check (Self.Fake_Number_ID, False);
       else
          --  If alarm time is not in the future, the thread must yield the CPU
          Threads.Queues.Change_Absolute_Deadline
            (Self, Self.Active_Absolute_Deadline + Self.Period);
-         System.BB.Threads.Queues.Set_Check (Self.Fake_Number_ID, False);
          Yield (Self);
       end if;
       Protection.Leave_Kernel;
