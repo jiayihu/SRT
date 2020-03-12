@@ -1,11 +1,11 @@
 with Ada.Real_Time; use Ada.Real_Time;
-with Activation_Manager;
+with Activation_Manager; use Activation_Manager;
 with Ada.Text_IO;
 with Ada.Exceptions; use Ada.Exceptions;
 with Task_Metrics;
 with System.BB.Time;
 with System.BB.Threads; use System.BB.Threads;
-with System.BB.Threads.Queues;
+with System.BB.Threads.Queues; use System.BB.Threads.Queues;
 with Regular_Producer_Parameters; use Regular_Producer_Parameters;
 
 package body Regular_Producer is
@@ -14,24 +14,37 @@ package body Regular_Producer is
 
    task body Regular_Producer is
       --  for periodic suspension
-      Next_Time : Ada.Real_Time.Time := Activation_Manager.Get_Activation_Time;
+      Next_Time : Ada.Real_Time.Time := Get_Activation_Time;
+      Work_Jitter : Ada.Real_Time.Time;
+      Release_Jitter : Ada.Real_Time.Time;
    begin
       --  Setting artificial deadline
       Set_Period (System.BB.Time.Milliseconds (Regular_Producer_Period));
-      Set_Starting_Time (Activation_Manager.Time_Conversion (Next_Time));
+      Set_Starting_Time (Time_Conversion (Next_Time));
       Set_Relative_Deadline (System.BB.Time.Milliseconds (Regular_Producer_Deadline));
       Set_Fake_Number_ID (1);
 
       delay until Next_Time;
-      System.BB.Threads.Queues.Initialize_Task_Table (1, False);
+      Initialize_Task_Table (1, False);
       loop
          --  Task_Metrics.Start_Tracking;
-         Next_Time := Next_Time + Period;
+         Release_Jitter := Ada.Real_Time.Time_First +
+           (Ada.Real_Time.Clock - Next_Time);
+
          --  non-suspending operation code
          Regular_Producer_Operation;
+
+         Work_Jitter := Ada.Real_Time.Time_First +
+           (Ada.Real_Time.Clock - (Release_Jitter
+            + (Next_Time - Ada.Real_Time.Time_First)));
+
+         Next_Time := Next_Time + Period;
+
+         Change_Jitters (Running_Thread, Time_Conversion (Work_Jitter), Time_Conversion (Release_Jitter));
+
          --  time-based activation event
          delay until Next_Time; --  delay statement at end of loop
-         System.BB.Threads.Queues.Print_Table (1);
+         Print_Table (1);
          --  Task_Metrics.End_Tracking;
       end loop;
    exception

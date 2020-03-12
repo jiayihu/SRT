@@ -1,17 +1,7 @@
 project Gee is
 
-   SRC := ("src/fps");
-   type Scheduling_Type is ("fps", "edf");
-   Scheduling : Scheduling_Type := external ("sched", "fps");
-
-   case Scheduling is
-      when "edf"  =>
-         SRC := ("src/edf");
-      when others =>
-   end case;
-
    for Main use ("gee.adb");
-   for Source_Dirs use SRC;
+   for Source_Dirs use ("src");
    for Object_Dir use "obj";
 
    package Compiler is

@@ -179,3 +179,24 @@ Spesso ci possono essere altri costrutti che per loro natura hanno bisogno di un
 Riteniamo che il rilevamento delle metriche DM ed Executions sia idealmente interessante da rilevare in alcuni punti precisi del runtime, sfruttando pattern delle task periodiche e sporadiche come l'utilizzo di `Delay_Until` e Entry Call rispettivamente. Questo permetterebbe di rilevare metriche senza "inquinare" il corpo dei jobs. Tuttavia troviamo che la soluzione corrente non sia generalizzata bene a tutti i possibili casi di applicazioni real-time, pur rimanendo nei vincoli del profilo Ravenscar. 
 
 Rimaniamo convinti che farlo nel runtime sia l'approccio corretto, in quanto il corpo di un job può subire jitter, tuttavia è necessario pensare ad un approccio più robusto. Un compito che abbiamo anche noi compreso non essere per nulla banale.
+
+### Unificazione
+
+Abbiamo anche modificato il runtime FPS per fornire le stesse API di quello EDF in modo da usare un'unica versione dell'applicazione GEE. È stato sufficiente aggiungere in `s-taprob` le seguenti dichiarazioni:
+
+```Ada
+Current_Object : Protection_Access;
+
+procedure Initialize_Protection_Deadline
+   (Object           : Protection_Access;
+   Floor_Deadline   : Integer);
+```
+
+L'implementazione della procedura è vuota mentre `Current_Object` è assegnato al valore di `Object` in `Initialize_Protection`, come avviene nel corrispettivo EDF. Tale campo non ha utilizzo in FPS, per cui la modifica è innocua.
+
+```Ada
+procedure Initialize_Protection_Deadline
+     (Object           : Protection_Access;
+      Floor_Deadline   : Integer)
+   is null;
+```
