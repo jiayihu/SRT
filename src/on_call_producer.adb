@@ -12,14 +12,21 @@ with On_Call_Producer_Parameters; use On_Call_Producer_Parameters;
 package body On_Call_Producer is
    use Ada.Real_Time;
 
+   Release_Time : Ada.Real_Time.Time;
+
    --  to hide the implementation of the event buffer
    function Start (Activation_Parameter : Positive) return Boolean is
+      Response : Boolean;
    begin
-      return Request_Buffer.Deposit (Activation_Parameter);
+      Response := Request_Buffer.Deposit (Activation_Parameter);
+      Release_Time := Ada.Real_Time.Clock;
+      return Response;
    end Start;
    task body On_Call_Producer is
       Current_Workload : Positive;
       Next_Time : Ada.Real_Time.Time := Activation_Manager.Get_Activation_Time;
+      Work_Jitter : Ada.Real_Time.Time;
+      Release_Jitter : Ada.Real_Time.Time;
    begin
       --  Setting artificial deadline
       Set_Starting_Time (Activation_Manager.Time_Conversion (Next_Time));
@@ -32,9 +39,16 @@ package body On_Call_Producer is
          --  Task_Metrics.Start_Tracking;
          --  suspending request for activation event with data exchange
          Current_Workload := Request_Buffer.Extract;
+         Release_Jitter := Ada.Real_Time.Time_First +
+            (Ada.Real_Time.Clock - On_Call_Producer.Release_Time);
          --  non-suspending operation code
          On_Call_Producer_Operation (Current_Workload);
          --  Task_Metrics.End_Tracking;
+         Work_Jitter := Ada.Real_Time.Time_First +
+           (Ada.Real_Time.Clock - (Release_Jitter
+            + (On_Call_Producer.Release_Time - Ada.Real_Time.Time_First)));
+
+         Change_Jitters (Running_Thread, Time_Conversion (Work_Jitter), Time_Conversion (Release_Jitter));
       end loop;
    exception
       when Error : others =>
