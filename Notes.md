@@ -70,7 +70,7 @@ Questa situazione spiega anche i due DM (invece che uno solo) che vi sono all'in
 
 Questa ridonanza dei controlli non è solo non necessaria, ma anche dannosa. Abbiamo rilevato infatti che con un workload prossimo al limite, la task riesce a completare sempre in tempo prima di passare allo stato `Delayed` in `Delay_Until` ma ciò provoca comunque una falsa DM da parte del controllo in `Context_Switch_Needed`. Questo perché quest'ultima funzione viene invocata al prossimo Interrupt/SysTick, che avviene 1ms più tardi nel caso peggiore. Quel ms potrebbe provocare un falso positivo.
 
-Per tali motivi, la nostra decisione è stata di rimuovere i controlli di DM e lasciare solo in `Delay_Until`. Questo rimuove la necessità di avere un corretto valore del flag `Check`, un approccio facilmente prono ad errori e la cui correttezza d'uso è difficile da valutare in quanto fortemente dipendente dall'ordine di esecuzione dei vari punti. È sicuramente possibile valutare di rimettere i controlli nei vari punti laddove si voglia rilevare una DM tempestivamente, in tal caso ragionando su un approccio migliore per evitare conteggi multipli.
+Per tali motivi, la nostra decisione è stata di rimuovere i controlli di DM e lasciare solo in `Delay_Until`. Questo rimuove la necessità di avere un corretto valore del flag `Check`, un approccio facilmente prono ad errori e la cui correttezza d'uso è difficile da valutare in quanto fortemente dipendente dall'ordine di esecuzione dei vari punti. È sicuramente possibile valutare di rimettere i controlli nei vari punti laddove si voglia rilevare una DM tempestivamente, in tal caso ragionando su un approccio migliore per evitare conteggi multipli. Ad esempio un approccio ragionevole è usare un `Timing_Event`, il quale viene attivato all'istante di DM senza dover aspettare che il job in overrun arrivi all'istruzione `Delay_Until`. Tant'è che è possibile che, in caso di overload, un job non arrivi mai al completamento se subisce interferenza infinita da parte di task a priorità più alta.
 
 ### Task sporadiche
 
@@ -107,6 +107,60 @@ First_Thread /= Running_Thread and Running_Thread.Preemption_Needed
 Il campo `Preemption_Needed`, ideato da Carletto, serve per evitare di contare come preemption i casi in cui una task periodica vada in stato `Delayed` e vi sia una task in stato `Runnable` nella coda dei ready. Per il runtime, la funzione `Context_Switch_Needed` restituisce `True` in questo caso perché effettivamente c'è da fare un context switch, ma ai nostri fini non va contato come preemption.
 
 Tale meccanismo dovrebbe tuttavia essere esteso anche per le task sporadiche, le quali vanno in stato `Suspended` e possono essere "pre-rilasciate" da una task `Runnable`. Per tale motivo abbiamo aggiunto `Id.Preemption_Needed := True` a `Wakeup` in `s-bbthre.adb` per abilitare il conteggio delle preemptions al risveglio da una sospensione, e `Running_Thread.Preemption_Needed = False` in `s-tposen.adb` prima di una sospensione per disattivare il conteggio. Questo meccanismo è analogo all'uso fatto da Carletto per prima e dopo i `Delay_Until`.
+
+### Release Jitter
+
+Dilan calcola il release jitter nel seguente modo per task periodiche, ove `Change_Jitters` è una procedura che salva il valore di jitter nella tabelle delle metriche. Il secondo parametro è il jitter sul Response Time del job, che tuttavia non abbiamo usato in quanto causava eccezioni di overflow.
+
+```Ada
+loop
+   Release_Jitter := Ada.Real_Time.Time_First +
+      (Ada.Real_Time.Clock - Next_Time);
+
+   Regular_Producer_Operation;
+   Next_Time := Next_Time + Period;
+
+   System.BB.Threads.Queues.Change_Jitters (Running_Thread, Time_Conversion (Ada.Real_Time.Time_First), Time_Conversion (Release_Jitter));
+   delay until Next_Time; --  delay statement at end of loop
+end loop;
+```
+
+Tuttavia tale metodo ovviamente non è applicabile per task sporadiche che non hanno il valore `Next_Time`. Il metodo che abbiamo trovato è stato il seguente:
+
+```Ada
+package body On_Call_Producer is
+   use Ada.Real_Time;
+
+   Release_Time : Ada.Real_Time.Time;
+
+   function Start (Activation_Parameter : Positive) return Boolean is
+      Response : Boolean;
+   begin
+      Response := Request_Buffer.Deposit (Activation_Parameter);
+      Release_Time := Ada.Real_Time.Clock;
+      return Response;
+   end Start;
+
+   task body On_Call_Producer is
+      Current_Workload : Positive;
+      Next_Time : Ada.Real_Time.Time := Activation_Manager.Get_Activation_Time;
+      Release_Jitter : Ada.Real_Time.Time;
+   begin
+      ...
+
+      loop
+         Current_Workload := Request_Buffer.Extract;
+
+         Release_Jitter := Ada.Real_Time.Time_First +
+            (Ada.Real_Time.Clock - Release_Time);
+         On_Call_Producer_Operation (Current_Workload);
+
+         Change_Jitters (Running_Thread, Time_Conversion (Ada.Real_Time.Time_First), Time_Conversion (Release_Jitter));
+      end loop;
+end On_Call_Producer;
+```
+
+Salviamo il tempo di rilascio `Release_Time` dopo l'apertura della barriera sulla entry da parte di Regular Producer tramite la funzione `Start`. Il Release Jitter è quindi calcolato come differenza rispetto a tale istante. Questo approccio funziona fintanto che il sistema non è in stato di overloading. In quel caso, laddove Regular Producer rilasci il successivo job di On Call Producer prima che quello job corrente di questi abbia ancora cominciato, l'istante di `Release_Time` potrebbe non essere più corretto.
 
 ### Sidenotes
 

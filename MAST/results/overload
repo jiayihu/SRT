@@ -1,17 +1,37 @@
-RP: 0.49
-Task  1 - DM  0, Executions  19, Preemptions  0
-Task  2 - DM  0, Executions  6, Preemptions  0
-Task  3 - DM  0, Executions  6, Preemptions  0
-Task  4 - DM  0, Executions  4, Preemptions  0
+RP: 0.50
+Task  1 - DM  0, Executions  19, Preemptions  0, Min_RJ  0.001053733, Max_RJ  0.001505544
+Task  2 - DM  0, Executions  6, Preemptions  0, Min_RJ  0.000033067, Max_RJ  0.000034194
+Task  3 - DM  0, Executions  6, Preemptions  0, Min_RJ  0.000032178, Max_RJ  0.000033528
+Task  4 - DM  0, Executions  4, Preemptions  0, Min_RJ N/A, Max_RJ N/A
 
 RP: 0.52
-Task  1 - DM  20, Executions  19, Preemptions  0
-Task  2 - DM  7, Executions  6, Preemptions  6
-Task  3 - DM  7, Executions  6, Preemptions  6
-Task  4 - DM  0, Executions  4, Preemptions  0
+Task  1 - DM  19, Executions  19, Preemptions  0, Min_RJ  0.001053628, Max_RJ  0.001547378
+Task  2 - DM  6, Executions  6, Preemptions  6, Min_RJ  0.000042828, Max_RJ  0.000044033
+Task  3 - DM  6, Executions  6, Preemptions  6, Min_RJ  0.021249300, Max_RJ  0.021490806
+Task  4 - DM  0, Executions  4, Preemptions  0, Min_RJ N/A, Max_RJ N/A
 
-RP 0.73
-Task  1 - DM  20, Executions  19, Preemptions  0
-Task  2 - DM  7, Executions  6, Preemptions  6
-Task  3 - DM  4, Executions  3, Preemptions  12
-Task  4 - DM  0, Executions  4, Preemptions  0
+RP 0.75
+Task  1 - DM  19, Executions  19, Preemptions  0, Min_RJ  0.001053700, Max_RJ  0.001516400
+Task  2 - DM  6, Executions  6, Preemptions  6, Min_RJ  0.000041728, Max_RJ  0.000042822
+Task  3 - DM  3, Executions  3, Preemptions  12, Min_RJ  0.243860556, Max_RJ  1.219195511
+Task  4 - DM  0, Executions  4, Preemptions  0, Min_RJ N/A, Max_RJ N/A
+
+--  EDF
+
+RP: 0.50
+Task  1 - DM  0, Executions  19, Preemptions  0, Min_RJ  0.001056517, Max_RJ  0.001313233
+Task  2 - DM  0, Executions  6, Preemptions  0, Min_RJ  0.000029317, Max_RJ  0.000030450
+Task  3 - DM  0, Executions  6, Preemptions  0, Min_RJ  0.000031033, Max_RJ  0.000032261
+Task  4 - DM  0, Executions  4, Preemptions  0, Min_RJ N/A, Max_RJ N/A
+
+RP: 0.52
+Task  1 - DM  19, Executions  19, Preemptions  0, Min_RJ  0.001056522, Max_RJ  0.019908256
+Task  2 - DM  0, Executions  6, Preemptions  1, Min_RJ  0.000038889, Max_RJ  0.000040044
+Task  3 - DM  6, Executions  6, Preemptions  6, Min_RJ  0.000040717, Max_RJ  0.000041944
+Task  4 - DM  0, Executions  4, Preemptions  0, Min_RJ N/A, Max_RJ N/A
+
+RP 0.70
+Task  1 - DM  19, Executions  19, Preemptions  0, Min_RJ  0.001056522, Max_RJ  0.237997678
+Task  2 - DM  5, Executions  6, Preemptions  5, Min_RJ  0.000039511, Max_RJ  0.000040083
+Task  3 - DM  6, Executions  6, Preemptions  3, Min_RJ  0.000041700, Max_RJ  1.105315111
+Task  4 - DM  0, Executions  4, Preemptions  0, Min_RJ N/A, Max_RJ N/A

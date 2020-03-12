@@ -1,22 +1,26 @@
 with Ada.Synchronous_Task_Control;
-with Activation_Manager;
+with Activation_Manager; use Activation_Manager;
 with Ada.Text_IO;
 with Ada.Exceptions; use Ada.Exceptions;
 with Ada.Real_Time;
 with Task_Metrics;
 with System.BB.Time;
 with System.BB.Threads; use System.BB.Threads;
-with System.BB.Threads.Queues;
+with System.BB.Threads.Queues; use System.BB.Threads.Queues;
 with Activation_Log_Reader_Parameters; use Activation_Log_Reader_Parameters;
 with System.Tasking.Protected_Objects;
 
 package body Activation_Log_Reader is
    use Ada.Real_Time;
 
+   Release_Time : Ada.Real_Time.Time;
+
    Local_Suspension_Object : Ada.Synchronous_Task_Control.Suspension_Object;
    procedure Signal is
    begin
       Ada.Synchronous_Task_Control.Set_True (Local_Suspension_Object);
+      Release_Time := Ada.Real_Time.Clock;
+      Ada.Text_IO.Put_Line ("Signal");
    end Signal;
 
    procedure Wait is
@@ -28,6 +32,7 @@ package body Activation_Log_Reader is
    task body Activation_Log_Reader is
       --  for tasks to achieve simultaneous activation
       Next_Time : Ada.Real_Time.Time := Activation_Manager.Get_Activation_Time;
+      Release_Jitter : Ada.Real_Time.Time;
    begin
       --  Setting artificial deadline
       Set_Starting_Time (Activation_Manager.Time_Conversion (Next_Time));
@@ -40,8 +45,12 @@ package body Activation_Log_Reader is
          --  suspending parameterless request of activation event
          Wait;
          --  Task_Metrics.Start_Tracking;
+         Release_Jitter := Ada.Real_Time.Time_First +
+            (Ada.Real_Time.Clock - Release_Time);
          --  non-suspending operation code
          Activation_Log_Reader_Operation;
+
+         Change_Jitters (Running_Thread, Time_Conversion (Ada.Real_Time.Time_First), Time_Conversion (Release_Jitter));
          --  Task_Metrics.End_Tracking;
       end loop;
    exception

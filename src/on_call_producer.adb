@@ -1,12 +1,12 @@
 with Request_Buffer;
-with Activation_Manager;
+with Activation_Manager; use Activation_Manager;
 with Ada.Text_IO;
 with Ada.Exceptions; use Ada.Exceptions;
 with Ada.Real_Time;
 with Task_Metrics;
 with System.BB.Time;
 with System.BB.Threads; use System.BB.Threads;
-with System.BB.Threads.Queues;
+with System.BB.Threads.Queues; use System.BB.Threads.Queues;
 with On_Call_Producer_Parameters; use On_Call_Producer_Parameters;
 
 package body On_Call_Producer is
@@ -25,7 +25,6 @@ package body On_Call_Producer is
    task body On_Call_Producer is
       Current_Workload : Positive;
       Next_Time : Ada.Real_Time.Time := Activation_Manager.Get_Activation_Time;
-      Work_Jitter : Ada.Real_Time.Time;
       Release_Jitter : Ada.Real_Time.Time;
    begin
       --  Setting artificial deadline
@@ -40,15 +39,12 @@ package body On_Call_Producer is
          --  suspending request for activation event with data exchange
          Current_Workload := Request_Buffer.Extract;
          Release_Jitter := Ada.Real_Time.Time_First +
-            (Ada.Real_Time.Clock - On_Call_Producer.Release_Time);
+            (Ada.Real_Time.Clock - Release_Time);
          --  non-suspending operation code
          On_Call_Producer_Operation (Current_Workload);
-         --  Task_Metrics.End_Tracking;
-         Work_Jitter := Ada.Real_Time.Time_First +
-           (Ada.Real_Time.Clock - (Release_Jitter
-            + (On_Call_Producer.Release_Time - Ada.Real_Time.Time_First)));
 
-         Change_Jitters (Running_Thread, Time_Conversion (Work_Jitter), Time_Conversion (Release_Jitter));
+         Change_Jitters (Running_Thread, Time_Conversion (Ada.Real_Time.Time_First), Time_Conversion (Release_Jitter));
+         --  Task_Metrics.End_Tracking;
       end loop;
    exception
       when Error : others =>

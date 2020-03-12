@@ -19,10 +19,10 @@ package body Regular_Producer_Parameters is
    Activation_Condition : constant Auxiliary.Range_Counter := 2;
    procedure Regular_Producer_Operation is
    begin
-      --  Task_Metrics.Start_Tracking;
+      Task_Metrics.Start_Tracking;
       --  we execute the guaranteed level of workload
       Production_Workload.Small_Whetstone (Regular_Producer_Workload);
-      --  Task_Metrics.End_Tracking;
+      Task_Metrics.End_Tracking;
       --  then we check whether we need to farm excess load out to
       --  On_Call_Producer
       if Auxiliary.Due_Activation (Activation_Condition) then
