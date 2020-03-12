@@ -310,7 +310,7 @@ The reason for this is that tasks must execute in order, i.e. On\_Call\_Producer
 
 In addition to maximum jitter, tasks offsets are allowed to vary dynamically, from one activation to the next, within a minimum and a maximum value: $\Phi_{ij} \in [\Phi_{ij\ min}, \Phi_{ij\ max}]$. Dynamic offsets are useful in systems in which tasks suspend themselves, like in the case of protected object entries. The task On\_Call\_Producer $\tau_{i2}$ calls the protected entry \texttt{Extract} and suspends itself until the task Regular\_Producer $\tau_{i1}$ replenishes the \texttt{Request\_Buffer}. The activation time of On\_Call\_Producer depends on the completion time of the Regular\_Producer, and thus the offset for task $\tau_{i2}$ is variable in the interval $\Phi_{i2} \in [R_{i1\ min}, R_{i1\ max}]$, where $R_{i1\ min}$ and $R_{i1\ max}$ are respectively the best-case and worst-case response times of task Regular\_Producer.
 
-For each task $\tau_{ij}$ we define its response time as the difference between its completion time and the instant at which the associated external event arrived. The worst-case response time will be called $R_{ij}$. Each task has also an associated global deadline, $D_{ij}$, which is again relative to the arrival of the external event.
+For each task $\tau_{ij}$ we define its response time as the difference between its completion time and the instant at which the task is released. The worst-case response time will be called $R_{ij}$. Each task has also an associated global deadline, $D_{ij}$, which is again relative to the arrival of the external event.
 
 If tasks synchronize using shared resources in a mutually exclusive way, they will be using the aforementioned Immediate Priority Ceiling Protocol. The effects of lower priority tasks on a task under analysis $\tau_{ab}$ are bounded by an amount called the blocking term $B_{ab}$, calculated as the maximum of all the critical sections of lower priority tasks that have a priority ceiling higher than or equal to the priority of $\tau_{ab}$.
 
@@ -324,7 +324,7 @@ Works on such problem have been the base of offset-based analysis, first propose
 
 \section{Execution times}
 
-To use the described model, upper bounds on the execution times are needed. Unfortunately, precise Worst-Case Execution Time (WCET) is hard to find due to pipelines, caches and other performance-enhancing techniques used on contemporary computer architectures \cite{wcet-problem}. These effects are reduced in the case of a more predictable bare-board environment, which can nevertheless suffer a small amount of indeterminism. Therefore pessimistic scheduling is needed in order to provide an offline guarantee that all hard deadlines will be met, but leads to poor processor utilization.
+To use the described model, upper bounds on the execution times are needed. Unfortunately, precise Worst-Case Execution Time (WCET) is hard to find due to pipelines, caches and other performance-enhancing techniques used on contemporary computer architectures \cite{wcet-problem}. These effects are reduced in the case of a more predictable bare-board environment, which can nevertheless suffer a small amount of indeterminism. Therefore pessimistic scheduling is needed in order to provide an offline guarantee that all hard deadlines will be met, but leads to poor processor utilisation.
 
 \begin{figure}[!htbp]
 \centering
@@ -433,7 +433,7 @@ The runtime defines a semi-hosting buffer size of 128 characters before flushing
 
 \section{Deadline miss detection}
 
-In later analysis, we will want to achieve the maximum schedulable utilization by analyzing a MAST model with low utilization and then increasing tasks utilization until the system no longer meets its deadlines. However, for design attributes to turn into system properties, we must enforce them at runtime. In particular, we have to check that the jobs of the tasks always complete before their respective deadline, to ensure consistency between the MAST analysis and the execution \cite{timing-properties}.
+In later analysis, we will want to achieve the maximum schedulable utilisation by analyzing a MAST model with low utilisation and then increasing tasks utilisation until the system no longer meets its deadlines. However, for design attributes to turn into system properties, we must enforce them at runtime. In particular, we have to check that the jobs of the tasks always complete before their respective deadline, to ensure consistency between the MAST analysis and the execution \cite{timing-properties}.
 
 Fortunately, Ada 2005 introduced a lower-level facility that maps a handler to a specific time without the need to use a separate task. The handler is associated with a timing event. When the event time is due and detected by the runtime, the handler code is executed.
 
@@ -1446,7 +1446,7 @@ We may question what the real performance granted by such dynamic-scheduling is.
 
 \subsection{Runtime behaviour}
 
-Despite the pessimistic MAST analysis results, EDF is an optimal scheduler and can handle a total theoretic utilization up to 1. In addition, any feasible preemptive FPS schedule can be transformed into an EDF schedule without affecting its feasibility \cite{spuri}. Hence, we expect the EDF runtime to perform at least as well as the FPS counterpart under the maximum workload reached with Offset-based analysis §\ref{maximum-utilisation}.
+Despite the pessimistic MAST analysis results, EDF is an optimal scheduler and can handle a total theoretic utilisation up to 1. In addition, any feasible preemptive FPS schedule can be transformed into an EDF schedule without affecting its feasibility \cite{spuri}. Hence, we expect the EDF runtime to perform at least as well as the FPS counterpart under the maximum workload reached with Offset-based analysis §\ref{maximum-utilisation}.
 
 \begin{figure}[!htbp]
    \centering
@@ -1480,7 +1480,7 @@ This is further proved by noting that both EDF and FPS algorithms lead to the sa
 
 Given a pair of task $\tau_i$ and $\tau_j$, for the task $\tau_i$ with relative deadline $D_i > D_j$ to have absolute deadline $d_i < d_j$ it must be released at time $t_i < t_j$, i.e. for OCP to have a lower absolute deadline than RP. But under the condition that no task overruns, this situation is clearly not possible. Both OCP and ALR are always activated by the RP, and they complete before the next release of RP. This proves that, within our application with precedence relations, $D_i < D_j \Leftrightarrow d_i < d_j$ and therefore both algorithms assign the same priority.
 
-We provide a further proof of the equivalence between FPS and EDF scheduling by observing the execution metrics. We have enhanced both runtimes with a custom instrumentation to provide valuable execution information such as deadline misses, execution counts, preemptions and release jitters.
+We provide further proof of the equivalence between FPS and EDF scheduling by observing the execution metrics. We have enhanced both runtimes with custom instrumentation to provide valuable execution information such as deadline misses, execution counts, preemptions and release jitters.
 
 \begin{table}[!htbp]
    \centering
@@ -1498,7 +1498,7 @@ We provide a further proof of the equivalence between FPS and EDF scheduling by 
    \label{tab:instrumentation-fps-050}
  \end{table}
 
-Table \ref{tab:instrumentation-fps-050} provides the results for the FPS execution with the system under maximum utilisation, until 19 executions of Regular\_Producer. Release jitter is skipped for External\_Event\_Server since it's always the task with highest priority.
+Table \ref{tab:instrumentation-fps-050} provides the results for the FPS execution with the system under maximum utilisation, up to 19 executions of Regular\_Producer. No job misses its deadline nor suffers preemption since executions never overlap. Release jitter is skipped for External\_Event\_Server since it's always the task with highest priority and it's not periodic, thus not subject to System Tick granularity.
 
 \begin{table}[!htbp]
    \centering
@@ -1536,7 +1536,7 @@ Because of the comparability between PCP and DFP and the schedule correspondence
 
 A job is said to overrun when it executes for more than its guaranteed execution time. We say that a system is overloaded when it is not schedulable on the basis of the maximum execution times of its tasks, and hence it is likely that some jobs will miss their deadlines \cite{liu-overload}.
 
-Any algorithm for scheduling jobs with potential for overrun should meet two criteria if it is to perform well. First, it should guarantee that jobs which do not overrun meet their deadlines and, second, the algorithm tries to maximize the number of deadlines met.
+Any algorithm for scheduling jobs with potential for overrun should meet two criteria if it is to perform well. First, it should guarantee that jobs which do not overrun meet their deadlines and, second, the algorithm tries to maximise the number of deadlines met.
 
 In this section, we compare the behaviour of our application under FPS and EDF during permanent overload situations, which occur in literature when the system utilisation $U > 1$. In our case, our limit is not the theoretical full CPU utilisation 1, we have seen we should consider 0.83 as limits for both FPS and EDF.
 
@@ -1660,7 +1660,7 @@ This behaviour is apparently in contrast with the FPS overload with the same ove
 \label{timeline-overload-edf-extended}
 \end{figure}
 
-All OCP jobs, except for the first instance, fail to meet the deadline and a regular pattern comprising the three tasks emerges as soon as the timeline goes beyond time instant 10. As time elapses from the first activation, OCP and ALR suffer an increasing interference from the overruning RP until time 10, beyond which the jitter is regular. Table \ref{tab:instrumentation-edf-070} provides the evidence. OCP misses all the deadlines but one. Compared to the timeline, the actual execution registers more preemptions for both OCP and ALR. This is due to the fact that the timeline assumes perfect execution times of 0.7s, 0.5s, 0.5s for RP, OCP and ALR respectively. Unfortunately, the real jobs have a slightly less workload which allow OCP and ALR to run for a very brief instant before being preempted by RP.
+All OCP jobs, except for the first instance, fail to meet the deadline and a regular pattern comprising the three tasks emerges as soon as the timeline goes beyond time instant 10. As time elapses from the first activation, OCP and ALR suffer an increasing interference from the overruning RP until time 10, beyond which the jitter is regular. Table \ref{tab:instrumentation-edf-070} provides the evidence: OCP misses all the deadlines but one. Compared to the timeline, the actual execution registers more preemptions for both OCP and ALR. This is due to the fact that the timeline assumes perfect execution times of 0.7s, 0.5s, 0.5s for RP, OCP and ALR respectively. Unfortunately, the real jobs have a slightly less workload which allows OCP and ALR to run for a very brief instant before being preempted by RP.
 
 \begin{table}[!htbp]
    \centering
@@ -1677,7 +1677,7 @@ All OCP jobs, except for the first instance, fail to meet the deadline and a reg
    \label{tab:instrumentation-edf-070}
  \end{table}
 
-This peculiar EDF behaviour, where there is an initial interval of irregularity followed by regular executions and events, is not exhibited by the analogous FPS algorithm with RP overruning of the same amount. In fixed-priority scheduling, all jobs miss their deadline, and the regularity emerges from the first instant of execution, as in Figure \ref{timeline-overload-fps-extended}. However, Table \ref{tab:instrumentation-fps-070} presents a significant difference between FPS and EDF behaviours from the perspective of ALR. With EDF schedule, ALR is still able to keep the pace and have the same number of executions of OCP. In FPS, ALR suffer much more preemptions from higher-priority tasks and struggle to complete its jobs.
+This peculiar EDF behaviour, where there is an initial interval of irregularity followed by regular executions and events, is not exhibited by the analogous FPS algorithm with RP overruning of the same amount. In fixed-priority scheduling, all jobs miss their deadline, and the regularity emerges from the first instant of execution, as in Figure \ref{timeline-overload-fps-extended}. However, Table \ref{tab:instrumentation-fps-070} presents a significant difference between FPS and EDF behaviours from the perspective of ALR. With EDF schedule, ALR is still able to keep the pace and have the same number of executions of OCP. In FPS, ALR suffers much more preemptions from higher-priority tasks and struggle to complete its jobs.
 
 \begin{figure}[!htbp]
 \centering
@@ -1705,7 +1705,7 @@ When the first task that misses its deadline causes all subsequent tasks to miss
 
 The application under consideration doesn't seem to provoke domino effect. Although a permanent overload of RP causes all subsequent tasks to miss their deadline, it's trivial to show with a timeline that a transient overload of it causes a finite amount of subsequent deadline misses. Eventually, the system is able to recover as long as the system utilisation is below 1. The same property holds for an overruning OCP, as made evident by Figure \ref{timeline-overload-edf-ocp}. We believe this is again because of the precedence relationships. Even if RP misses a deadline, the later OCP and ALR are not activated independently. They wait for RP completion and are less subject to domino effect.
 
-Nevertheless, a difference between FPS and EDF is that, under the former, an overrun in a task cannot cause tasks with higher priority to miss their deadlines but at the expense of lower-priority tasks like ALR. On the contrary, under EDF any other task could miss its deadline but it is more fair. That is, the latter does not provide any type of guarantee on which tasks will meet their timing constraints but each task is able to keep the pace.
+Nevertheless, a difference between FPS and EDF is that, under the former, an overrun in a task cannot cause tasks with higher priority to miss their deadlines but at the expense of lower-priority tasks like ALR. On the contrary, under EDF any other task could miss its deadline, but it is fairer. That is, the latter does not provide any type of guarantee on which tasks will meet their timing constraints, but each task is able to keep the pace.
 
 \begin{figure}[!htbp]
 \centering
@@ -1718,7 +1718,7 @@ Lastly, an additional interesting property of EDF during permanent overloads is 
 
 \textit{Assume a set of $n$ periodic tasks, where each task is described by a fixed period $T_i$, a fixed execution time $C_i$, a relative deadline $D_i$, and a release offset $\Phi_i$. If U > 1 and tasks are scheduled by EDF, then the average period $\tilde{T}_i$ of each task $\tau_i$ is given by $\tilde{T}_i = T_iU$.}
 
-With our previous overruning case, the rescaling factor would be $U = (0.7/1 + 0.5/3 + 0.5/3) \approx 1.0\bar{3}$. According the to theorem, the tasks are executing with average periods $\tilde{T}_{RP} = T_{RP}*U = 1.0\bar{3} * 1 = 1.0\bar{3}$ and $\tilde{T}_{OCP} = \tilde{T}_{ALR} = 1.0\bar{3} * 3 = 3.1$. Indeed, it can be verified with the help of Figure \ref{timeline-overload-edf-pattern} that in the repeated interval of 3.1 seconds, RP executes 3 times ($3.1/1.0\bar{3} = 3$), whereas OCP and ALR execute once respectively ($3.1/3.1 = 1$).
+With our previous overruning case, the rescaling factor would be $U = (0.7/1 + 0.5/3 + 0.5/3) \approx 1.0\bar{3}$. According to the theorem, the tasks are executing with average periods $\tilde{T}_{RP} = T_{RP}*U = 1.0\bar{3} * 1 = 1.0\bar{3}$ and $\tilde{T}_{OCP} = \tilde{T}_{ALR} = 1.0\bar{3} * 3 = 3.1$. Indeed, it can be verified with the help of Figure \ref{timeline-overload-edf-pattern} that in the repeated interval of 3.1 seconds, RP executes 3 times ($3.1/1.0\bar{3} = 3$), whereas OCP and ALR execute once respectively ($3.1/3.1 = 1$). Therefore, under EDF scheduling the system maintains less throughput then expected but the damage is distributed between all the tasks, while FPS is able to keep the specified throughput for higher-priority tasks to the detriment of lesser jobs.
 
 \begin{figure}[!htbp]
 \centering
@@ -1733,9 +1733,9 @@ We have started off the analysis by seeing the uses of offsets as a mechanism to
 
 Throughout this paper, we have used MAST as model for describing real-time applications and representing not only the characteristics of the architecture of the application but also the hard real-time requirements that are imposed. However, we believe there is still some scheduling theory needed to eliminate some of the restrictions. The combination of all the restrictions has posed a severe blocking issue in our ability to describe a consistent model which could lead to a sound analysis of maximum utilisation. From our experience, the most critical missing pieces are the enhancement of the FPS offset-based analysis between transactions, to make it less pessimist, and the support for EDF offset-based analysis of linear transactions.
 
-Besides, in this paper, we compared the behaviour of the two most famous policies: the FPS and the EDF algorithm. EDF allows a theoretic full processor utilization, which implies a more efficient exploitation of computational resources, but the statement doesn't hold in general with applications composed of dependant tasks.
+Besides, in this paper, we compared the behaviour of the two most famous policies: the FPS and the EDF algorithm. EDF allows a theoretic full processor utilisation, which implies more efficient exploitation of computational resources, but the statement doesn't hold in general with applications composed of dependant tasks.
 
-At the same time, predictability during overload conditions only apply for the highest priority task, and it is not valid in general for the other tasks. Such a property of FPS can be of little use if we do not know a priori which other task is going to overrun \cite{buttazzo-rm-edf}. Under permanent overload conditions, both the behaviours of FPS and EDF are predictable except for an initial interval, but deciding which one is better is highly application conditional. Nevertheless, what we have presented in this paper is just a shallow insight. Further work is undoubtedly needed to explore better the implications of relation dependencies in FPS and EDF overload.
+At the same time, predictability during overload conditions only apply for the highest priority task, and it is not valid in general for the other tasks. Such a property of FPS can be of little use if we do not know a priori which other task is going to overrun \cite{buttazzo-rm-edf}. Under permanent overload conditions, both the behaviours of FPS and EDF are predictable except for an initial interval, but deciding which one is better is highly application conditional. FPS favours high-priority tasks at the expense of the lower ones, whereas EDF exhibits more fairness but provides fewer guarantees on which tasks will meet their deadlines. Nevertheless, what we have presented in this paper is just a shallow insight. Further work is undoubtedly needed to explore better the implications of relation dependencies in FPS and EDF overload.
 
 In this paper, we have also introduced the Deadline-Floor Protocol for controlling access to shared resources within the EDF scheduling framework. This protocol has already been proved to be equivalent to the Stack Resource Protocol, the defacto protocol to use with EDF, by A. Burns (2005) \cite{resource-sharing}. We have instead shown that the combination EDF+DFP can exhibit the same schedule and blocking times of FPS+IPCP in a system where job releases are not stand-alone but instead form a chain.
 
