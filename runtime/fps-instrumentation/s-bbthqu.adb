@@ -113,19 +113,42 @@ package body System.BB.Threads.Queues is
       end if;
    end Add_Preemption;
 
+   function Print_Jitter (Jitter : Time_Span) return String;
+
    procedure Print_Table (First_Index : Integer) is
       i : Integer := First_Index;
    begin
       while i <= Max_ID_Table loop
          System.IO.Put_Line ("Task "
             & Integer'Image (i)
-            & " - DM " & Integer'Image (Task_Table (i).DM)
-            & ", Executions " & Integer'Image (Task_Table (i).Execution)
-            & ", Preemptions " & Integer'Image (Task_Table (i).Preemption));
+            & " - DM " & Task_Table (i).DM'Image
+            & ", Executions " & Task_Table (i).Execution'Image
+            & ", Preemptions " & Task_Table (i).Preemption'Image
+            & ", Min_RJ "
+               & Print_Jitter (Task_Table (i).Min_Release_Jitter)
+            & ", Max_RJ "
+               & Print_Jitter (Task_Table (i).Max_Release_Jitter)
+            & ", Min_WJ "
+               & Print_Jitter (Task_Table (i).Min_Work_Jitter)
+            & ", Max_WJ "
+               & Print_Jitter (Task_Table (i).Max_Work_Jitter)
+            & ", Average_WJ "
+               & Print_Jitter (Task_Table (i).Average_Work_Jitter));
          i := i + 1;
       end loop;
 
    end Print_Table;
+
+   function Print_Jitter (Jitter : Time_Span) return String is
+   begin
+      if Jitter /= Time_Span_Last and Jitter /= Time_Span_First
+         and Jitter /= Time_Span_Zero
+      then
+         return To_Duration (Jitter)'Image;
+      end if;
+
+      return "N/A";
+   end Print_Jitter;
 
    ---------------------
    -- Change_Priority --
