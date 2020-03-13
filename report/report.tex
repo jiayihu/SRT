@@ -1484,14 +1484,15 @@ We provide further proof of the equivalence between FPS and EDF scheduling by ob
 
 \begin{table}[!htbp]
    \centering
-   \begin{tabular}{llllll}
+   \begin{tabular}{lllllll}
     \toprule
-    Task & Deadline misses & Executions & Preemptions & Min Release Jitter & Max Release Jitter \\
+    Task & DM & Exec & Preempt & Min Release Jitter & Max Release Jitter & $R_{max}$ \\
     \midrule
-    Regular\_Producer & 0 & 19 &  0 & 0.001053733 &  0.001505544 \\
-    On\_Call\_Producer & 0 & 6 &  0 & 0.000033067 &  0.000034194 \\
-    Activation\_Log\_Reader & 0 & 6 &  0 & 0.000032178 &  0.000033528 \\
-    External\_Event\_Server & 0 & 4 &  0 & N/A & N/A \\
+    Regular\_Producer & 0 & 19 &  0 & 0.001053733 &  0.001505544 & 0.498750639 \\
+    On\_Call\_Producer & 0 & 6 &  0 & 0.000033067 &  0.000034194 & 0.498277889 \\
+    Activation\_Log\_Reader & 0 & 6 &  0 & 0.000032178 &  0.000033528 & 0.494317389 \\
+    \toprule
+    Total utilisation & 83.33\% \\
     \toprule
    \end{tabular}
    \caption{Instrumentation values for FPS schedule with maximum utilisation}
@@ -1502,14 +1503,15 @@ Table \ref{tab:instrumentation-fps-050} provides the results for the FPS executi
 
 \begin{table}[!htbp]
    \centering
-   \begin{tabular}{llllll}
+   \begin{tabular}{lllllll}
     \toprule
-    Task & Deadline misses & Executions & Preemptions & Min Release Jitter & Max Release Jitter \\
+    Task & DM & Exec & Preempt & Min Release Jitter & Max Release Jitter & $R_{max}$ \\
     \midrule
-    Regular\_Producer & 0 & 19 & 0 & 0.001056517 & 0.001313233 \\
-    On\_Call\_Producer & 0 & 6 & 0 & 0.000029317 & 0.000030450 \\
-    Activation\_Log\_Reader & 0 & 6 & 0 & 0.000031033 & 0.000032261 \\
-    External\_Event\_Server & 0 & 4 & 0 & N/A & N/A \\
+    Regular\_Producer & 0 & 19 & 0 & 0.001056517 & 0.001313233 & 0.497775894 \\
+    On\_Call\_Producer & 0 & 6 & 0 & 0.000029317 & 0.000030450 & 0.503115856 \\
+    Activation\_Log\_Reader & 0 & 6 & 0 & 0.000031033 & 0.000032261 & 0.499129944 \\
+    \toprule
+    Total utilisation & 83.33\% \\
     \toprule
    \end{tabular}
    \caption{Instrumentation values for EDF schedule with maximum utilisation}
@@ -1573,13 +1575,15 @@ As proved by the runtime log and shown in the timeline in Figure \ref{timeline-o
 
 \begin{table}[!htbp]
    \centering
-   \begin{tabular}{llllll}
+   \begin{tabular}{lllllll}
     \toprule
-    Task & Deadline misses & Executions & Preemptions & Min Release Jitter & Max Release Jitter \\
+    Task & DM & Exec & Preempt & Min Release Jitter & Max Release Jitter & $R_{max}$ \\
     \midrule
-    Regular\_Producer & 19 & 19 & 0 &  0.001053628 &  0.001547378 \\
-    On\_Call\_Producer & 6 & 6 & 6 &  0.000042828 &  0.000044033 \\
-    Activation\_Log\_Reader & 6 & 6 & 6 &  0.021249300 &  0.021490806 \\
+    Regular\_Producer & 19 & 19 & 0 &  0.001053628 &  0.001547378 & 0.524420933 \\
+    On\_Call\_Producer & 6 & 6 & 6 &  0.000042828 &  0.000044033 & 1.021757094 \\
+    Activation\_Log\_Reader & 6 & 6 & 6 &  0.021249300 &  0.021490806 & 1.039471794 \\
+    \toprule
+    Total utilisation & 85.33\% \\
     \toprule
    \end{tabular}
    \caption{Instrumentation values for FPS schedule with RP overloading of $\epsilon=0.02$}
@@ -1638,13 +1642,15 @@ A RP overload of $\epsilon = 0.02s$ causes the deadline miss of the ALR, as show
 
 \begin{table}[!htbp]
    \centering
-   \begin{tabular}{llllll}
+   \begin{tabular}{lllllll}
     \toprule
-    Task & Deadline misses & Executions & Preemptions & Min Release Jitter & Max Release Jitter \\
+    Task & DM & Exec & Preempt & Min Release Jitter & Max Release Jitter & $R_{max}$ \\
     \midrule
-   Regular\_Producer & 19 & 19 & 0 &  0.001056522 &  0.019908256 \\
-   On\_Call\_Producer & 0 & 6 & 0 & 0.000038889 &  0.000040044 \\
-   Activation\_Log\_Reader & 6 & 6 & 6 &  0.000040717 &  0.000041944 \\
+   Regular\_Producer & 19 & 19 & 0 &  0.001056522 &  0.019908256 & 0.561066067 \\
+   On\_Call\_Producer & 0 & 6 & 0 & 0.000038889 &  0.000040044 & 0.503191217 \\
+   Activation\_Log\_Reader & 6 & 6 & 6 &  0.000040717 &  0.000041944 & 1.027671206 \\
+    \toprule
+    Total utilisation & 85.33\% \\
     \toprule
    \end{tabular}
    \caption{Instrumentation values for EDF schedule with RP overloading of $\epsilon=0.02$}
@@ -1664,13 +1670,15 @@ All OCP jobs, except for the first instance, fail to meet the deadline and a reg
 
 \begin{table}[!htbp]
    \centering
-   \begin{tabular}{llllll}
+   \begin{tabular}{lllllll}
     \toprule
-    Task & Deadline misses & Executions & Preemptions & Min Release Jitter & Max Release Jitter \\
+    Task & DM & Exec & Preempt & Min Release Jitter & Max Release Jitter & $R_{max}$ \\
     \midrule
-    Regular\_Producer & 19 & 19 & 0 &  0.001056522 &  0.237997678 \\
-    On\_Call\_Producer & 5 & 6 & 5 &  0.000039511 &  0.000040083 \\
-    Activation\_Log\_Reader & 6 & 6 & 3 &  0.000041700 &  1.105315111 \\
+    Regular\_Producer & 19 & 19 & 0 &  0.001056522 &  0.237997678 & 1.126713644 \\
+    On\_Call\_Producer & 5 & 6 & 5 &  0.000039511 &  0.000040083 & 1.197857533 \\
+    Activation\_Log\_Reader & 6 & 6 & 3 &  0.000041700 &  1.105315111 & 1.696978956 \\
+    \toprule
+    Total utilisation & 100.03\% \\
     \toprule
    \end{tabular}
    \caption{Instrumentation values for EDF schedule with RP overloading of $\epsilon=0.20$}
@@ -1688,13 +1696,15 @@ This peculiar EDF behaviour, where there is an initial interval of irregularity 
 
 \begin{table}[!htbp]
    \centering
-   \begin{tabular}{llllll}
+   \begin{tabular}{lllllll}
     \toprule
-    Task & Deadline misses & Executions & Preemptions & Min Release Jitter & Max Release Jitter \\
+    Task & DM & Exec & Preempt & Min Release Jitter & Max Release Jitter & $R_{max}$ \\
     \midrule
-     Regular\_Producer & 19 & 19 & 0 & 0.001053700 & 0.001516400 \\
-     On\_Call\_Producer & 6 & 6 & 6 & 0.000041728 & 0.000042822 \\
-     Activation\_Log\_Reader & 3 & 3 & 12 & 0.243860556 & 1.219195511 \\
+     Regular\_Producer & 19 & 19 & 0 & 0.001053700 & 0.001516400 & 0.698694417 \\
+     On\_Call\_Producer & 6 & 6 & 6 & 0.000041728 & 0.000042822 & 1.195951244 \\
+     Activation\_Log\_Reader & 4 & 4 & 12 & 0.243860556 & 1.219195511 & 3.281164544 \\
+    \toprule
+    Total utilisation & 100.03\% \\
     \toprule
    \end{tabular}
    \caption{Instrumentation values for FPS schedule with RP overloading of $\epsilon=0.20$}

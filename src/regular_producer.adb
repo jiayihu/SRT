@@ -15,7 +15,8 @@ package body Regular_Producer is
    task body Regular_Producer is
       --  for periodic suspension
       Next_Time : Ada.Real_Time.Time := Get_Activation_Time;
-      Release_Jitter : Ada.Real_Time.Time;
+      Release_Jitter : Ada.Real_Time.Time_Span;
+      Response_Time : Ada.Real_Time.Time_Span;
    begin
       --  Setting artificial deadline
       Set_Period (System.BB.Time.Milliseconds (Regular_Producer_Period));
@@ -27,15 +28,14 @@ package body Regular_Producer is
       Initialize_Task_Table (1, False);
       loop
          --  Task_Metrics.Start_Tracking;
-         Release_Jitter := Ada.Real_Time.Time_First +
-           (Ada.Real_Time.Clock - Next_Time);
+         Release_Jitter := Ada.Real_Time.Clock - Next_Time;
 
          --  non-suspending operation code
          Regular_Producer_Operation;
 
+         Response_Time := Ada.Real_Time.Clock - Next_Time;
          Next_Time := Next_Time + Period;
-
-         Change_Jitters (Running_Thread, Time_Conversion (Ada.Real_Time.Time_First), Time_Conversion (Release_Jitter));
+         Change_Jitters (Running_Thread, System.BB.Time.To_Time_Span (To_Duration (Response_Time)), System.BB.Time.To_Time_Span (To_Duration (Release_Jitter)));
 
          --  time-based activation event
          delay until Next_Time; --  delay statement at end of loop
